@@ -20,8 +20,8 @@ const HERO_H = 250;      // hauteur d'affichage du héros (px)
 
 const ELEMENT_COLOR = { feu: "#ff9a4d", poison: "#8fdc5a", givre: "#8fd3f5", arcane: "#a99bff", phys: "#ffe7a8" };
 const RANGED = new Set(["tir_rapide", "tir_percant", "pluie_de_fleches"]);
-const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, stun: "Étourdi", weaken: "Affaibli", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
-const BADGE = { feu: "🔥", poison: "☠️", weaken: "❄️", defDown: "💔", parade: "🛡️", stun: "💫", shadow: "🌑" };
+const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, paLoss: "PA retirés", weaken: "Affaibli", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
+const BADGE = { feu: "🔥", poison: "☠️", weaken: "❄️", defDown: "💔", parade: "🛡️", paLoss: "🔻", shadow: "🌑" };
 
 function enemySlots(list) {
   const n = list.length;
@@ -301,8 +301,8 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           if (e.kind === "weaken") addFx(e.id, "frost");
           break;
         }
-        case "stun":
-          addFloat(e.id, "Étourdi", "status", 36);
+        case "paLoss":
+          addFloat(e.id, `-${e.amount} PA`, "status", 36);
           pulse(e.id, "stun");
           break;
         case "counter":
@@ -325,7 +325,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           await sleep(e.id === "player" ? 0 : 140);
           break;
         case "skip":
-          addFloat(e.id, "Passe son tour", "status", 36);
+          addFloat(e.id, "Plus de PA !", "status", 36);
           await sleep(450);
           break;
         case "playerTurn":

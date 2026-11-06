@@ -197,10 +197,12 @@ function checkPhases(s, events, enemy) {
 // Applique l'effet d'un sort ou d'une action à une cible touchée
 function applyEffect(s, events, source, target, effect, atkType = "phys") {
   if (!effect || !target.alive) return;
-  if (effect.kind === "stun") {
-    // La cible passe son prochain tour
-    if (!target.effects.some((e) => e.kind === "stun")) target.effects.push({ kind: "stun", turns: 1 });
-    events.push({ type: "stun", id: target.id });
+  if (effect.kind === "paLoss") {
+    // Retrait de PA : la cible aura moins de PA à son prochain tour (puis ça passe)
+    const existing = target.effects.find((e) => e.kind === "paLoss");
+    if (existing) existing.value += effect.value;
+    else target.effects.push({ kind: "paLoss", turns: 1, value: effect.value });
+    events.push({ type: "paLoss", id: target.id, amount: effect.value });
     return;
   }
   const entry = { kind: effect.kind, turns: effect.turns, value: effect.value, element: effect.element };
@@ -267,8 +269,10 @@ function checkEnd(s, events) {
 // ------------------------------------------------------------
 // Tour d'un ennemi
 // ------------------------------------------------------------
-function chooseAction(s, enemy) {
-  const actions = ENEMIES[enemy.key].actions;
+const ACTION_PA = 3;   // coût par défaut d'une action ennemie
+const ENEMY_PA = 6;    // PA par tour d'un ennemi, sauf indication contraire
+
+function chooseAction(s, actions) {
   const total = actions.reduce((sum, a) => sum + a.weight, 0);
   let r = rand(s) * total;
   for (const a of actions) {
@@ -278,12 +282,20 @@ function chooseAction(s, enemy) {
   return actions[actions.length - 1];
 }
 
-function enemyAct(s, events, enemy) {
-  const action = chooseAction(s, enemy);
-  events.push({ type: "cast", from: enemy.id, label: action.name, spellType: action.type, targets: ["player"] });
-  const res = attack(s, events, enemy, s.player, { type: action.type, power: action.power, label: action.name });
-  if (res.hit && action.effect) applyEffect(s, events, enemy, s.player, action.effect);
-  checkEnd(s, events);
+// Un ennemi dépense ses PA en enchaînant des actions, comme le joueur
+function enemyAct(s, events, enemy, budget) {
+  let pa = budget;
+  const all = ENEMIES[enemy.key].actions;
+  while (pa > 0 && enemy.alive && s.phase === "running") {
+    const options = all.filter((a) => (a.pa ?? ACTION_PA) <= pa);
+    if (!options.length) break;
+    const action = chooseAction(s, options);
+    pa -= action.pa ?? ACTION_PA;
+    events.push({ type: "cast", from: enemy.id, label: action.name, spellType: action.type, targets: ["player"] });
+    const res = attack(s, events, enemy, s.player, { type: action.type, power: action.power, label: action.name });
+    if (res.hit && action.effect) applyEffect(s, events, enemy, s.player, action.effect);
+    checkEnd(s, events);
+  }
 }
 
 // ------------------------------------------------------------
@@ -308,19 +320,22 @@ export function advance(state) {
     if (!actor.alive) continue;
 
     events.push({ type: "turn", id: actor.id, round: s.round });
-    const stunned = actor.effects.some((e) => e.kind === "stun");
+    // Retrait de PA subi : lu avant que startTurn ne fasse expirer l'effet
+    const paLoss = actor.effects.filter((e) => e.kind === "paLoss").reduce((sum, e) => sum + e.value, 0);
     startTurn(s, events, actor);          // dégâts sur la durée, durée des effets
     if (!actor.alive) { checkEnd(s, events); continue; }
-    if (stunned) { events.push({ type: "skip", id: actor.id }); continue; }
+    const basePa = actor.isPlayer ? PA_MAX : (actor.stats.pa ?? ENEMY_PA);
+    const pa = Math.max(0, basePa - paLoss);
+    if (pa === 0) { events.push({ type: "skip", id: actor.id }); continue; }
 
     if (actor.isPlayer) {
       s.turns += 1;
-      s.player.pa = PA_MAX;
+      s.player.pa = pa;
       s.player.flags.discountReady = s.player.flags.spellDiscount > 0;
       s.phase = "playerTurn";
-      events.push({ type: "playerTurn", pa: PA_MAX });
+      events.push({ type: "playerTurn", pa });
     } else {
-      enemyAct(s, events, actor);
+      enemyAct(s, events, actor, pa);
     }
   }
   return { state: s, events };

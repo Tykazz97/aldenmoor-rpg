@@ -81,7 +81,7 @@ for (const e of Object.values(ENEMIES)) {
   }
   if (!(e.xp > 0)) err(`Ennemi ${e.key} : xp manquante`);
   if (!e.actions?.length) err(`Ennemi ${e.key} : aucune action`);
-  for (const a of e.actions || []) if (!(a.power > 0 && a.weight > 0)) err(`Ennemi ${e.key} : action invalide ${a.id}`);
+  for (const a of e.actions || []) if (!(a.power > 0 && a.weight > 0 && a.pa >= 1)) err(`Ennemi ${e.key} : action invalide ${a.id}`);
   if (!existsSync(`public${e.img}`)) err(`Ennemi ${e.key} : image absente (${e.img})`);
 }
 for (const w of Object.values(WEAPON_TYPES)) {

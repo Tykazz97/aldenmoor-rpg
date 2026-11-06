@@ -118,14 +118,30 @@ test("le poison inflige des dégâts à chaque tour de la cible (3 tours)", () =
   assert.equal(state.enemies[0].effects.filter((e) => e.kind === "dot").length, 0);
 });
 
-test("l'étourdissement fait passer le prochain tour de la cible", () => {
-  let { state } = toPlayerTurn(mk({ weapon: "marteau", enemies: ["sanglier_sauvage"] }));
-  const r = castSpell(state, "etourdissement", "e0");
-  assert.ok(r.events.some((e) => e.type === "stun"));
-  state = endTurn(r.state).state;
-  const next = advance(state);
-  assert.ok(next.events.some((e) => e.type === "skip" && e.id === "e0"), "le sanglier doit passer son tour");
-  assert.ok(!next.events.some((e) => e.type === "cast" && e.from === "e0"));
+test("le retrait de PA réduit le nombre d'actions de l'ennemi à son prochain tour", () => {
+  const casts = (withLoss) => {
+    let { state } = toPlayerTurn(mk({ weapon: "marteau", enemies: ["sanglier_sauvage"], seed: 4 }));
+    if (withLoss) {
+      const r = castSpell(state, "choc_sonnant", "e0");
+      assert.ok(r.events.some((e) => e.type === "paLoss" && e.amount === 3));
+      state = r.state;
+    }
+    state = endTurn(state).state;
+    return advance(state).events.filter((e) => e.type === "cast" && e.from === "e0").length;
+  };
+  assert.ok(casts(true) < casts(false), "moins d'actions avec le retrait de PA");
+});
+
+test("un ennemi dépense ses PA : il peut enchaîner plusieurs actions par tour", () => {
+  let most = 0;
+  for (let seed = 1; seed <= 10; seed++) {
+    let st = toPlayerTurn(mk({ enemies: ["loup_des_plaines"], seed })).state;
+    st = endTurn(st).state;
+    const n = advance(st).events.filter((e) => e.type === "cast").length;
+    assert.ok(n >= 1 && n <= 2, "6 PA : une ou deux actions");
+    most = Math.max(most, n);
+  }
+  assert.equal(most, 2);
 });
 
 test("le givre affaiblit la cible : elle inflige moins de dégâts et son initiative ne bouge pas", () => {

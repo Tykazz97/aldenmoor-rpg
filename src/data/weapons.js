@@ -15,7 +15,7 @@
 //     { kind: "dot", element, turns, ratio }   dégâts par tour = ratio × attaque
 //     { kind: "weaken", turns, value }         la cible inflige `value` (0-1) de dégâts en moins
 //     { kind: "defDown", turns, value }        défense réduite de `value` (0-1)
-//     { kind: "stun" }                         la cible passe son prochain tour
+//     { kind: "paLoss", value }                la cible perd `value` PA à son prochain tour
 //   selfEffect  effet appliqué au lanceur (sorts de type "buff") :
 //     { kind: "parade", turns, defUp, counter }
 //     { kind: "shadow" }  prochaine attaque reçue esquivée + prochain coup critique
@@ -95,8 +95,8 @@ export const WEAPON_TYPES = {
     damageType: "phys",
     spells: [
       { id: "ecrasement", name: "Écrasement", pa: 3, type: "phys", power: 1.8, desc: "Gros dégâts physiques, coup lent mais puissant" },
-      { id: "etourdissement", name: "Étourdissement", pa: 4, type: "phys", power: 1.1, desc: "Dégâts physiques moyens + la cible perd son prochain tour",
-        effect: { kind: "stun" } },
+      { id: "choc_sonnant", name: "Choc Sonnant", pa: 4, type: "phys", power: 1.1, desc: "Dégâts physiques moyens + retire 3 PA à la cible à son prochain tour",
+        effect: { kind: "paLoss", value: 3 } },
       { id: "seisme", name: "Séisme", pa: 6, type: "phys", power: 1.2, desc: "Dégâts physiques sur tous les ennemis + affaiblit leurs attaques de 25% (2 tours)", aoe: true, applyElement: "givre",
         effect: { kind: "weaken", turns: 2, value: 0.25 } },
     ],
