@@ -49,12 +49,49 @@ export const ZONES = {
 
 export const ENEMIES = {
   // --- Région 1 : Prairies Sauvages ---
-  loup_des_plaines: { key: "loup_des_plaines", name: "Loup des plaines", desc: "Rapide, attaque en meute, dégâts physiques faibles mais nombreux." },
-  sanglier_sauvage: { key: "sanglier_sauvage", name: "Sanglier sauvage", desc: "Tanky, charge puissante, dégâts physiques moyens." },
-  bandit_des_routes: { key: "bandit_des_routes", name: "Bandit des routes", desc: "Arme simple, vole parfois de l'or." },
+  // drops : { type: "resource" | "item", id, chance (0-1), min, max }
+  // gold   : [min, max]. Les chances sont de base ; la Chance du joueur
+  // (dropBonus) les multiplie au moment du tirage.
+  loup_des_plaines: {
+    key: "loup_des_plaines", name: "Loup des plaines",
+    desc: "Rapide, attaque en meute, dégâts physiques faibles mais nombreux.",
+    gold: [3, 8],
+    drops: [
+      { type: "resource", id: "croc_de_loup", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "fourrure_grise", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "oeil_de_loup_argente", chance: 0.02, min: 1, max: 1 },
+    ],
+  },
+  sanglier_sauvage: {
+    key: "sanglier_sauvage", name: "Sanglier sauvage",
+    desc: "Tanky, charge puissante, dégâts physiques moyens.",
+    gold: [4, 10],
+    drops: [
+      { type: "resource", id: "peau_de_sanglier", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "defense_ebrechee", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "coeur_de_sanglier", chance: 0.02, min: 1, max: 1 },
+      { type: "item", id: "masse_rouillee", chance: 0.03, min: 1, max: 1 },
+    ],
+  },
+  bandit_des_routes: {
+    key: "bandit_des_routes", name: "Bandit des routes",
+    desc: "Arme simple, vole parfois de l'or.",
+    gold: [6, 15],
+    drops: [
+      { type: "resource", id: "chiffon_rapiece", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "ferraille_emoussee", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "parchemin_froisse", chance: 0.02, min: 1, max: 1 },
+      { type: "item", id: "dague_ebrechee", chance: 0.03, min: 1, max: 1 },
+    ],
+  },
   cavalier_dechu: {
     key: "cavalier_dechu", name: "Le Cavalier Déchu", miniBoss: true,
     desc: "Ancien chevalier protecteur des prairies, corrompu. Coup chargé infligeant un debuff DEF, phase de rage à bas HP.",
+    gold: [40, 80],
+    drops: [
+      { type: "resource", id: "fragment_armure_maudite", chance: 0.6, min: 1, max: 2 },
+      { type: "resource", id: "eperon_corrompu", chance: 0.2, min: 1, max: 1 },
+    ],
   },
 
   // --- Région 2 : Champs Calcinés ---
