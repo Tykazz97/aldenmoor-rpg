@@ -16,8 +16,8 @@ export const CARACS = {
     key: "intelligence",
     label: "Intelligence",
     color: "#7c6fd9",
-    desc: "Dégâts magiques (+2/pt) + Mana (+5/pt)",
-    effect: (val) => ({ atkMagie: val * 2, manaMax: val * 5 }),
+    desc: "Dégâts magiques (+2/pt)",
+    effect: (val) => ({ atkMagie: val * 2 }),
   },
   agilite: {
     key: "agilite",
@@ -56,7 +56,7 @@ export const FREE_VITALITE_PER_LEVEL = 1;
 
 // Calcule l'ensemble des bonus de caracs à partir d'un objet {force: 3, ...}
 export function applyCaracEffects(caracsValues) {
-  const out = { atkPhys: 0, atkMagie: 0, manaMax: 0, esquive: 0, critique: 0, maxHpBonus: 0, dropBonus: 0, vitesse: 10 };
+  const out = { atkPhys: 0, atkMagie: 0, esquive: 0, critique: 0, maxHpBonus: 0, dropBonus: 0, vitesse: 10 };
   for (const key of CARAC_ORDER) {
     const val = caracsValues[key] || 0;
     const effect = CARACS[key].effect(val);

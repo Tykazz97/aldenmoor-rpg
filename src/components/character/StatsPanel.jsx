@@ -102,7 +102,6 @@ export default function StatsPanel({ player, stats, onAddCaracPoint }) {
           <StatCell label="DEF Physique" value={stats.defPhys} color={color.phys} />
           <StatCell label="DEF Magique" value={stats.defMagie} color={color.mag} />
           <StatCell label="HP max" value={stats.maxHp} color={color.blood} />
-          <StatCell label="Mana max" value={stats.manaMax} color={color.frost} />
           <StatCell label="Esquive" value={`${stats.esquive.toFixed(0)}%`} color={color.success} />
           <StatCell label="Critique" value={`${stats.critique.toFixed(1)}%`} color={color.gold} />
           <StatCell label="Vitesse" value={stats.vitesse} color={color.frost} />

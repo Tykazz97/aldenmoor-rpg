@@ -4,6 +4,7 @@ import { ITEMS, ITEM_ORDER } from "../data/items.js";
 import { PROFESSION_ORDER } from "../data/professions.js";
 import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
 import { applyCraft, addResourcesTo, emptyProfessions } from "../utils/crafting.js";
+import { applyRewards } from "../utils/progression.js";
 
 let craftCounter = 0;
 
@@ -26,9 +27,7 @@ function initialPlayer() {
     level: 1,
     xp: 0,
     baseHp: 100,
-    baseMana: 30,
     hp: 100,
-    mana: 30,
     caracPoints: 0,
     caracs: { force: 0, intelligence: 0, agilite: 0, vitalite: 0, chance: 0, vitesse: 0 },
     equipped: { ...EMPTY_EQUIPPED },
@@ -104,6 +103,11 @@ export function usePlayer() {
     setPlayer((prev) => applyCraft(prev, itemId, `craft-${Date.now()}-${craftCounter++}`));
   }, []);
 
+  // Récompenses d'un combat gagné (xp, or, ressources, objets)
+  const applyCombatRewards = useCallback((rewards) => {
+    setPlayer((prev) => applyRewards(prev, rewards, `loot-${Date.now()}-${craftCounter++}`).player);
+  }, []);
+
   // --- Outils de test (à retirer quand le combat donnera les vrais drops) ---
   const testAddResources = useCallback((amounts = { commune: 10, peu_commune: 5, rare: 2 }) => {
     const gains = {};
@@ -120,7 +124,7 @@ export function usePlayer() {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, testAddResources, testAddGold,
+    craft, applyCombatRewards, testAddResources, testAddGold,
   };
 }
 

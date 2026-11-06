@@ -6,7 +6,6 @@ export function itemStatLines(item) {
   if (item.def_phys) lines.push(`+${item.def_phys} DEF Phys`);
   if (item.def_magie) lines.push(`+${item.def_magie} DEF Mag`);
   if (item.hp) lines.push(`+${item.hp} HP`);
-  if (item.mana) lines.push(`+${item.mana} Mana`);
   if (item.esquive) lines.push(`+${item.esquive}% Esquive`);
   if (item.critique) lines.push(`+${item.critique}% Crit`);
   return lines;

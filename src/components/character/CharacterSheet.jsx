@@ -3,6 +3,7 @@ import EquipmentPanel from "./EquipmentPanel.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";
 import { color, border, radius, font } from "../../styles/theme.js";
+import { xpToNext } from "../../utils/progression.js";
 
 function ResourceBar({ label, value, max, colorFrom, colorTo }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
@@ -34,8 +35,8 @@ export default function CharacterSheet({ player, stats, onEquipSlotClick, onUneq
           <div style={{ fontSize: 12, color: color.mist }}>Niveau {player.level}</div>
         </div>
         <div style={{ display: "flex", gap: 20, flex: 1 }}>
-          <ResourceBar label="Points de Vie" value={player.hp} max={stats.maxHp} colorFrom="#6b1f1f" colorTo={color.blood} />
-          <ResourceBar label="Mana" value={player.mana} max={stats.manaMax} colorFrom="#2f5a6b" colorTo={color.frost} />
+          <ResourceBar label="Points de Vie (pleins avant chaque combat)" value={stats.maxHp} max={stats.maxHp} colorFrom="#6b1f1f" colorTo={color.blood} />
+          <ResourceBar label="Expérience" value={player.xp} max={xpToNext(player.level)} colorFrom="#6b5a1f" colorTo={color.goldBright} />
         </div>
       </div>
 

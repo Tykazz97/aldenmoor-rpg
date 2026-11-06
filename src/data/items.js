@@ -62,7 +62,7 @@ export const ITEMS = {
   },
 
   // ---------------------------------------------------------
-  // SET APPRENTI — Mage : ATK Magie / Mana
+  // SET APPRENTI — Mage : ATK Magie / DEF Magie
   // ---------------------------------------------------------
   chapeau_apprenti: {
     id: "chapeau_apprenti",
@@ -71,8 +71,8 @@ export const ITEMS = {
     rarity: "commune",
     set: "apprenti",
     img: `${ICON_BASE}/apprenti/chapeau_apprenti.png`,
-    atk_magie: 6,
-    mana: 10,
+    atk_magie: 4,
+    def_magie: 3,
   },
   plastron_apprenti: {
     id: "plastron_apprenti",
@@ -81,8 +81,8 @@ export const ITEMS = {
     rarity: "commune",
     set: "apprenti",
     img: `${ICON_BASE}/apprenti/plastron_apprenti.png`,
-    atk_magie: 12,
-    mana: 20,
+    atk_magie: 8,
+    hp: 10,
   },
   gants_apprenti: {
     id: "gants_apprenti",
@@ -91,7 +91,7 @@ export const ITEMS = {
     rarity: "commune",
     set: "apprenti",
     img: `${ICON_BASE}/apprenti/gants_apprenti.png`,
-    atk_magie: 3,
+    atk_magie: 2,
     def_magie: 4,
   },
   ceinture_apprenti: {
@@ -101,8 +101,8 @@ export const ITEMS = {
     rarity: "commune",
     set: "apprenti",
     img: `${ICON_BASE}/apprenti/ceinture_apprenti.png`,
-    atk_magie: 5,
-    mana: 10,
+    atk_magie: 3,
+    def_magie: 3,
   },
   jambieres_apprenti: {
     id: "jambieres_apprenti",
@@ -111,8 +111,8 @@ export const ITEMS = {
     rarity: "commune",
     set: "apprenti",
     img: `${ICON_BASE}/apprenti/jambieres_apprenti.png`,
-    atk_magie: 6,
-    mana: 10,
+    atk_magie: 4,
+    hp: 5,
   },
 
   // ---------------------------------------------------------
@@ -125,8 +125,9 @@ export const ITEMS = {
     rarity: "commune",
     set: "traqueur",
     img: `${ICON_BASE}/traqueur/chapeau_traqueur.png`,
-    esquive: 2,
-    critique: 1,
+    esquive: 3,
+    critique: 2,
+    atk_phys: 2,
   },
   plastron_traqueur: {
     id: "plastron_traqueur",
@@ -135,8 +136,9 @@ export const ITEMS = {
     rarity: "commune",
     set: "traqueur",
     img: `${ICON_BASE}/traqueur/plastron_traqueur.png`,
-    esquive: 4,
-    critique: 2,
+    esquive: 5,
+    critique: 3,
+    atk_phys: 4,
   },
   gants_traqueur: {
     id: "gants_traqueur",
@@ -145,8 +147,8 @@ export const ITEMS = {
     rarity: "commune",
     set: "traqueur",
     img: `${ICON_BASE}/traqueur/gants_traqueur.png`,
-    critique: 1,
-    atk_phys: 3,
+    critique: 2,
+    atk_phys: 4,
   },
   ceinture_traqueur: {
     id: "ceinture_traqueur",
@@ -155,8 +157,9 @@ export const ITEMS = {
     rarity: "commune",
     set: "traqueur",
     img: `${ICON_BASE}/traqueur/ceinture_traqueur.png`,
-    esquive: 2,
-    critique: 1,
+    esquive: 3,
+    critique: 2,
+    atk_phys: 2,
   },
   jambieres_traqueur: {
     id: "jambieres_traqueur",
@@ -165,8 +168,9 @@ export const ITEMS = {
     rarity: "commune",
     set: "traqueur",
     img: `${ICON_BASE}/traqueur/jambieres_traqueur.png`,
-    esquive: 3,
-    critique: 1,
+    esquive: 4,
+    critique: 2,
+    atk_phys: 3,
   },
 
   // ---------------------------------------------------------
@@ -203,8 +207,8 @@ export const ITEMS = {
     rarity: "commune",
     twoHanded: true,
     img: `${ICON_BASE}/weapons/baton_noueux.png`,
-    atk_magie: 16,
-    mana: 10,
+    atk_magie: 12,
+    def_magie: 3,
   },
   arc_chasse: {
     id: "arc_chasse",
@@ -214,8 +218,9 @@ export const ITEMS = {
     rarity: "commune",
     twoHanded: true,
     img: `${ICON_BASE}/weapons/arc_chasse.png`,
-    atk_phys: 15,
-    esquive: 2,
+    atk_phys: 17,
+    esquive: 3,
+    critique: 2,
   },
   masse_rouillee: {
     id: "masse_rouillee",
@@ -272,8 +277,8 @@ export const SETS = {
     color: "#5fa3c4",
     pieces: ["chapeau_apprenti", "plastron_apprenti", "gants_apprenti", "ceinture_apprenti", "jambieres_apprenti"],
     bonuses: {
-      2: { desc: "+10 ATK Magique, +20 Mana", atk_magie: 10, mana: 20 },
-      5: { desc: "+25 ATK Magique, +60 Mana, 10% de chance qu'un sort ne consomme pas de mana", atk_magie: 25, mana: 60, manaFree: 0.10 },
+      2: { desc: "+6 ATK Magique, +8 DEF Magique", atk_magie: 6, def_magie: 8 },
+      5: { desc: "+14 ATK Magique, +20 DEF Magique, +20 PV, le premier sort de chaque tour coûte 1 PA de moins", atk_magie: 14, def_magie: 20, hp: 20, firstSpellDiscount: 1 },
     },
   },
   traqueur: {
@@ -282,8 +287,8 @@ export const SETS = {
     color: "#6f9c4a",
     pieces: ["chapeau_traqueur", "plastron_traqueur", "gants_traqueur", "ceinture_traqueur", "jambieres_traqueur"],
     bonuses: {
-      2: { desc: "+5% Esquive, +3% Critique", esquive: 5, critique: 3 },
-      5: { desc: "+12% Esquive, +6% Critique, le premier coup de chaque combat est un critique garanti", esquive: 12, critique: 6, guaranteedFirstCrit: true },
+      2: { desc: "+6% Esquive, +4% Critique", esquive: 6, critique: 4 },
+      5: { desc: "+12% Esquive, +8% Critique, +5 ATK Physique, le premier coup de chaque combat est un critique garanti", esquive: 12, critique: 8, atk_phys: 5, guaranteedFirstCrit: true },
     },
   },
 };

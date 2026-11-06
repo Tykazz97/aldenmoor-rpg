@@ -71,6 +71,29 @@ for (const zone of Object.values(ZONES)) {
   }
 }
 
+// Ennemis jouables : stats, actions, visuel et sorts du joueur cohérents
+import { WEAPON_TYPES } from "../src/data/weapons.js";
+import { HERO_OUTFITS } from "../src/data/heroSprites.js";
+for (const e of Object.values(ENEMIES)) {
+  if (!e.stats) continue;
+  for (const k of ["hp", "atkPhys", "atkMagie", "defPhys", "defMagie", "esquive", "critique", "vitesse"]) {
+    if (typeof e.stats[k] !== "number") err(`Ennemi ${e.key} : stat manquante ${k}`);
+  }
+  if (!(e.xp > 0)) err(`Ennemi ${e.key} : xp manquante`);
+  if (!e.actions?.length) err(`Ennemi ${e.key} : aucune action`);
+  for (const a of e.actions || []) if (!(a.power > 0 && a.weight > 0)) err(`Ennemi ${e.key} : action invalide ${a.id}`);
+  if (!existsSync(`public${e.img}`)) err(`Ennemi ${e.key} : image absente (${e.img})`);
+}
+for (const w of Object.values(WEAPON_TYPES)) {
+  for (const sp of w.spells) {
+    if (sp.type !== "buff" && !(sp.power > 0)) err(`Sort ${sp.id} : puissance manquante`);
+    if (!(sp.pa >= 1 && sp.pa <= 6)) err(`Sort ${sp.id} : coût en PA invalide`);
+  }
+}
+for (const o of HERO_OUTFITS) {
+  if (!existsSync(`public/assets/combat/hero/${o}.png`)) err(`Tenue du héros absente : ${o}`);
+}
+
 // Ressources jamais utilisées dans une recette (information)
 const used = new Set(Object.values(RECIPES).flatMap((r) => Object.keys(r.ingredients)));
 for (const resId of Object.keys(RESOURCES)) {

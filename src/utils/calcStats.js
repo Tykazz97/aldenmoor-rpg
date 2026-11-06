@@ -5,23 +5,23 @@ import { calcSetBonuses } from "../data/items.js";
 // Calcule les stats finales d'un joueur = base + caracs + équipement
 // Le joueur (player) a la forme :
 // {
-//   level, baseHp, baseMana,
+//   level, baseHp,
 //   caracs: { force, intelligence, agilite, vitalite, chance, vitesse },
 //   equipped: { chapeau: item|null, plastron: item|null, ... }
 // }
 // Chaque item d'équipement peut porter : atk_phys, atk_magie, def_phys,
-// def_magie, hp, mana, esquive, critique, dropBonus, vitesse
+// def_magie, hp, esquive, critique, dropBonus, vitesse
 // ============================================================
 
 const EQUIP_STAT_KEYS = [
   "atk_phys", "atk_magie", "def_phys", "def_magie",
-  "hp", "mana", "esquive", "critique", "dropBonus", "vitesse",
+  "hp", "esquive", "critique", "dropBonus", "vitesse",
 ];
 
 export function calcStats(player) {
   const caracBonus = applyCaracEffects(player.caracs || {});
 
-  const equip = { atk_phys: 0, atk_magie: 0, def_phys: 0, def_magie: 0, hp: 0, mana: 0, esquive: 0, critique: 0, dropBonus: 0, vitesse: 0 };
+  const equip = { atk_phys: 0, atk_magie: 0, def_phys: 0, def_magie: 0, hp: 0, esquive: 0, critique: 0, dropBonus: 0, vitesse: 0 };
   const equipped = player.equipped || {};
   for (const item of Object.values(equipped)) {
     if (!item) continue;
@@ -32,7 +32,7 @@ export function calcStats(player) {
 
   // Bonus de set (ex: 2/5 pièces du Set Vétéran équipées)
   const setBonuses = calcSetBonuses(equipped);
-  const setBonus = { def_phys: 0, def_magie: 0, atk_phys: 0, atk_magie: 0, hp: 0, mana: 0, esquive: 0, critique: 0 };
+  const setBonus = { def_phys: 0, def_magie: 0, atk_phys: 0, atk_magie: 0, hp: 0, esquive: 0, critique: 0 };
   for (const { bonus } of setBonuses) {
     for (const key of Object.keys(setBonus)) {
       if (bonus[key]) setBonus[key] += bonus[key];
@@ -45,7 +45,6 @@ export function calcStats(player) {
     defPhys: equip.def_phys + setBonus.def_phys, // DEF uniquement via équipement
     defMagie: equip.def_magie + setBonus.def_magie,
     maxHp: (player.baseHp || 100) + (caracBonus.maxHpBonus || 0) + equip.hp + setBonus.hp,
-    manaMax: (player.baseMana || 30) + (caracBonus.manaMax || 0) + equip.mana + setBonus.mana,
     esquive: Math.min(75, (caracBonus.esquive || 0) + equip.esquive + setBonus.esquive),
     critique: Math.min(75, (caracBonus.critique || 0) + equip.critique + setBonus.critique),
     dropBonus: (caracBonus.dropBonus || 0) + equip.dropBonus,

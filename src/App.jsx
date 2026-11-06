@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import AppShell from "./components/layout/AppShell.jsx";
 import CharacterSheet from "./components/character/CharacterSheet.jsx";
 import ForgePanel from "./components/forge/ForgePanel.jsx";
+import CombatScreen from "./components/combat/CombatScreen.jsx";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
 
@@ -15,7 +16,7 @@ const TAB_TITLES = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("personnage");
-  const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, testAddResources, testAddGold } = usePlayer();
+  const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, testAddResources, testAddGold } = usePlayer();
 
   // Pour l'instant, cliquer sur un slot vide ne fait rien — l'équipement
   // se fait depuis le sac (InventoryPanel). Sera étendu plus tard pour
@@ -44,7 +45,10 @@ export default function App() {
           onTestGold={testAddGold}
         />
       )}
-      {activeTab !== "personnage" && activeTab !== "forge" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab === "combat" && (
+        <CombatScreen player={player} stats={stats} onRewards={applyCombatRewards} />
+      )}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "combat" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }
