@@ -1,6 +1,7 @@
 import React from "react";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius } from "../../styles/theme.js";
+import { itemStatLines } from "../../utils/itemText.js";
 
 const RARITY_COLORS = {
   commune: "#9a95a8",
@@ -12,13 +13,7 @@ const RARITY_COLORS = {
 function ItemCard({ item, onEquip }) {
   const rarityColor = RARITY_COLORS[item.rarity] || color.parchmentDim;
 
-  const statLines = [];
-  if (item.atk_phys) statLines.push(`+${item.atk_phys} ATK Phys`);
-  if (item.atk_magie) statLines.push(`+${item.atk_magie} ATK Mag`);
-  if (item.def_phys) statLines.push(`+${item.def_phys} DEF Phys`);
-  if (item.def_magie) statLines.push(`+${item.def_magie} DEF Mag`);
-  if (item.hp) statLines.push(`+${item.hp} HP`);
-  if (item.mana) statLines.push(`+${item.mana} Mana`);
+  const statLines = itemStatLines(item);
 
   return (
     <button
