@@ -5,6 +5,7 @@
 // une ressource ou un ennemi qui n'existe pas.
 // ============================================================
 
+import { existsSync } from "node:fs";
 import { ITEMS, SETS } from "../src/data/items.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { RECIPES } from "../src/data/recipes.js";
@@ -44,6 +45,9 @@ for (const [enemyId, enemy] of Object.entries(ENEMIES)) {
 
 // Ressources : source existante, et dropée par cette source
 for (const [resId, res] of Object.entries(RESOURCES)) {
+  if (res.img && !existsSync(new URL(`../public${res.img}`, import.meta.url))) {
+    err(`Ressource ${resId} : icône introuvable (${res.img})`);
+  }
   if (!ENEMIES[res.source]) err(`Ressource ${resId} : source inconnue ${res.source}`);
   else if (!dropped.has(`resource:${resId}`)) warn(`Ressource ${resId} : aucun ennemi ne la lâche`);
 }
