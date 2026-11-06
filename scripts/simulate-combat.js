@@ -50,7 +50,7 @@ function fight(stats, weapon, enemyKeys, seed) {
   let state = createCombat({ stats, weaponType: weapon, enemyKeys, seed });
   let guard = 0;
   while (state.phase !== "victory" && state.phase !== "defeat" && guard++ < 20000) {
-    if (state.phase === "running") { state = advance(state, 0.1).state; continue; }
+    if (state.phase === "running") { state = advance(state).state; continue; }
     const spell = pickSpell(state);
     if (!spell) { state = endTurn(state).state; continue; }
     const target = state.enemies.filter((e) => e.alive).sort((a, b) => a.hp - b.hp)[0];

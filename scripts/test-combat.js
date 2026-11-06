@@ -3,7 +3,7 @@
 // ============================================================
 
 import assert from "node:assert/strict";
-import { createCombat, advance, castSpell, endTurn, PA_MAX } from "../src/combat/engine.js";
+import { createCombat, advance, castSpell, endTurn, initiativeOf, PA_MAX } from "../src/combat/engine.js";
 
 const BASE_STATS = {
   atkPhys: 20, atkMagie: 20, defPhys: 0, defMagie: 0, maxHp: 100,
@@ -20,8 +20,8 @@ function mk({ weapon = "epee", enemies = ["loup_des_plaines"], stats = {}, seed 
 // Fait avancer le temps jusqu'au tour du joueur (ou la fin du combat)
 function toPlayerTurn(state) {
   let events = [];
-  for (let i = 0; i < 5000 && state.phase === "running"; i++) {
-    const r = advance(state, 0.05);
+  for (let i = 0; i < 50 && state.phase === "running"; i++) {
+    const r = advance(state);
     state = r.state; events = events.concat(r.events);
   }
   return { state, events };
@@ -70,21 +70,20 @@ test("impossible de viser un mort ou de lancer hors de son tour", () => {
   assert.equal(castSpell(s, "taillade", "e0").events.length, 0);   // pas son tour
 });
 
-test("terminer le tour fait perdre les PA restants et vide la jauge", () => {
+test("terminer le tour fait perdre les PA restants", () => {
   let { state } = toPlayerTurn(mk());
   const r = endTurn(state);
   assert.equal(r.state.phase, "running");
   assert.equal(r.state.player.pa, 0);
-  assert.equal(r.state.player.atb, 0);
 });
 
 test("même graine => même combat, graine différente => combat différent", () => {
   const a = toPlayerTurn(mk({ seed: 42 })).events;
   const b = toPlayerTurn(mk({ seed: 42 })).events;
   assert.deepEqual(a, b);
-  const c = castSpell(toPlayerTurn(mk({ seed: 7, enemies: ["sanglier_sauvage"] })).state, "taillade", "e0").events;
-  const d = castSpell(toPlayerTurn(mk({ seed: 8, enemies: ["sanglier_sauvage"] })).state, "taillade", "e0").events;
-  assert.notDeepEqual(c.map((e) => e.amount), d.map((e) => e.amount));
+  const dmgFor = (seed) => castSpell(toPlayerTurn(mk({ seed, enemies: ["sanglier_sauvage"] })).state, "taillade", "e0").events.find((e) => e.type === "hit").amount;
+  const amounts = new Set([1, 2, 3, 4, 5, 6, 7, 8].map(dmgFor));
+  assert.ok(amounts.size > 1, "les dégâts doivent varier selon la graine");
 });
 
 test("la défense réduit les dégâts", () => {
@@ -109,8 +108,8 @@ test("le poison inflige des dégâts à chaque tour de la cible (3 tours)", () =
   assert.equal(state.enemies[0].effects[0].turns, 3);
   state = endTurn(state).state;
   let dots = 0;
-  for (let i = 0; i < 4000 && dots < 3 && state.phase !== "defeat"; i++) {
-    const r = advance(state, 0.05);
+  for (let i = 0; i < 30 && dots < 3 && state.phase !== "defeat"; i++) {
+    const r = advance(state);
     state = r.state;
     dots += r.events.filter((e) => e.type === "dot").length;
     if (state.phase === "playerTurn") state = endTurn(state).state;
@@ -119,22 +118,31 @@ test("le poison inflige des dégâts à chaque tour de la cible (3 tours)", () =
   assert.equal(state.enemies[0].effects.filter((e) => e.kind === "dot").length, 0);
 });
 
-test("l'étourdissement vide la jauge de la cible", () => {
+test("l'étourdissement fait passer le prochain tour de la cible", () => {
   let { state } = toPlayerTurn(mk({ weapon: "marteau", enemies: ["sanglier_sauvage"] }));
-  state.enemies[0].atb = 90;
   const r = castSpell(state, "etourdissement", "e0");
-  assert.equal(r.state.enemies[0].atb, 0);
   assert.ok(r.events.some((e) => e.type === "stun"));
+  state = endTurn(r.state).state;
+  const next = advance(state);
+  assert.ok(next.events.some((e) => e.type === "skip" && e.id === "e0"), "le sanglier doit passer son tour");
+  assert.ok(!next.events.some((e) => e.type === "cast" && e.from === "e0"));
 });
 
-test("le givre ralentit la jauge ATB", () => {
+test("le givre réduit l'initiative de la cible", () => {
   let { state } = toPlayerTurn(mk({ weapon: "faux", enemies: ["sanglier_sauvage"] }));
+  const before = initiativeOf(state.enemies[0]);
   state = castSpell(state, "etreinte_glaciale", "e0").state;
-  const rate = state.enemies[0].stats.vitesse * 2;
-  state.enemies[0].atb = 0;
-  state = endTurn(state).state;
-  const r = advance(state, 1);
-  assert.ok(r.state.enemies[0].atb < rate, "la jauge doit monter moins vite");
+  assert.ok(initiativeOf(state.enemies[0]) < before);
+});
+
+test("l'ordre de jeu suit l'initiative (le plus rapide d'abord), chacun joue une fois par tour", () => {
+  const s = mk({ stats: { vitesse: 10 }, enemies: ["loup_des_plaines", "sanglier_sauvage", "bandit_des_routes"] });
+  const r = advance(s);
+  const round1 = r.events.find((e) => e.type === "round");
+  // loup (13) > bandit (11) > joueur (10) > sanglier (8)
+  assert.deepEqual(round1.order, ["e0", "e2", "player", "e1"]);
+  const turns = r.events.filter((e) => e.type === "turn").map((e) => e.id);
+  assert.deepEqual(turns, ["e0", "e2", "player"]);
 });
 
 test("le vol de vie soigne le joueur", () => {
@@ -160,10 +168,11 @@ test("Parade : bonus de défense et contre-attaque quand le joueur est touché",
   state = endTurn(state).state;
   state.player.stats.esquive = 0;
   let counter = false;
-  for (let i = 0; i < 4000 && !counter && state.phase === "running"; i++) {
-    const r = advance(state, 0.05);
+  for (let i = 0; i < 30 && !counter && state.phase === "running"; i++) {
+    const r = advance(state);
     state = r.state;
     counter = r.events.some((e) => e.type === "counter");
+    if (state.phase === "playerTurn") state = endTurn(state).state;
   }
   assert.ok(counter, "une contre-attaque doit se déclencher");
 });

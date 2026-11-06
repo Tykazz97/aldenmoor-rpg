@@ -20,7 +20,7 @@ const HERO_H = 250;      // hauteur d'affichage du héros (px)
 
 const ELEMENT_COLOR = { feu: "#ff9a4d", poison: "#8fdc5a", givre: "#8fd3f5", arcane: "#a99bff", phys: "#ffe7a8" };
 const RANGED = new Set(["tir_rapide", "tir_percant", "pluie_de_fleches"]);
-const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, slow: "Ralenti", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
+const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, stun: "Étourdi", slow: "Initiative réduite", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
 const BADGE = { feu: "🔥", poison: "☠️", slow: "❄️", defDown: "💔", parade: "🛡️", stun: "💫", shadow: "🌑" };
 
 function enemySlots(list) {
@@ -49,7 +49,7 @@ function groupEvents(events) {
   const groups = [];
   let cur = null;
   for (const e of events) {
-    const starts = ["cast", "dot", "playerTurn", "endTurn", "victory", "defeat"].includes(e.type);
+    const starts = ["cast", "dot", "turn", "round", "playerTurn", "endTurn", "victory", "defeat"].includes(e.type);
     if (!cur || starts) { cur = []; groups.push(cur); }
     cur.push(e);
   }
@@ -124,7 +124,7 @@ function EncounterSelect({ player, stats, weaponType, heroSrc, onPick }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, fontSize: 11, textAlign: "center" }}>
           <Mini label="PV" value={stats.maxHp} c="#c0392b" />
-          <Mini label="Vitesse" value={stats.vitesse} c={color.frost} />
+          <Mini label="Initiative" value={stats.vitesse} c={color.frost} />
           <Mini label="PA" value={PA_MAX} c={color.goldBright} />
           <Mini label="ATK Phys" value={stats.atkPhys} c={color.phys} />
           <Mini label="ATK Mag" value={stats.atkMagie} c={color.mag} />
@@ -180,6 +180,8 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
   const [target, setTarget] = useState("e0");
   const [hover, setHover] = useState(null);
   const [ended, setEnded] = useState(null);
+  const [timeline, setTimeline] = useState({ n: 0, order: [] });
+  const [activeId, setActiveId] = useState(null);
   const [claimed, setClaimed] = useState(false);
 
   const slots = useMemo(() => enemySlots(initial.enemies), [initial]);
@@ -314,6 +316,18 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           pulse(e.id, "rage"); shake(true); sfx.roar();
           await sleep(1000);
           break;
+        case "round":
+          setTimeline({ n: e.n, order: e.order });
+          if (e.n > 1) { showBanner(`Tour ${e.n}`, "small", 700); await sleep(350); }
+          break;
+        case "turn":
+          setActiveId(e.id);
+          await sleep(e.id === "player" ? 0 : 140);
+          break;
+        case "skip":
+          addFloat(e.id, "Passe son tour", "status", 36);
+          await sleep(450);
+          break;
         case "playerTurn":
           showBanner("À vous !", "small", 800); sfx.turn();
           await sleep(350);
@@ -335,7 +349,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
     if (!aliveRef.current) return;
     busyRef.current = false; setBusy(false);
     const ph = csRef.current.phase;
-    if (ph === "victory" || ph === "defeat") setEnded(ph);
+    if (ph === "victory" || ph === "defeat") { setEnded(ph); setActiveId(null); }
     else if (ph === "playerTurn") {
       setTarget((t) => (csRef.current.enemies.find((e) => e.id === t && e.alive) ? t : csRef.current.enemies.find((e) => e.alive)?.id));
     }
@@ -344,24 +358,15 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
   // Introduction puis démarrage
   useEffect(() => {
     showBanner(encounter.boss ? encounter.name : "Combat !", "", 1300);
-    const t = setTimeout(() => { busyRef.current = false; setBusy(false); }, 1100);
+    const t = setTimeout(() => step(), 1100);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line
 
-  // Boucle de temps : la jauge ATB avance tant que personne n'agit
-  useEffect(() => {
-    let raf; let last = performance.now();
-    const tick = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      if (!busyRef.current && csRef.current.phase === "running") {
-        const r = advance(csRef.current, dt * speedRef.current);
-        commit(r.state);
-        if (r.events.length) play(r.events);
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+  // Fait jouer les ennemis (dans l'ordre d'initiative) jusqu'au tour du joueur
+  const step = useCallback(() => {
+    const r = advance(csRef.current);
+    commit(r.state);
+    if (r.events.length) play(r.events);
   }, [commit, play]);
 
   // --- actions du joueur ---
@@ -382,6 +387,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
     sfx.click();
     const r = endTurn(csRef.current);
     commit(r.state);
+    step();
   };
 
   // Raccourcis clavier : 1-3 sorts, Espace = fin de tour
@@ -418,7 +424,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           <Backdrop />
 
           {/* Héros */}
-          <div className={`cb-actor ${ended === "defeat" ? "hero-dead" : ""}`} style={{ left: `${HERO_X}%`, bottom: HERO_B, zIndex: 5 }}>
+          <div className={`cb-actor ${ended === "defeat" ? "hero-dead" : ""} ${activeId === "player" ? "active" : ""}`} style={{ left: `${HERO_X}%`, bottom: HERO_B, zIndex: 5 }}>
             <Bars actor={p} hp={hpView.player} ghost={ghost.player} isPlayer />
             <div className="cb-body" style={{ position: "relative" }}>
               <div className="cb-shadow" />
@@ -437,11 +443,11 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
             return (
               <div
                 key={en.id}
-                className={`cb-actor ${dead[en.id] ? "dead" : "target"}`}
+                className={`cb-actor ${dead[en.id] ? "dead" : "target"} ${activeId === en.id ? "active" : ""}`}
                 style={{ left: `${sl.x}%`, bottom: sl.b, zIndex: 10 - Math.round(sl.b / 20) }}
                 onClick={() => { if (!dead[en.id] && en.alive) { sfx.click(); setTarget(en.id); } }}
               >
-                {!dead[en.id] && (isTarget || hasAoeHover) && <div className="cb-target-mark" style={{ top: -30 }}>▼</div>}
+                {!dead[en.id] && (isTarget || hasAoeHover) && <div className="cb-target-mark" style={{ top: -14 }}>▼</div>}
                 <Bars actor={en} hp={hpView[en.id]} ghost={ghost[en.id]} />
                 <div className="cb-body" style={{ position: "relative" }}>
                   <div className="cb-shadow" />
@@ -455,6 +461,8 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
               </div>
             );
           })}
+
+          <Timeline timeline={timeline} activeId={activeId} dead={dead} cs={cs} heroSrc={heroSrc} />
 
           {/* Effets */}
           {fxs.map((f) => <Fx key={f.key} fx={f} />)}
@@ -518,11 +526,9 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
             <div className="cb-meter-label"><span>Points de vie</span><b>{Math.max(0, hpView.player)} / {p.maxHp}</b></div>
             <div className="cb-bar hp"><i style={{ width: `${(Math.max(0, hpView.player) / p.maxHp) * 100}%` }} /></div>
           </div>
-          <div className="cb-meter">
-            <div className="cb-meter-label"><span>Initiative</span><b>{cs.phase === "playerTurn" ? "À toi de jouer" : cs.phase === "running" ? "En attente…" : "—"}</b></div>
-            <div className={`cb-bar atb ${p.atb >= 100 || cs.phase === "playerTurn" ? "full" : ""}`}>
-              <i style={{ width: `${cs.phase === "playerTurn" ? 100 : p.atb}%` }} />
-            </div>
+          <div className="cb-meter" style={{ flex: "0 1 220px" }}>
+            <div className="cb-meter-label"><span>Tour {timeline.n || 1}</span><b>{cs.phase === "playerTurn" ? "À toi de jouer" : ended ? "—" : "Les ennemis jouent…"}</b></div>
+            <div className={`cb-turnbar ${cs.phase === "playerTurn" && !busy ? "mine" : ""}`} />
           </div>
           <div className="cb-pa" title="Points d'action : ceux que tu ne dépenses pas sont perdus">
             <span className="cb-pa-label">PA</span>
@@ -565,9 +571,41 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           </button>
         </div>
         <div className="cb-hint">
-          {hoverSpell ? hoverSpell.desc : myTurn ? "Clique sur un ennemi pour le cibler, puis lance un sort (touches 1-3)." : ended ? "" : "La jauge d'initiative se remplit… plus ta Vitesse est haute, plus tu joues souvent."}
+          {hoverSpell ? hoverSpell.desc : myTurn ? "Clique sur un ennemi pour le cibler, puis lance un sort (touches 1-3)." : ended ? "" : "Chacun joue à son tour, dans l'ordre de la frise : plus l'initiative est haute, plus on joue tôt."}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Frise de l'ordre de jeu (comme dans Dofus)
+// ------------------------------------------------------------
+function Timeline({ timeline, activeId, dead, cs, heroSrc }) {
+  const ids = timeline.order.filter((id) => id === "player" || !dead[id]);
+  if (!ids.length) return null;
+  const activeIdx = ids.indexOf(activeId);
+  // numérotation des ennemis identiques (A, B, C)
+  const letters = {};
+  const counts = {};
+  cs.enemies.forEach((e) => { counts[e.key] = (counts[e.key] || 0) + 1; });
+  const seen = {};
+  cs.enemies.forEach((e) => { if (counts[e.key] > 1) { seen[e.key] = (seen[e.key] || 0) + 1; letters[e.id] = String.fromCharCode(64 + seen[e.key]); } });
+  return (
+    <div className="cb-timeline">
+      <span className="cb-tl-round">Tour {timeline.n}</span>
+      {ids.map((id, i) => {
+        const isHero = id === "player";
+        const en = isHero ? null : cs.enemies.find((e) => e.id === id);
+        const src = isHero ? heroSrc : ENEMIES[en.key].img;
+        const state = i === activeIdx ? "active" : activeIdx >= 0 && i < activeIdx ? "done" : "";
+        return (
+          <div key={id} className={`cb-tl ${isHero ? "hero" : "foe"} ${state}`} title={isHero ? "Toi" : en.name}>
+            <img src={src} alt="" style={isHero ? { objectPosition: "50% 12%", transform: "scale(1.7) translateY(14%)" } : { transform: en.miniBoss ? "scale(1.3)" : "scale(1.4)" }} />
+            {letters[id] && <b>{letters[id]}</b>}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -581,7 +619,7 @@ function Bars({ actor, hp, ghost, isPlayer }) {
   const badges = [];
   for (const e of actor.effects) {
     if (e.kind === "dot") badges.push([`dot-${e.element}`, BADGE[e.element], `${STATUS_LABEL.dot[e.element]} (${e.turns})`]);
-    else badges.push([e.kind, BADGE[e.kind], `${STATUS_LABEL[e.kind]} (${e.turns})`]);
+    else badges.push([e.kind, BADGE[e.kind], `${STATUS_LABEL[e.kind] || e.kind} (${e.turns})`]);
   }
   if (isPlayer && actor.flags.shadowDodge) badges.push(["shadow", BADGE.shadow, "Disparition : prochaine attaque esquivée"]);
   return (
@@ -589,7 +627,6 @@ function Bars({ actor, hp, ghost, isPlayer }) {
       <div className="cb-badges">{badges.map(([k, ic, t]) => <span key={k} className="cb-badge" title={t}>{ic}</span>)}</div>
       <div className="cb-name">{actor.name}</div>
       <div className="cb-hp"><b style={{ width: `${gpct}%` }} /><i style={{ width: `${pct}%` }} /></div>
-      {!isPlayer && <div className={`cb-atb ${actor.atb >= 85 ? "ready" : ""}`}><i style={{ width: `${actor.atb}%` }} /></div>}
     </div>
   );
 }

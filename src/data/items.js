@@ -288,7 +288,7 @@ export const SETS = {
     pieces: ["chapeau_traqueur", "plastron_traqueur", "gants_traqueur", "ceinture_traqueur", "jambieres_traqueur"],
     bonuses: {
       2: { desc: "+6% Esquive, +4% Critique", esquive: 6, critique: 4 },
-      5: { desc: "+12% Esquive, +8% Critique, +5 ATK Physique, le premier coup de chaque combat est un critique garanti", esquive: 12, critique: 8, atk_phys: 5, guaranteedFirstCrit: true },
+      5: { desc: "+12% Esquive, +8% Critique, +5 ATK Physique, +30 PV, le premier coup de chaque combat est un critique garanti", esquive: 12, critique: 8, atk_phys: 5, hp: 30, guaranteedFirstCrit: true },
     },
   },
 };

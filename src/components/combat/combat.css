@@ -193,3 +193,19 @@
 @media (prefers-reduced-motion: reduce) {
   .cb-idle, .cb-fog, .cb-ember, .cb-target-mark { animation: none; }
 }
+
+/* ---------- Frise de l'ordre de jeu ---------- */
+.cb-timeline { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 25; display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; background: rgba(10,8,18,.72); border: 1px solid #3a3a52; border-radius: 30px; backdrop-filter: blur(3px); }
+.cb-tl-round { font: 600 10px 'Inter', sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #a89f8c; margin-right: 6px; }
+.cb-tl { position: relative; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; border: 2px solid #6b2a2a; background: #1a1624;
+  transition: transform .25s, opacity .25s, box-shadow .25s, border-color .25s; flex-shrink: 0; }
+.cb-tl.hero { border-color: #5f8fb0; }
+.cb-tl img { width: 100%; height: 100%; object-fit: contain; padding: 3px; box-sizing: border-box; pointer-events: none; }
+.cb-tl.hero img { object-fit: cover; padding: 0; }
+.cb-tl b { position: absolute; right: 1px; bottom: 0; font: 700 10px 'Inter', sans-serif; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.cb-tl.done { opacity: .35; transform: scale(.88); }
+.cb-tl.active { transform: scale(1.28); border-color: #ffd877; box-shadow: 0 0 14px rgba(255,200,90,.85); z-index: 2; margin: 0 4px; }
+.cb-actor.active .cb-shadow { background: radial-gradient(ellipse, rgba(255,210,110,.75), transparent 70%); height: 22px; }
+.cb-turnbar { height: 10px; border-radius: 5px; background: #0a0a0f; border: 1px solid #2a2a3d; transition: all .25s; }
+.cb-turnbar.mine { background: linear-gradient(90deg, #6b5a1f, #e8c768); border-color: #b8923f; box-shadow: 0 0 12px rgba(232,199,104,.6); }

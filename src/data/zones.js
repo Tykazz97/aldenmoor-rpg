@@ -105,7 +105,7 @@ export const ENEMIES = {
   cavalier_dechu: {
     key: "cavalier_dechu", name: "Le Cavalier Déchu", miniBoss: true,
     desc: "Ancien chevalier protecteur des prairies, corrompu. Coup chargé infligeant un debuff DEF, phase de rage à bas HP.",
-    stats: { hp: 480, atkPhys: 20, atkMagie: 0, defPhys: 15, defMagie: 5, esquive: 3, critique: 8, vitesse: 9 },
+    stats: { hp: 430, atkPhys: 20, atkMagie: 0, defPhys: 15, defMagie: 5, esquive: 3, critique: 8, vitesse: 9 },
     xp: 150,
     actions: [
       { id: "coup_d_epee", name: "Coup d'épée", type: "phys", power: 1.0, weight: 3 },
@@ -113,7 +113,7 @@ export const ENEMIES = {
     ],
     // phase de rage quand les PV passent sous le seuil (part de la vie max)
     phases: [
-      { below: 0.5, atkMult: 1.35, vitesseAdd: 3, announce: "Le Cavalier Déchu entre en rage !" },
+      { below: 0.5, atkMult: 1.35, vitesseAdd: 2, announce: "Le Cavalier Déchu entre en rage !" },
     ],
     gold: [40, 80],
     drops: [

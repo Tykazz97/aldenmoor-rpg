@@ -42,9 +42,9 @@ export const CARACS = {
   },
   vitesse: {
     key: "vitesse",
-    label: "Vitesse",
+    label: "Initiative",
     color: "#5fa3c4",
-    desc: "Initiative en combat — remplit la jauge ATB plus vite",
+    desc: "Ordre de jeu en combat — plus elle est haute, plus tu joues tôt",
     effect: (val) => ({ vitesse: 10 + val }), // 10 = vitesse de base
   },
 };

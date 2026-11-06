@@ -1,5 +1,5 @@
 // ============================================================
-// MOTEUR DE COMBAT ATB — pur, sans React ni DOM.
+// MOTEUR DE COMBAT PAR TOURS (ordre selon l'initiative) — pur, sans React ni DOM.
 //
 // Le moteur ne dessine rien : il reçoit un état, des actions, et
 // renvoie { state, events }. Les `events` décrivent ce qui s'est
@@ -9,9 +9,9 @@
 //
 // Cycle d'un combat :
 //   createCombat(...)             crée l'état
-//   advance(state, dtSecondes)    fait monter les jauges ATB ; les
-//                                 ennemis agissent seuls quand leur jauge
-//                                 est pleine ; s'arrête sur le tour du joueur
+//   advance(state)               fait jouer les ennemis dans l'ordre
+//                                 d'initiative jusqu'au tour du joueur
+//                                 (ou la fin du combat)
 //   castSpell(state, id, cible)   le joueur lance un sort (coûte des PA)
 //   endTurn(state)                le joueur termine son tour (PA perdus)
 // phase : "running" | "playerTurn" | "victory" | "defeat"
@@ -20,8 +20,6 @@
 import { ENEMIES } from "../data/zones.js";
 import { WEAPON_TYPES, UNARMED_SPELLS } from "../data/weapons.js";
 
-export const ATB_MAX = 100;
-export const SPEED_FACTOR = 2;   // % de jauge par seconde et par point de Vitesse
 export const PA_MAX = 6;
 export const CRIT_MULT = 1.5;
 export const BASE_ATK = 5;       // attaque minimale ajoutée à celle du joueur
@@ -63,10 +61,9 @@ export function createCombat({ stats, weaponType = null, enemyKeys, seed = Date.
     stats: {
       atkPhys: stats.atkPhys, atkMagie: stats.atkMagie,
       defPhys: stats.defPhys, defMagie: stats.defMagie,
-      esquive: stats.esquive, critique: stats.critique, vitesse: stats.vitesse,
+      esquive: stats.esquive, critique: stats.critique, vitesse: stats.vitesse, // vitesse = initiative
     },
     dropBonus: stats.dropBonus || 0,
-    atb: 30,
     pa: 0,
     effects: [],
     flags: { firstCrit, riposte, spellDiscount, discountReady: false, shadowDodge: false, shadowCrit: false },
@@ -85,7 +82,6 @@ export function createCombat({ stats, weaponType = null, enemyKeys, seed = Date.
       hp: def.stats.hp,
       maxHp: def.stats.hp,
       stats: { ...def.stats },
-      atb: Math.floor(rand(s) * 40),
       effects: [],
       alive: true,
       phasesDone: [],
@@ -95,8 +91,10 @@ export function createCombat({ stats, weaponType = null, enemyKeys, seed = Date.
   return {
     seed: s.seed,
     phase: "running",
-    time: 0,
-    turns: 0,
+    round: 0,       // numéro du tour de table en cours (chacun joue une fois par tour)
+    order: [],      // ids des combattants dans l'ordre de jeu du tour en cours
+    cursor: 0,      // position du prochain combattant à jouer dans `order`
+    turns: 0,       // nombre de tours joués par le joueur
     player,
     enemies,
     rewards: null,
@@ -112,9 +110,17 @@ const actorById = (s, id) => (id === "player" ? s.player : s.enemies.find((e) =>
 const maxEffect = (actor, kind, field = "value") =>
   Math.max(0, ...actor.effects.filter((e) => e.kind === kind).map((e) => e[field] || 0));
 
-export function atbRate(actor) {
-  const slow = maxEffect(actor, "slow");
-  return actor.stats.vitesse * SPEED_FACTOR * (1 - slow);
+// Initiative effective : la Vitesse, réduite par le Givre
+export function initiativeOf(actor) {
+  return actor.stats.vitesse * (1 - maxEffect(actor, "slow"));
+}
+
+// Ordre de jeu d'un tour : initiative décroissante, égalités tirées au sort
+function buildOrder(s) {
+  return [s.player, ...aliveEnemies(s)]
+    .map((a) => ({ id: a.id, init: initiativeOf(a), tie: rand(s) }))
+    .sort((x, y) => y.init - x.init || x.tie - y.tie)
+    .map((x) => x.id);
 }
 
 function effectiveDef(actor, type, armorPen = 0) {
@@ -195,7 +201,8 @@ function checkPhases(s, events, enemy) {
 function applyEffect(s, events, source, target, effect, atkType = "phys") {
   if (!effect || !target.alive) return;
   if (effect.kind === "stun") {
-    target.atb = 0;
+    // La cible passe son prochain tour
+    if (!target.effects.some((e) => e.kind === "stun")) target.effects.push({ kind: "stun", turns: 1 });
     events.push({ type: "stun", id: target.id });
     return;
   }
@@ -275,10 +282,6 @@ function chooseAction(s, enemy) {
 }
 
 function enemyAct(s, events, enemy) {
-  enemy.atb = 0;
-  startTurn(s, events, enemy);
-  if (!enemy.alive) { checkEnd(s, events); return; }
-
   const action = chooseAction(s, enemy);
   events.push({ type: "cast", from: enemy.id, label: action.name, spellType: action.type, targets: ["player"] });
   const res = attack(s, events, enemy, s.player, { type: action.type, power: action.power, label: action.name });
@@ -287,42 +290,41 @@ function enemyAct(s, events, enemy) {
 }
 
 // ------------------------------------------------------------
-// Boucle ATB
+// Boucle des tours
 // ------------------------------------------------------------
-function resolveReady(s, events) {
-  while (s.phase === "running") {
-    const ready = [s.player, ...aliveEnemies(s)].filter((a) => a.alive && a.atb >= ATB_MAX);
-    if (ready.length === 0) return;
-    // La jauge la plus pleine joue d'abord ; à égalité, le joueur
-    ready.sort((a, b) => b.atb - a.atb || (b.isPlayer ? 1 : 0) - (a.isPlayer ? 1 : 0));
-    const actor = ready[0];
-
-    if (actor.isPlayer) {
-      s.turns += 1;
-      startTurn(s, events, s.player);
-      if (!s.player.alive) { checkEnd(s, events); return; }
-      s.player.pa = PA_MAX;
-      s.player.flags.discountReady = s.player.flags.spellDiscount > 0;
-      s.phase = "playerTurn";
-      events.push({ type: "playerTurn", pa: PA_MAX });
-      return;
-    }
-    enemyAct(s, events, actor);
-  }
-}
-
-export function advance(state, dt) {
+// Fait jouer les combattants suivants dans l'ordre, jusqu'à ce que
+// ce soit au joueur de jouer, ou que le combat soit fini.
+export function advance(state) {
   if (state.phase !== "running") return { state, events: [] };
   const s = clone(state);
   const events = [];
 
-  resolveReady(s, events);
-  if (s.phase === "running") {
-    s.time += dt;
-    for (const a of [s.player, ...aliveEnemies(s)]) {
-      if (a.alive) a.atb = Math.min(ATB_MAX, a.atb + atbRate(a) * dt);
+  let guard = 0;
+  while (s.phase === "running" && guard++ < 1000) {
+    if (s.cursor >= s.order.length) {
+      s.round += 1;
+      s.order = buildOrder(s);
+      s.cursor = 0;
+      events.push({ type: "round", n: s.round, order: [...s.order] });
     }
-    resolveReady(s, events);
+    const actor = actorById(s, s.order[s.cursor++]);
+    if (!actor.alive) continue;
+
+    events.push({ type: "turn", id: actor.id, round: s.round });
+    const stunned = actor.effects.some((e) => e.kind === "stun");
+    startTurn(s, events, actor);          // dégâts sur la durée, durée des effets
+    if (!actor.alive) { checkEnd(s, events); continue; }
+    if (stunned) { events.push({ type: "skip", id: actor.id }); continue; }
+
+    if (actor.isPlayer) {
+      s.turns += 1;
+      s.player.pa = PA_MAX;
+      s.player.flags.discountReady = s.player.flags.spellDiscount > 0;
+      s.phase = "playerTurn";
+      events.push({ type: "playerTurn", pa: PA_MAX });
+    } else {
+      enemyAct(s, events, actor);
+    }
   }
   return { state: s, events };
 }
@@ -406,7 +408,6 @@ export function endTurn(state) {
   if (state.phase !== "playerTurn") return { state, events: [] };
   const s = clone(state);
   s.player.pa = 0;     // les PA non utilisés sont perdus
-  s.player.atb = 0;
   s.phase = "running";
   return { state: s, events: [{ type: "endTurn" }] };
 }

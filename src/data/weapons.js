@@ -13,9 +13,9 @@
 //   lifesteal   part (0-1) des dégâts infligés rendue en PV
 //   effect      effet appliqué à la cible :
 //     { kind: "dot", element, turns, ratio }   dégâts par tour = ratio × attaque
-//     { kind: "slow", turns, value }           jauge ATB ralentie de `value` (0-1)
+//     { kind: "slow", turns, value }           initiative réduite de `value` (0-1) : la cible joue plus tard
 //     { kind: "defDown", turns, value }        défense réduite de `value` (0-1)
-//     { kind: "stun" }                         la cible perd son prochain tour
+//     { kind: "stun" }                         la cible passe son prochain tour
 //   selfEffect  effet appliqué au lanceur (sorts de type "buff") :
 //     { kind: "parade", turns, defUp, counter }
 //     { kind: "shadow" }  prochaine attaque reçue esquivée + prochain coup critique
@@ -25,7 +25,7 @@
 export const ELEMENTS = {
   feu: { key: "feu", label: "Feu", color: "#e0742f", desc: "Brûlure : dégâts sur la durée" },
   poison: { key: "poison", label: "Poison", color: "#6f9c4a", desc: "Dégâts sur la durée" },
-  givre: { key: "givre", label: "Givre", color: "#5fa3c4", desc: "Ralentit la jauge ATB de la cible" },
+  givre: { key: "givre", label: "Givre", color: "#5fa3c4", desc: "Réduit l'initiative de la cible : elle joue plus tard" },
 };
 
 // Sorts de base quand aucune arme n'est équipée
@@ -95,9 +95,9 @@ export const WEAPON_TYPES = {
     damageType: "phys",
     spells: [
       { id: "ecrasement", name: "Écrasement", pa: 3, type: "phys", power: 1.8, desc: "Gros dégâts physiques, coup lent mais puissant" },
-      { id: "etourdissement", name: "Étourdissement", pa: 4, type: "phys", power: 1.1, desc: "Dégâts physiques moyens + la cible perd son prochain tour (jauge ATB vidée)",
+      { id: "etourdissement", name: "Étourdissement", pa: 4, type: "phys", power: 1.1, desc: "Dégâts physiques moyens + la cible perd son prochain tour",
         effect: { kind: "stun" } },
-      { id: "seisme", name: "Séisme", pa: 6, type: "phys", power: 1.2, desc: "Dégâts physiques sur tous les ennemis + réduit leur Vitesse (2 tours)", aoe: true, applyElement: "givre",
+      { id: "seisme", name: "Séisme", pa: 6, type: "phys", power: 1.2, desc: "Dégâts physiques sur tous les ennemis + réduit leur initiative (2 tours)", aoe: true, applyElement: "givre",
         effect: { kind: "slow", turns: 2, value: 0.5 } },
     ],
   },
@@ -110,7 +110,7 @@ export const WEAPON_TYPES = {
     spells: [
       { id: "fauchaison", name: "Fauchaison", pa: 3, type: "phys", power: 0.9, desc: "Dégâts physiques sur tous les ennemis en ligne", aoe: true },
       { id: "vol_de_vie", name: "Vol de Vie", pa: 3, type: "mag", power: 1.0, desc: "Dégâts magiques + soigne le joueur d'un % des dégâts infligés", lifesteal: 0.4 },
-      { id: "etreinte_glaciale", name: "Étreinte Glaciale", pa: 4, type: "mag", power: 1.1, desc: "Dégâts magiques + applique Givre (ralentit l'ATB)", applyElement: "givre",
+      { id: "etreinte_glaciale", name: "Étreinte Glaciale", pa: 4, type: "mag", power: 1.1, desc: "Dégâts magiques + applique Givre (réduit l'initiative)", applyElement: "givre",
         effect: { kind: "slow", turns: 2, value: 0.5 } },
     ],
   },
