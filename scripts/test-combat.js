@@ -3,7 +3,7 @@
 // ============================================================
 
 import assert from "node:assert/strict";
-import { createCombat, advance, castSpell, endTurn, initiativeOf, PA_MAX } from "../src/combat/engine.js";
+import { createCombat, advance, castSpell, endTurn, PA_MAX } from "../src/combat/engine.js";
 
 const BASE_STATS = {
   atkPhys: 20, atkMagie: 20, defPhys: 0, defMagie: 0, maxHp: 100,
@@ -128,11 +128,22 @@ test("l'étourdissement fait passer le prochain tour de la cible", () => {
   assert.ok(!next.events.some((e) => e.type === "cast" && e.from === "e0"));
 });
 
-test("le givre réduit l'initiative de la cible", () => {
-  let { state } = toPlayerTurn(mk({ weapon: "faux", enemies: ["sanglier_sauvage"] }));
-  const before = initiativeOf(state.enemies[0]);
+test("le givre affaiblit la cible : elle inflige moins de dégâts et son initiative ne bouge pas", () => {
+  let { state } = toPlayerTurn(mk({ weapon: "faux", enemies: ["sanglier_sauvage"], seed: 21 }));
+  const e = state.enemies[0];
+  const vitBefore = e.stats.vitesse;
   state = castSpell(state, "etreinte_glaciale", "e0").state;
-  assert.ok(initiativeOf(state.enemies[0]) < before);
+  assert.ok(state.enemies[0].effects.some((x) => x.kind === "weaken"));
+  assert.equal(state.enemies[0].stats.vitesse, vitBefore, "l'initiative est fixe");
+  // dégâts d'une attaque ennemie avec / sans affaiblissement (même graine)
+  const dmg = (weakened) => {
+    let t = toPlayerTurn(mk({ enemies: ["sanglier_sauvage"], seed: 33 })).state;
+    if (weakened) t.enemies[0].effects.push({ kind: "weaken", turns: 5, value: 0.5 });
+    t = endTurn(t).state;
+    const r = advance(t);
+    return r.events.find((x) => x.type === "hit" && x.to === "player").amount;
+  };
+  assert.ok(dmg(true) < dmg(false));
 });
 
 test("l'ordre de jeu suit l'initiative (le plus rapide d'abord), chacun joue une fois par tour", () => {
@@ -143,6 +154,10 @@ test("l'ordre de jeu suit l'initiative (le plus rapide d'abord), chacun joue une
   assert.deepEqual(round1.order, ["e0", "e2", "player", "e1"]);
   const turns = r.events.filter((e) => e.type === "turn").map((e) => e.id);
   assert.deepEqual(turns, ["e0", "e2", "player"]);
+  // l'ordre ne change jamais : même ordre au tour suivant
+  let st = endTurn(r.state).state;
+  const r2 = advance(st);
+  assert.deepEqual(r2.events.find((e) => e.type === "round").order, round1.order);
 });
 
 test("le vol de vie soigne le joueur", () => {

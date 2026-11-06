@@ -110,15 +110,12 @@ const actorById = (s, id) => (id === "player" ? s.player : s.enemies.find((e) =>
 const maxEffect = (actor, kind, field = "value") =>
   Math.max(0, ...actor.effects.filter((e) => e.kind === kind).map((e) => e[field] || 0));
 
-// Initiative effective : la Vitesse, réduite par le Givre
-export function initiativeOf(actor) {
-  return actor.stats.vitesse * (1 - maxEffect(actor, "slow"));
-}
-
-// Ordre de jeu d'un tour : initiative décroissante, égalités tirées au sort
+// Ordre de jeu : initiative décroissante, égalités tirées au sort.
+// Comme dans Dofus, l'initiative est une stat FIXE (aucun sort ni effet ne la
+// change) et l'ordre est calculé une seule fois, au début du combat.
 function buildOrder(s) {
   return [s.player, ...aliveEnemies(s)]
-    .map((a) => ({ id: a.id, init: initiativeOf(a), tie: rand(s) }))
+    .map((a) => ({ id: a.id, init: a.stats.vitesse, tie: rand(s) }))
     .sort((x, y) => y.init - x.init || x.tie - y.tie)
     .map((x) => x.id);
 }
@@ -154,7 +151,8 @@ function attack(s, events, attacker, target, opts) {
   else if (attacker.isPlayer && attacker.flags.shadowCrit) { crit = true; attacker.flags.shadowCrit = false; }
   else crit = rand(s) * 100 < Math.min(75, attacker.stats.critique + critBonus);
 
-  const damage = Math.max(1, Math.round(atk * power * variance * reduction * (crit ? CRIT_MULT : 1)));
+  const weaken = 1 - maxEffect(attacker, "weaken");   // Givre : l'attaquant fait moins de dégâts
+  const damage = Math.max(1, Math.round(atk * power * variance * reduction * weaken * (crit ? CRIT_MULT : 1)));
   target.hp = Math.max(0, target.hp - damage);
   events.push({
     type: "hit", from: attacker.id, to: target.id, amount: damage, crit,
@@ -191,7 +189,6 @@ function checkPhases(s, events, enemy) {
     if (enemy.hp / enemy.maxHp < ph.below) {
       enemy.phasesDone.push(i);
       if (ph.atkMult) { enemy.stats.atkPhys *= ph.atkMult; enemy.stats.atkMagie *= ph.atkMult; }
-      if (ph.vitesseAdd) enemy.stats.vitesse += ph.vitesseAdd;
       events.push({ type: "phase", id: enemy.id, text: ph.announce });
     }
   });
@@ -303,7 +300,7 @@ export function advance(state) {
   while (s.phase === "running" && guard++ < 1000) {
     if (s.cursor >= s.order.length) {
       s.round += 1;
-      s.order = buildOrder(s);
+      if (s.order.length === 0) s.order = buildOrder(s);   // une seule fois : l'ordre ne change plus
       s.cursor = 0;
       events.push({ type: "round", n: s.round, order: [...s.order] });
     }

@@ -20,8 +20,8 @@ const HERO_H = 250;      // hauteur d'affichage du héros (px)
 
 const ELEMENT_COLOR = { feu: "#ff9a4d", poison: "#8fdc5a", givre: "#8fd3f5", arcane: "#a99bff", phys: "#ffe7a8" };
 const RANGED = new Set(["tir_rapide", "tir_percant", "pluie_de_fleches"]);
-const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, stun: "Étourdi", slow: "Initiative réduite", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
-const BADGE = { feu: "🔥", poison: "☠️", slow: "❄️", defDown: "💔", parade: "🛡️", stun: "💫", shadow: "🌑" };
+const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, stun: "Étourdi", weaken: "Affaibli", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
+const BADGE = { feu: "🔥", poison: "☠️", weaken: "❄️", defDown: "💔", parade: "🛡️", stun: "💫", shadow: "🌑" };
 
 function enemySlots(list) {
   const n = list.length;
@@ -298,7 +298,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           if (label) addFloat(e.id, label, `status ${e.element || ""}`, 36);
           if (e.kind === "parade") addFx(e.id, "shield");
           if (e.kind === "shadow") addFx(e.id, "smoke");
-          if (e.kind === "slow") addFx(e.id, "frost");
+          if (e.kind === "weaken") addFx(e.id, "frost");
           break;
         }
         case "stun":
@@ -362,7 +362,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
     return () => clearTimeout(t);
   }, []); // eslint-disable-line
 
-  // Fait jouer les ennemis (dans l'ordre d'initiative) jusqu'au tour du joueur
+  // Fait jouer les ennemis (dans l'ordre d'initiative, fixé au début du combat) jusqu'au tour du joueur
   const step = useCallback(() => {
     const r = advance(csRef.current);
     commit(r.state);
@@ -571,7 +571,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           </button>
         </div>
         <div className="cb-hint">
-          {hoverSpell ? hoverSpell.desc : myTurn ? "Clique sur un ennemi pour le cibler, puis lance un sort (touches 1-3)." : ended ? "" : "Chacun joue à son tour, dans l'ordre de la frise : plus l'initiative est haute, plus on joue tôt."}
+          {hoverSpell ? hoverSpell.desc : myTurn ? "Clique sur un ennemi pour le cibler, puis lance un sort (touches 1-3)." : ended ? "" : "Chacun joue à son tour, toujours dans l'ordre de la frise, fixé par l'initiative au début du combat."}
         </div>
       </div>
     </div>
