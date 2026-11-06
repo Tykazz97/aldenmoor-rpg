@@ -9,6 +9,7 @@ import { ITEMS, SETS } from "../src/data/items.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { ENEMIES, ZONES } from "../src/data/zones.js";
+import { getCraftInfo } from "../src/data/professions.js";
 
 const errors = [];
 const warnings = [];
@@ -22,6 +23,11 @@ for (const [itemId, recipe] of Object.entries(RECIPES)) {
     if (!RESOURCES[resId]) err(`Recette ${itemId} : ressource inconnue ${resId}`);
     if (!(qty > 0)) err(`Recette ${itemId} : quantité invalide pour ${resId}`);
   }
+}
+
+// Chaque recette doit être rattachée à un métier
+for (const itemId of Object.keys(RECIPES)) {
+  if (!getCraftInfo(itemId)) err(`Recette ${itemId} : aucun métier ne la fabrique`);
 }
 
 // Drops des ennemis -> ressources / objets existants

@@ -1,6 +1,11 @@
 import { useState, useMemo, useCallback } from "react";
 import { calcStats } from "../utils/calcStats.js";
 import { ITEMS, ITEM_ORDER } from "../data/items.js";
+import { PROFESSION_ORDER } from "../data/professions.js";
+import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
+import { applyCraft, addResourcesTo, emptyProfessions } from "../utils/crafting.js";
+
+let craftCounter = 0;
 
 const EMPTY_EQUIPPED = {
   chapeau: null, cape: null, plastron: null, amulette: null,
@@ -29,6 +34,8 @@ function initialPlayer() {
     equipped: { ...EMPTY_EQUIPPED },
     inventory: testInventory(),
     gold: 0,
+    resources: {},                                  // { idRessource: quantité }
+    professions: emptyProfessions(PROFESSION_ORDER), // { métier: { level, xp } }
   };
 }
 
@@ -91,7 +98,30 @@ export function usePlayer() {
     });
   }, []);
 
-  return { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint };
+  // Craft : la validation est refaite sur l'état le plus récent, donc un
+  // double-clic rapide ne peut pas consommer deux fois les mêmes ressources.
+  const craft = useCallback((itemId) => {
+    setPlayer((prev) => applyCraft(prev, itemId, `craft-${Date.now()}-${craftCounter++}`));
+  }, []);
+
+  // --- Outils de test (à retirer quand le combat donnera les vrais drops) ---
+  const testAddResources = useCallback((amounts = { commune: 10, peu_commune: 5, rare: 2 }) => {
+    const gains = {};
+    for (const id of RESOURCE_ORDER) {
+      gains[id] = amounts[RESOURCES[id].rarity] || 0;
+    }
+    setPlayer((prev) => addResourcesTo(prev, gains));
+  }, []);
+
+  const testAddGold = useCallback((n = 500) => {
+    setPlayer((prev) => ({ ...prev, gold: prev.gold + n }));
+  }, []);
+
+  return {
+    player, setPlayer, stats,
+    equipItem, unequipSlot, addCaracPoint,
+    craft, testAddResources, testAddGold,
+  };
 }
 
 export { EMPTY_EQUIPPED };
