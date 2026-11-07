@@ -4,7 +4,7 @@ import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
 import { applyCraft, addResourcesTo } from "../utils/crafting.js";
 import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
-import { depositItem, withdrawItem, depositResource, withdrawResource } from "../utils/bank.js";
+import { depositItem, withdrawItem, depositResource, withdrawResource, upgradeBank } from "../utils/bank.js";
 
 let craftCounter = 0;
 
@@ -53,6 +53,7 @@ export function usePlayer(initial) {
     withdrawItem: (uid) => setPlayer((p) => withdrawItem(p, uid)),
     depositResource: (id, qty) => setPlayer((p) => depositResource(p, id, qty)),
     withdrawResource: (id, qty) => setPlayer((p) => withdrawResource(p, id, qty)),
+    upgrade: () => setPlayer((p) => upgradeBank(p)),
   }), []);
 
   const unequipSlot = useCallback((slotKey) => {

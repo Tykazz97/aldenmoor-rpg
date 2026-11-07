@@ -22,6 +22,7 @@ npm run check      # tests puis build : à lancer avant d'envoyer
 
 Les tests sont de simples scripts Node, sans bibliothèque. GitHub les relance à chaque envoi (`.github/workflows/ci.yml`).
 `node scripts/simulate-combat.js 200 5` simule des combats pour équilibrer (200 combats, niveau 5).
+`node scripts/simulate-economy.js` donne le bilan de l'économie : or et drops par combat, revenu des récoltes, coût des sets, prix des agrandissements du coffre. Règle imposée par `test-economy.js` : dans un combat, l'or pur doit faire 25 à 55 % du revenu (à respecter pour chaque nouvelle région).
 
 ## Organisation du code
 
