@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node scripts/run-tests.js",
+    "test:ui": "node scripts/test-ui.mjs",
     "check": "npm test && npm run build"
   },
   "dependencies": {

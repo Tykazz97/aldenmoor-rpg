@@ -18,6 +18,7 @@ npm run dev        # http://localhost:5173
 ```bash
 npm test           # validation des données + tous les tests (scripts/test-*.js)
 npm run check      # tests puis build : à lancer avant d'envoyer
+npm run test:ui     # test d'interface : joue un parcours complet dans un vrai navigateur (demande Playwright, voir scripts/test-ui.mjs)
 ```
 
 Les tests sont de simples scripts Node, sans bibliothèque. GitHub les relance à chaque envoi (`.github/workflows/ci.yml`).
