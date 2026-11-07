@@ -3,6 +3,10 @@ import "./map.css";
 import Terrain from "./Terrain.jsx";
 import Minimap from "./Minimap.jsx";
 import WorldMap from "./WorldMap.jsx";
+import CityCrowd from "./CityCrowd.jsx";
+import CityChat from "./CityChat.jsx";
+import { generatePopulation } from "../../sim/population.js";
+import { createCityLife, playerSays } from "../../sim/cityLife.js";
 import { EncounterFight } from "../combat/CombatScreen.jsx";
 import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
@@ -17,6 +21,7 @@ import { canGather, rollYield } from "../../utils/gathering.js";
 import { findPath, pathToObject, stepMove, canStand, activeGroups, activeNodes, mapWidth, mapHeight } from "../../utils/mapPath.js";
 import { color } from "../../styles/theme.js";
 
+const POPULATION = generatePopulation();   // les 200 joueurs simulés (toujours les mêmes)
 const VIEW_W = 14;        // largeur visible : 14 tuiles
 const SPEED = 4.4;        // vitesse du héros, en tuiles par seconde
 const TOUCH = 0.95;       // distance à laquelle on "touche" un objet en marchant au clavier
@@ -44,6 +49,10 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   const [view, setView] = useState("region");   // "region" | "world" (carte du monde)
   const [building, setBuilding] = useState(null); // lieu ouvert dans la ville (atelier, coffre...)
   const [now, setNow] = useState(() => Date.now());
+  const [feed, setFeed] = useState([]);           // fil de discussion de la ville
+  const [heroBubble, setHeroBubble] = useState(null);
+  const feedKey = useRef(0);
+  const bubbleTimer = useRef(null);
 
   const viewRef = useRef(null), worldElRef = useRef(null), heroRef = useRef(null), heroAnimRef = useRef(null), dotRef = useRef(null);
   const harvestAct = useRef(null);                // { action, t0 } pendant une récolte
@@ -78,6 +87,20 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   outfitRef.current = outfit;
   const heroLayout = heroFrameLayout(outfit);
   const isCity = map.kind === "city";
+  const life = useMemo(() => (isCity ? createCityLife({ map, population: POPULATION, seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
+  const addFeed = useCallback((m) => setFeed((f) => [...f, { ...m, key: ++feedKey.current }].slice(-40)), []);
+  useEffect(() => {
+    setFeed(life ? life.history.map((h) => ({ ...h, key: ++feedKey.current })) : []);
+  }, [life]);
+  const onCityEvents = useCallback((evs) => { for (const e of evs) if (e.type === "say") addFeed(e); }, [addFeed]);
+  const sendChat = useCallback((text) => {
+    addFeed({ name: playerRef.current.name, level: playerRef.current.level, text, me: true });
+    setHeroBubble(text);
+    clearTimeout(bubbleTimer.current);
+    bubbleTimer.current = setTimeout(() => setHeroBubble(null), 5500);
+    if (life) playerSays(life, text);
+  }, [addFeed, life]);
+  useEffect(() => () => clearTimeout(bubbleTimer.current), []);
   const region = isCity ? CITY : ZONES.aldenmoor.regions.find((r) => r.key === map.regionKey);
   const places = useMemo(() => [CITY, ...ZONES.aldenmoor.regions], []);
 
@@ -170,7 +193,9 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   // ---------- clavier ----------
   useEffect(() => {
     const norm = (k) => (k.length === 1 ? k.toLowerCase() : k);
+    const typing = (ev) => ev.target && /^(INPUT|TEXTAREA)$/.test(ev.target.tagName);
     const down = (ev) => {
+      if (typing(ev)) return;
       const k = norm(ev.key);
       if (!MOVE_KEYS[k]) return;
       ev.preventDefault();
@@ -416,9 +441,14 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
               );
             })}
 
+            {/* joueurs simulés de la ville */}
+            {life && <CityCrowd life={life} onEvents={onCityEvents} />}
+
             {/* héros (position mise à jour à chaque image par la boucle d'animation) */}
             <div className="mp-ent" ref={heroRef}>
               <span className="mp-shadow" />
+              <span className="mp-nick me">{player.name}<i>{player.level}</i></span>
+              {heroBubble && <span className="mp-bubble">{heroBubble}</span>}
               <div className="mp-flip" style={{ transform: `scaleX(${facing})` }}>
                 <div ref={heroAnimRef} className={`mp-hero-anim ${harvest || walking ? "" : "idle"}`} role="img" aria-label="Héros"
                   style={{ width: cq(heroLayout.w), height: cq(heroLayout.h), left: cq(-heroLayout.ax), top: cq(-heroLayout.ay) }} />
@@ -430,6 +460,8 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
           <Minimap map={map} groups={groups} nodes={nodes} dotRef={dotRef} />
 
           {toast && <div key={toast.id} className="mp-toast">{toast.text}</div>}
+
+          {life && <CityChat feed={feed} online={life.agents.length + 1} onSend={sendChat} playerName={player.name} />}
 
           {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} onFight={() => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter) }); setPopup(null); }} onBack={() => setPopup(null)} />}
         </div>
