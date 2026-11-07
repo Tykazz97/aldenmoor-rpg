@@ -174,6 +174,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
     return (
       <EncounterFight
         encounter={fight.enc}
+        party={!!fight.party}
         player={player}
         stats={stats}
         onRewards={onRewards}
@@ -302,7 +303,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
 
           {life && <CityChat feed={feed} online={life.agents.length + 1} onSend={sendChat} playerName={player.name} />}
 
-          {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} classKey={player.classKey} onFight={() => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter) }); setPopup(null); }} onBack={() => setPopup(null)} />}
+          {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} classKey={player.classKey} onFight={(party) => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter), party }); setPopup(null); }} onBack={() => setPopup(null)} />}
         </div>
       </div>
       )}

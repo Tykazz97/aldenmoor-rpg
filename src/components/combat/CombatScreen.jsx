@@ -6,6 +6,7 @@ import { buildSpellBar } from "../../utils/spellbook.js";
 import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { sfx } from "./sfx.js";
 import { HERO_X, HERO_B, HERO_H } from "./stage.js";
+import { defaultAllies } from "../../sim/partyBots.js";
 import { useFightPlayback } from "./useFightPlayback.js";
 import EncounterSelect from "./EncounterSelect.jsx";
 import CombatHud from "./CombatHud.jsx";
@@ -44,12 +45,12 @@ export default function CombatScreen({ player, stats, onRewards }) {
 }
 
 // Combat lancé depuis la carte : onExit(true) si victoire (butin récupéré)
-export function EncounterFight({ encounter, player, stats, onRewards, onExit }) {
+export function EncounterFight({ encounter, player, stats, party = false, onRewards, onExit }) {
   const [fightKey, setFightKey] = useState(0);
   const weaponType = player.equipped.arme?.weaponType || null;
   const heroSrc = heroSpriteUrl(heroLook(player, stats));
   return (
-    <Fight key={fightKey} encounter={encounter} player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc}
+    <Fight key={fightKey} encounter={encounter} player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc} party={party}
       onRewards={onRewards} onRestart={() => setFightKey((k) => k + 1)} onExit={onExit} backLabel="Retour à la carte" />
   );
 }
@@ -58,8 +59,11 @@ export function EncounterFight({ encounter, player, stats, onRewards, onExit }) 
 // Un combat : règles (état du moteur, actions du joueur) ici,
 // mise en scène dans useFightPlayback, affichage dans les composants.
 // ------------------------------------------------------------
-function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire" }) {
-  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player) }), []); // eslint-disable-line
+function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire" }) {
+  // En groupe : les deux autres classes, pilotées par le moteur (voir sim/partyBots.js)
+  const allySpecs = useMemo(() => (party ? defaultAllies(player) : []), []); // eslint-disable-line
+  const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, heroSpriteUrl(a.look)])), [allySpecs]);
+  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
   const [speed, setSpeed] = useState(1);
@@ -75,7 +79,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
   }, []);
 
   const pb = useFightPlayback({ initial, csRef, speed, onIdle: keepTarget });
-  const { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef } = pb;
+  const { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, allyPos, allyH, spriteRefs, shakeRef } = pb;
 
   // Fait jouer les ennemis (dans l'ordre d'initiative, fixé au début du combat) jusqu'au tour du joueur
   const step = useCallback(() => {
@@ -156,6 +160,25 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
             </div>
           </div>
 
+          {/* Alliés (bots) */}
+          {cs.allies.map((al, i) => {
+            const pos = allyPos[i];
+            return (
+              <div key={al.id} className={`cb-actor ${dead[al.id] ? "dead" : ""} ${activeId === al.id ? "active" : ""}`}
+                style={{ left: `${pos.x}%`, bottom: pos.b, zIndex: 4 - Math.round(pos.b / 60) }}>
+                <Bars actor={al} hp={hpView[al.id]} ghost={ghost[al.id]} isPlayer />
+                <div className="cb-body" style={{ position: "relative" }}>
+                  <div className="cb-shadow" />
+                  <div className="cb-idle" style={{ animationDelay: `${0.3 + i * 0.4}s` }}>
+                    <div ref={(el) => { spriteRefs.current[al.id] = el; }}>
+                      <img className="cb-sprite" src={allySrc[al.id]} alt={al.name} style={{ height: allyH }} draggable={false} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
           {/* Ennemis */}
           {cs.enemies.map((en, i) => {
             if (en.summoned && !appeared[en.id]) return null;   // le renfort apparaît quand l'animation l'annonce
@@ -183,7 +206,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
             );
           })}
 
-          <Timeline timeline={timeline} activeId={activeId} dead={dead} cs={cs} heroSrc={heroSrc} />
+          <Timeline timeline={timeline} activeId={activeId} dead={dead} cs={cs} heroSrc={heroSrc} allySrc={allySrc} />
 
           {/* Effets */}
           {fxs.map((f) => <Fx key={f.key} fx={f} />)}

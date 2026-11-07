@@ -106,6 +106,8 @@ Le tableau de quêtes d'Aldenmoor (bâtiment de la ville) propose chaque jour un
 
 ## Idées à venir
 
-**Groupes de 3 joueurs** (décision prise) : un seul joueur par combat aujourd'hui. Le groupe de 3 colle aux 3 classes (un guerrier, un assassin, un magicien). Il demandera un moteur de combat à plusieurs héros (initiative mélangée), un écran de combat à 3 héros, un serveur pour synchroniser les joueurs, et des monstres dont les PV et le nombre s'adaptent à la taille du groupe (jusqu'à 5 ou 6 ennemis, boss bien plus costauds). À faire après le Veilleur Corrompu.
+**Groupes de 3 (en cours)** : depuis la fenêtre d'engagement sur la carte, **« En groupe »** emmène deux alliés bots (les deux autres classes, au niveau du joueur, avec l'équipement de leur palier : `src/sim/partyBots.js`). Le moteur gère plusieurs héros (`allies` dans `createCombat`, ids `ally0` / `ally1`) : ils entrent dans l'ordre d'initiative, jouent seuls (le sort le plus rentable sur l'ennemi le plus faible, sans parade ni soutien), et les ennemis visent un héros vivant au hasard. Seul le joueur compte pour la défaite (sa mort perd le combat) et pour le butin : xp, or et drops sont ceux d'un combat solo, et les renforts du Veilleur ne rapportent rien. Les ennemis ont **4,5 fois plus de PV** à 3 héros (`PARTY_HP_SCALE` dans `engine.js`, réglé avec `node scripts/simulate-zones.js 100 chevaliers,veilleur_boss --groupe`) : le groupe gagne plus sûrement qu'en solo, mais le combat est plus long. `test-party.js` vérifie tout ça.
+
+Étapes suivantes possibles : des vrais joueurs dans le groupe (serveur), des bots qui se mettent en groupe entre eux et vivent sur la carte, un choix de compagnons, des récompenses adaptées au groupe, l'IA des bots (parade, sorts de soutien).
 
 Enchères à l'hôtel des ventes, vrais joueurs sur le même marché, joueurs simulés dans les régions, groupes et guildes, régions 2 et 3, emplacements d'équipement restants.

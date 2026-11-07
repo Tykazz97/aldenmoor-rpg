@@ -19,54 +19,16 @@ import { ENCOUNTERS } from "../src/data/encounters.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { createCombat, advance, castSpell, endTurn } from "../src/combat/engine.js";
 import { POINTS_PER_LEVEL, FREE_VITALITE_PER_LEVEL } from "../src/data/caracs.js";
-import { buildSpellBar, rankUp, spellPointsLeft, rankCost, loadoutOf } from "../src/utils/spellbook.js";
+import { buildSpellBar } from "../src/utils/spellbook.js";
+import { BUILDS, tierOf, makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
 
 const N = Number(process.argv[2]) || 200;
-const ONLY = process.argv[3] ? process.argv[3].split(",") : null;      // ex. : node ... 200 loups,cavalier
+const ONLY = process.argv[3] && process.argv[3] !== "-" ? process.argv[3].split(",") : null;
+const PARTY = process.argv.includes("--groupe");      // le héros est accompagné de ses 2 alliés bots (les deux autres classes)
+// (ex. : node scripts/simulate-zones.js 200 loups,cavalier --groupe)
 
-// Équipement par palier (voir src/data/gearTiers.js) : palier 1 jusqu'au niveau 9, palier 2 de 10 à 15, palier 3 à partir de 16.
-// (On suppose que le joueur a fabriqué le set de la région précédente avant d'attaquer la suivante.)
-const BUILDS = {
-  guerrier: { wtype: "epee", main: "force", tiers: [
-    { weapon: "epee_milicien", set: "veteran", shield: "bouclier_milicien" },
-    { weapon: "epee_fossoyeur", set: "fossoyeur", shield: "bouclier_fossoyeur" },
-    { weapon: "epee_chevalier", set: "chevalier", shield: "bouclier_chevalier" },
-  ] },
-  assassin: { wtype: "dague", main: "agilite", tiers: [
-    { weapon: "dague_ebrechee", set: "traqueur" }, { weapon: "dague_charognard", set: "charognard" }, { weapon: "dague_garou", set: "garou" },
-  ] },
-  magicien: { wtype: "baton", main: "intelligence", tiers: [
-    { weapon: "baton_noueux", set: "apprenti" }, { weapon: "baton_brasier", set: "brasier" }, { weapon: "baton_esprit", set: "esprit" },
-  ] },
-};
-export const tierOf = (level) => (level < 10 ? 0 : level < 16 ? 1 : 2);
-
-function gear(build, level) {
-  const t = build.tiers[tierOf(level)];
-  const items = [t.weapon, ...SETS[t.set].pieces, ...(t.shield ? [t.shield] : [])];
-  const equipped = {};
-  for (const id of items) equipped[ITEMS[id].type] = ITEMS[id];
-  return equipped;
-}
-
-function makePlayer(classKey, level) {
-  const cls = CLASSES[classKey], b = BUILDS[classKey];
-  const pts = POINTS_PER_LEVEL * (level - 1);
-  const mainPts = Math.round(pts * 0.65);
-  const caracs = { ...cls.startCaracs };
-  caracs[b.main] = (caracs[b.main] || 0) + mainPts;
-  caracs.vitalite = (caracs.vitalite || 0) + (pts - mainPts) + FREE_VITALITE_PER_LEVEL * (level - 1);
-  let p = { classKey, level, gold: 0, caracs, baseHp: 100, equipped: gear(b, level), spellbook: { ranks: {}, loadout: null } };
-  // points de sort : sur le sort le plus rentable de la barre, jusqu'au rang 3, puis le suivant…
-  for (let guard = 0; guard < 200 && spellPointsLeft(p) > 0; guard++) {
-    const bar = buildSpellBar(p).filter((s) => s.type !== "buff" && s.rank < 3);
-    bar.sort((a, c) => (c.power * (c.aoe ? 2 : 1)) / c.pa - (a.power * (a.aoe ? 2 : 1)) / a.pa);
-    const target = bar.find((s) => rankCost(s.rank) <= spellPointsLeft(p));
-    if (!target) break;
-    p = rankUp(p, target.id);
-  }
-  return p;
-}
+// Joueur automatique et équipement par palier : voir src/sim/partyBots.js (les alliés bots des groupes l'utilisent aussi).
+const makePlayer = makeBotPlayer;
 
 function pickSpell(state) {
   const living = state.enemies.filter((e) => e.alive).length;
@@ -79,9 +41,10 @@ function pickSpell(state) {
   return best;
 }
 
-function fight(player, enemyKeys, seed) {
+function fight(player, enemyKeys, seed, party = false) {
   const stats = calcStats(player);
-  let st = createCombat({ stats, weaponType: BUILDS[player.classKey].wtype, classKey: player.classKey, level: player.level, enemyKeys, spells: buildSpellBar(player), seed });
+  let st = createCombat({ stats, weaponType: BUILDS[player.classKey].wtype, classKey: player.classKey, level: player.level, enemyKeys, spells: buildSpellBar(player), seed,
+    allies: party ? Object.keys(CLASSES).filter((k) => k !== player.classKey).map((k) => botSpec(k, player.level)) : [] });
   for (let guard = 0; st.phase !== "victory" && st.phase !== "defeat" && guard < 20000; guard++) {
     if (st.phase === "running") { st = advance(st).state; continue; }
     const sp = pickSpell(st);
@@ -92,11 +55,11 @@ function fight(player, enemyKeys, seed) {
   return st;
 }
 
-export function evaluate(classKey, level, enc, n = N) {
+export function evaluate(classKey, level, enc, n = N, party = false) {
   const player = makePlayer(classKey, level);
   let wins = 0, hpLeft = 0, turns = 0;
   for (let seed = 1; seed <= n; seed++) {
-    const end = fight(player, enc.enemies, seed);
+    const end = fight(player, enc.enemies, seed, party);
     if (end.phase === "victory") { wins++; hpLeft += end.player.hp / end.player.maxHp; }
     turns += end.turns;
   }
@@ -120,7 +83,7 @@ if (process.argv[1].endsWith("simulate-zones.js")) {
     console.log(`${enc.name}  [${enc.enemies.join(", ")}]  niveaux ${levels.join(" / ")}`);
     for (const cls of Object.keys(CLASSES)) {
       const cells = [Math.max(1, levels[0] - 3), ...levels].map((lv) => {
-        const r = evaluate(cls, lv, enc);
+        const r = evaluate(cls, lv, enc, N, PARTY);
         return pad(`niv ${lv}: ${pct(r.win)} (${pct(r.hp)})`, 21);
       });
       console.log("  " + pad(cls, 10) + cells.join(""));

@@ -51,7 +51,8 @@ export default function EngagePopup({ group, hasWeapon, classKey, onFight, onBac
       {!hasWeapon && <div className="mp-pop-warn">Aucune arme équipée : tu te battras à mains nues.</div>}
       <div className="mp-pop-btns">
         <button className="cb-btn" onClick={onBack}>Reculer</button>
-        <button className="cb-btn primary" onClick={onFight}>⚔ Combattre</button>
+        <button className="cb-btn" onClick={() => onFight(true)} title="Deux alliés (les deux autres classes) combattent à tes côtés ; les monstres ont beaucoup plus de PV">👥 En groupe</button>
+        <button className="cb-btn primary" onClick={() => onFight(false)}>⚔ Combattre seul</button>
       </div>
     </div>
   );

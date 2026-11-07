@@ -145,6 +145,25 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("combat en groupe : « En groupe » amène 2 alliés bots, qui jouent seuls ; le héros reste aux commandes", async () => {
+    // on est encore sur la carte des Prairies : on engage un groupe visible
+    await page.evaluate(() => {
+      const v = document.querySelector(".mp-map").getBoundingClientRect();
+      const c = [...document.querySelectorAll(".mp-group")].filter((e) => { const r = e.getBoundingClientRect(); return r.left > v.left && r.right < v.right && r.top > v.top && r.bottom < v.bottom; });
+      c[0].click();
+    });
+    await page.locator("button", { hasText: "En groupe" }).click({ timeout: 15000 });
+    await page.locator(".cb-spell:not([disabled])").first().waitFor({ timeout: 30000 });
+    const heroBars = await page.locator(".cb-timeline .cb-tl.hero").count();
+    assert.equal(heroBars, 3, "la frise d'initiative montre le héros et ses 2 alliés");
+    assert.equal(await page.locator(".cb-tl.ally").count(), 2);
+    assert.ok((await page.locator(".cb-actor").count()) >= 5, "héros + 2 alliés + au moins 2 ennemis à l'écran");
+    await page.keyboard.press("1"); await page.waitForTimeout(800);
+    await page.locator(".cb-btn", { hasText: "Quitter" }).click(); await page.waitForTimeout(500);
+    assert.equal(await page.locator(".cb-root").count() <= 1, true);
+    assert.deepEqual(errors, []);
+  });
+
   await step("nouvelles régions : Champs Calcinés et Lisière des Ombres s'ouvrent, avec leurs monstres", async () => {
     for (const [key, name, levels] of [["champs_calcines", "Champs Calcinés", "Niveaux 8 à 14"], ["lisiere_des_ombres", "Lisière des Ombres", "Niveaux 14 à 20"]]) {
       await tab("Carte").click(); await page.waitForTimeout(500);

@@ -9,8 +9,8 @@
 //
 // Cycle d'un combat :
 //   createCombat(...)             crée l'état
-//   advance(state)               fait jouer les ennemis dans l'ordre
-//                                 d'initiative jusqu'au tour du joueur
+//   advance(state)               fait jouer les ennemis et les alliés bots dans
+//                                 l'ordre d'initiative jusqu'au tour du joueur
 //                                 (ou la fin du combat)
 //   castSpell(state, id, cible)   le joueur lance un sort (coûte des PA)
 //   endTurn(state)                le joueur termine son tour (PA perdus)
@@ -48,10 +48,8 @@ export function spellsFor(weaponType, classKey = null, level = 1) {
   return [...weaponSpells, ...classSpellsAt(classKey, level)];
 }
 
-// `spells` : barre de sorts déjà composée (voir buildSpellBar dans utils/spellbook.js). Sans elle, tous les sorts débloqués.
-export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, seed = Date.now() >>> 0 }) {
-  const s = { seed: seed >>> 0 };
-
+// Un héros (le joueur ou un allié bot) à partir de ses stats calculées (calcStats), son arme et ses sorts.
+function makeHero({ id, name, stats, weaponType = null, classKey = null, level = 1, spells = null, ally = false }) {
   const bonuses = (stats.setBonuses || []).map((b) => b.bonus);
   const pv = stats.passives || {};                                            // passifs d'objets (armes uniques) : mêmes drapeaux que les sets
   const riposte = Math.max(0, ...bonuses.map((b) => b.riposte || 0));
@@ -61,12 +59,12 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
   const lifesteal = Math.max(0, pv.lifesteal || 0, ...bonuses.map((b) => b.lifesteal || 0));    // part des dégâts infligés rendue en PV
   const armorPen = Math.max(0, pv.armorPen || 0, ...bonuses.map((b) => b.armorPen || 0));      // part de DEF ignorée par tous les sorts
   const lastStand = pv.lastStand || 0;                                       // un coup fatal laisse ce % de PV (une fois par combat)
-
-  const player = {
-    id: "player",
-    name: "Héros",
+  return {
+    id,
+    name,
     classKey,
-    isPlayer: true,
+    isPlayer: true,                // « côté héros » : le joueur ET ses alliés
+    isAlly: ally,                  // allié piloté par le moteur (bot)
     hp: stats.maxHp,
     maxHp: stats.maxHp,
     stats: {
@@ -81,17 +79,33 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     spells: spells || spellsFor(weaponType, classKey, level),
     alive: true,
   };
+}
+
+// Points de vie des ennemis selon la taille du groupe de héros : à plusieurs, les monstres encaissent davantage
+// (valeurs réglées avec scripts/simulate-zones.js en mode groupe).
+export const PARTY_HP_SCALE = { 1: 1, 2: 3, 3: 4.5 };
+
+// `spells` : barre de sorts déjà composée (voir buildSpellBar dans utils/spellbook.js). Sans elle, tous les sorts débloqués.
+// `allies` : alliés bots, chacun { name, stats, weaponType, classKey, level, spells } (voir sim/partyBots.js). Le joueur reste
+// le seul à choisir ses actions ; les alliés jouent seuls à leur tour d'initiative.
+export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, allies = [], seed = Date.now() >>> 0 }) {
+  const s = { seed: seed >>> 0 };
+
+  const player = makeHero({ id: "player", name: "Héros", stats, weaponType, classKey, level, spells });
+  const allyHeroes = allies.map((a, i) => makeHero({ id: `ally${i}`, name: a.name || `Allié ${i + 1}`, stats: a.stats, weaponType: a.weaponType, classKey: a.classKey, level: a.level ?? level, spells: a.spells, ally: true }));
+  const hpScale = PARTY_HP_SCALE[1 + allyHeroes.length] ?? PARTY_HP_SCALE[3];
 
   const enemies = enemyKeys.map((key, i) => {
     const def = ENEMIES[key];
     if (!def || !def.stats) throw new Error(`Ennemi sans stats de combat : ${key}`);
+    const hp = Math.round(def.stats.hp * hpScale);
     return {
       id: `e${i}`,
       key,
       name: def.name,
       miniBoss: !!def.miniBoss,
-      hp: def.stats.hp,
-      maxHp: def.stats.hp,
+      hp,
+      maxHp: hp,
       stats: { ...def.stats },
       effects: [],
       alive: true,
@@ -106,7 +120,9 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     order: [],      // ids des combattants dans l'ordre de jeu du tour en cours
     cursor: 0,      // position du prochain combattant à jouer dans `order`
     turns: 0,       // nombre de tours joués par le joueur
+    hpScale,        // multiplicateur de PV des ennemis (aussi appliqué aux renforts appelés)
     player,
+    allies: allyHeroes,
     enemies,
     rewards: null,
   };
@@ -117,7 +133,8 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
 // ------------------------------------------------------------
 const clone = (state) => structuredClone(state);
 const aliveEnemies = (s) => s.enemies.filter((e) => e.alive);
-const actorById = (s, id) => (id === "player" ? s.player : s.enemies.find((e) => e.id === id));
+const heroes = (s) => [s.player, ...(s.allies || [])];
+const actorById = (s, id) => (id === "player" ? s.player : (s.allies || []).find((a) => a.id === id) || s.enemies.find((e) => e.id === id));
 const maxEffect = (actor, kind, field = "value") =>
   Math.max(0, ...actor.effects.filter((e) => e.kind === kind).map((e) => e[field] || 0));
 
@@ -125,7 +142,7 @@ const maxEffect = (actor, kind, field = "value") =>
 // Comme dans Dofus, l'initiative est une stat FIXE (aucun sort ni effet ne la
 // change) et l'ordre est calculé une seule fois, au début du combat.
 function buildOrder(s) {
-  return [s.player, ...aliveEnemies(s)]
+  return [...heroes(s), ...aliveEnemies(s)]
     .map((a) => ({ id: a.id, init: a.stats.vitesse, tie: rand(s) }))
     .sort((x, y) => y.init - x.init || x.tie - y.tie)
     .map((x) => x.id);
@@ -221,7 +238,8 @@ function summonEnemies(s, events, summoner, keys) {
   for (const key of keys.slice(0, Math.max(0, room))) {
     const def = ENEMIES[key];
     const id = `e${s.enemies.length}`;
-    const en = { id, key, name: def.name, miniBoss: false, hp: def.stats.hp, maxHp: def.stats.hp, stats: { ...def.stats }, effects: [], alive: true, phasesDone: [], summoned: true };
+    const hp = Math.round(def.stats.hp * (s.hpScale || 1));
+    const en = { id, key, name: def.name, miniBoss: false, hp, maxHp: hp, stats: { ...def.stats }, effects: [], alive: true, phasesDone: [], summoned: true };
     s.enemies.push(en);
     added.push({ id, key, name: en.name, hp: en.hp, maxHp: en.maxHp });
   }
@@ -339,6 +357,13 @@ function chooseAction(s, actions) {
   return actions[actions.length - 1];
 }
 
+// Cible d'une action ennemie : un héros vivant au hasard (sans tirage quand il n'y en a qu'un)
+function pickHeroTarget(s) {
+  const alive = heroes(s).filter((h) => h.alive);
+  if (alive.length <= 1) return alive[0] || null;
+  return alive[Math.floor(rand(s) * alive.length)];
+}
+
 // Un ennemi dépense ses PA en enchaînant des actions, comme le joueur
 function enemyAct(s, events, enemy, budget) {
   let pa = budget;
@@ -348,9 +373,11 @@ function enemyAct(s, events, enemy, budget) {
     if (!options.length) break;
     const action = chooseAction(s, options);
     pa -= action.pa ?? ACTION_PA;
-    events.push({ type: "cast", from: enemy.id, label: action.name, spellType: action.type, targets: ["player"] });
-    const res = attack(s, events, enemy, s.player, { type: action.type, power: action.power, label: action.name });
-    if (res.hit && action.effect) applyEffect(s, events, enemy, s.player, action.effect);
+    const target = pickHeroTarget(s);
+    if (!target) break;
+    events.push({ type: "cast", from: enemy.id, label: action.name, spellType: action.type, targets: [target.id] });
+    const res = attack(s, events, enemy, target, { type: action.type, power: action.power, label: action.name });
+    if (res.hit && action.effect) applyEffect(s, events, enemy, target, action.effect);
     checkEnd(s, events);
   }
 }
@@ -381,16 +408,20 @@ export function advance(state) {
     const paLoss = actor.effects.filter((e) => e.kind === "paLoss").reduce((sum, e) => sum + e.value, 0);
     startTurn(s, events, actor);          // dégâts sur la durée, durée des effets
     if (!actor.alive) { checkEnd(s, events); continue; }
-    const basePa = actor.isPlayer ? PA_MAX : (actor.stats.pa ?? ENEMY_PA);
+    const basePa = actor.isPlayer ? PA_MAX : (actor.stats.pa ?? ENEMY_PA);   // joueur et alliés : 6 PA
     const pa = Math.max(0, basePa - paLoss);
     if (pa === 0) { events.push({ type: "skip", id: actor.id }); continue; }
 
-    if (actor.isPlayer) {
+    if (actor.id === "player") {
       s.turns += 1;
       s.player.pa = pa;
       s.player.flags.discountReady = s.player.flags.spellDiscount > 0;
       s.phase = "playerTurn";
       events.push({ type: "playerTurn", pa });
+    } else if (actor.isAlly) {
+      actor.pa = pa;
+      actor.flags.discountReady = actor.flags.spellDiscount > 0;
+      allyAct(s, events, actor);
     } else {
       enemyAct(s, events, actor, pa);
     }
@@ -402,13 +433,62 @@ export function advance(state) {
 // Actions du joueur
 // ------------------------------------------------------------
 // Coût réel d'un sort : le set Apprenti (5 pièces) réduit le premier sort de chaque tour
+const costFor = (hero, spell) => (hero.flags.discountReady ? Math.max(1, spell.pa - hero.flags.spellDiscount) : spell.pa);
 export function spellCost(state, spell) {
-  const f = state.player.flags;
-  return f.discountReady ? Math.max(1, spell.pa - f.spellDiscount) : spell.pa;
+  return costFor(state.player, spell);
 }
 
 export function canCast(state, spell) {
   return state.phase === "playerTurn" && state.player.pa >= spellCost(state, spell);
+}
+
+// Lance un sort pour un héros (le joueur ou un allié) sur l'état `s` (déjà copié) ; ajoute les évènements.
+function performCast(s, events, caster, spell, targetId) {
+  caster.pa -= costFor(caster, spell);
+  caster.flags.discountReady = false;
+
+  // Sorts sur soi
+  if (spell.type === "buff") {
+    events.push({ type: "cast", from: caster.id, spellId: spell.id, label: spell.name, spellType: "buff", targets: [caster.id] });
+    const fx = spell.selfEffect;
+    if (fx.kind === "parade") {
+      caster.effects = caster.effects.filter((e) => e.kind !== "parade");
+      caster.effects.push({ kind: "parade", turns: fx.turns, defUp: fx.defUp, counter: fx.counter });
+      events.push({ type: "effect", id: caster.id, kind: "parade", turns: fx.turns });
+    } else if (fx.kind === "shadow") {
+      caster.flags.shadowDodge = true;
+      caster.flags.shadowCrit = true;
+      events.push({ type: "effect", id: caster.id, kind: "shadow" });
+    }
+    return;
+  }
+
+  const targets = spell.aoe ? aliveEnemies(s) : [actorById(s, targetId)];
+  events.push({
+    type: "cast", from: caster.id, spellId: spell.id, label: spell.name, spellType: spell.type,
+    element: spell.applyElement, aoe: !!spell.aoe, targets: targets.map((t) => t.id),
+  });
+
+  let totalDamage = 0;
+  for (const t of targets) {
+    const res = attack(s, events, caster, t, {
+      type: spell.type, power: spell.power, critBonus: spell.critBonus || 0,
+      armorPen: Math.min(0.6, (spell.armorPen || 0) + (caster.flags.armorPen || 0)), ignoreEsquive: spell.ignoreEsquive || 0,
+      label: spell.name, spellId: spell.id, element: spell.applyElement,
+    });
+    if (res.hit) {
+      totalDamage += res.damage;
+      if (spell.effect) applyEffect(s, events, caster, t, spell.effect, spell.type);
+    }
+  }
+
+  const steal = (spell.lifesteal || 0) + (caster.flags.lifesteal || 0);
+  if (steal > 0 && totalDamage > 0 && caster.alive) {
+    const heal = Math.max(1, Math.round(totalDamage * steal));
+    caster.hp = Math.min(caster.maxHp, caster.hp + heal);
+    events.push({ type: "heal", id: caster.id, amount: heal, hpAfter: caster.hp });
+  }
+  checkEnd(s, events);
 }
 
 export function castSpell(state, spellId, targetId = null) {
@@ -424,54 +504,33 @@ export function castSpell(state, spellId, targetId = null) {
 
   const s = clone(state);
   const events = [];
-  const player = s.player;
-  player.pa -= spellCost(state, spell);
-  player.flags.discountReady = false;
-
-  // Sorts sur soi
-  if (spell.type === "buff") {
-    events.push({ type: "cast", from: "player", spellId, label: spell.name, spellType: "buff", targets: ["player"] });
-    const fx = spell.selfEffect;
-    if (fx.kind === "parade") {
-      player.effects = player.effects.filter((e) => e.kind !== "parade");
-      player.effects.push({ kind: "parade", turns: fx.turns, defUp: fx.defUp, counter: fx.counter });
-      events.push({ type: "effect", id: "player", kind: "parade", turns: fx.turns });
-    } else if (fx.kind === "shadow") {
-      player.flags.shadowDodge = true;
-      player.flags.shadowCrit = true;
-      events.push({ type: "effect", id: "player", kind: "shadow" });
-    }
-    return { state: s, events };
-  }
-
-  const targets = spell.aoe ? aliveEnemies(s) : [actorById(s, targetId)];
-  events.push({
-    type: "cast", from: "player", spellId, label: spell.name, spellType: spell.type,
-    element: spell.applyElement, aoe: !!spell.aoe, targets: targets.map((t) => t.id),
-  });
-
-  let totalDamage = 0;
-  for (const t of targets) {
-    const res = attack(s, events, player, t, {
-      type: spell.type, power: spell.power, critBonus: spell.critBonus || 0,
-      armorPen: Math.min(0.6, (spell.armorPen || 0) + (player.flags.armorPen || 0)), ignoreEsquive: spell.ignoreEsquive || 0,
-      label: spell.name, spellId, element: spell.applyElement,
-    });
-    if (res.hit) {
-      totalDamage += res.damage;
-      if (spell.effect) applyEffect(s, events, player, t, spell.effect, spell.type);
-    }
-  }
-
-  const steal = (spell.lifesteal || 0) + (player.flags.lifesteal || 0);
-  if (steal > 0 && totalDamage > 0 && player.alive) {
-    const heal = Math.max(1, Math.round(totalDamage * steal));
-    player.hp = Math.min(player.maxHp, player.hp + heal);
-    events.push({ type: "heal", id: "player", amount: heal, hpAfter: player.hp });
-  }
-
-  checkEnd(s, events);
+  performCast(s, events, s.player, spell, targetId);
   return { state: s, events };
+}
+
+// ------------------------------------------------------------
+// Tour d'un allié (bot) : il enchaîne le sort le plus rentable (dégâts par PA) sur l'ennemi le plus faible
+// (comme le joueur automatique des simulations ; il n'utilise ni parade ni sorts de soutien).
+// ------------------------------------------------------------
+export function pickAllySpell(s, ally) {
+  const living = aliveEnemies(s).length;
+  let best = null, bestScore = 0;
+  for (const sp of ally.spells) {
+    if (sp.type === "buff" || costFor(ally, sp) > ally.pa) continue;
+    const score = (sp.power * (sp.aoe ? living : 1)) / costFor(ally, sp);
+    if (score > bestScore) { best = sp; bestScore = score; }
+  }
+  return best;
+}
+
+function allyAct(s, events, ally) {
+  for (let guard = 0; guard < 20 && ally.alive && s.phase === "running"; guard++) {
+    const spell = pickAllySpell(s, ally);
+    const target = aliveEnemies(s).sort((a, b) => a.hp - b.hp)[0];
+    if (!spell || !target) break;
+    performCast(s, events, ally, spell, target.id);
+  }
+  ally.pa = 0;
 }
 
 export function endTurn(state) {

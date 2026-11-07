@@ -201,6 +201,7 @@
 .cb-tl { position: relative; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; border: 2px solid #6b2a2a; background: #1a1624;
   transition: transform .25s, opacity .25s, box-shadow .25s, border-color .25s; flex-shrink: 0; }
 .cb-tl.hero { border-color: #5f8fb0; }
+.cb-tl.ally { border-color: #5fb08f; }
 .cb-tl img { width: 100%; height: 100%; object-fit: contain; padding: 3px; box-sizing: border-box; pointer-events: none; }
 .cb-tl.hero img { object-fit: cover; padding: 0; }
 .cb-tl b { position: absolute; right: 1px; bottom: 0; font: 700 10px 'Inter', sans-serif; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; }

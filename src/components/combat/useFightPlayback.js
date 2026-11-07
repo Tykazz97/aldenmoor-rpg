@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { sfx } from "./sfx.js";
-import { HERO_X, HERO_B, HERO_H, ANIMS, ELEMENT_COLOR, RANGED, STATUS_LABEL, enemySlots, groupEvents, sleepMs } from "./stage.js";
+import { HERO_X, HERO_B, HERO_H, ANIMS, ELEMENT_COLOR, RANGED, STATUS_LABEL, ALLY_POS, ALLY_H, isHeroId, enemySlots, groupEvents, sleepMs } from "./stage.js";
 
 let fxCounter = 0;
 
@@ -17,8 +17,8 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
   onIdleRef.current = onIdle;
 
   const [busy, setBusy] = useState(true);
-  const [hpView, setHpView] = useState(() => Object.fromEntries([initial.player, ...initial.enemies].map((a) => [a.id, a.hp])));
-  const [ghost, setGhost] = useState(() => Object.fromEntries([initial.player, ...initial.enemies].map((a) => [a.id, a.hp])));
+  const [hpView, setHpView] = useState(() => Object.fromEntries([initial.player, ...(initial.allies || []), ...initial.enemies].map((a) => [a.id, a.hp])));
+  const [ghost, setGhost] = useState(() => Object.fromEntries([initial.player, ...(initial.allies || []), ...initial.enemies].map((a) => [a.id, a.hp])));
   const [dead, setDead] = useState({});
   const [enraged, setEnraged] = useState({});
   const [appeared, setAppeared] = useState({});   // renforts déjà montrés à l'écran
@@ -32,6 +32,7 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
   const slots = useMemo(() => enemySlots(initial.enemies), [initial]);
   const anchor = (id) => {
     if (id === "player") return { x: HERO_X, y: HERO_B + HERO_H * 0.5 };
+    if (id.startsWith("ally")) { const a = ALLY_POS[Number(id.slice(4))]; return { x: a.x, y: a.b + ALLY_H * 0.5 }; }
     const s = slots[Number(id.slice(1))];
     return { x: s.x, y: s.b + s.h * 0.5 };
   };
@@ -71,18 +72,18 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
   // --- lecture d'une action (liste d'évènements du moteur) ---
   const playGroup = useCallback(async (g) => {
     const cast = g.find((e) => e.type === "cast");
-    const isHero = cast?.from === "player";
+    const isHero = !!cast && isHeroId(cast.from);
 
     if (cast) {
       if (isHero) {
         const ranged = RANGED.has(cast.spellId) || cast.spellType === "mag";
-        if (cast.spellType === "buff") { pulse("player", "cast"); sfx.buff(); }
-        else if (ranged) { pulse("player", "cast"); cast.spellType === "mag" ? sfx.magic() : sfx.swing(); }
-        else { pulse("player", "attackR"); setTimeout(sfx.swing, 120 / speedRef.current); }
-        addFloat("player", cast.label, "label", 70);
+        if (cast.spellType === "buff") { pulse(cast.from, "cast"); sfx.buff(); }
+        else if (ranged) { pulse(cast.from, "cast"); cast.spellType === "mag" ? sfx.magic() : sfx.swing(); }
+        else { pulse(cast.from, "attackR"); setTimeout(sfx.swing, 120 / speedRef.current); }
+        addFloat(cast.from, cast.label, "label", 70);
         await sleep(cast.spellType === "buff" ? 400 : ranged ? 300 : 250);
         if (ranged && cast.spellType !== "buff") {
-          const from = anchor("player");
+          const from = anchor(cast.from);
           cast.targets.forEach((tid) => {
             const to = anchor(tid); const key = ++fxCounter;
             const col = ELEMENT_COLOR[cast.element] || (cast.spellType === "mag" ? ELEMENT_COLOR.arcane : null);
@@ -104,11 +105,11 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
         case "hit": {
           setHpView((v) => ({ ...v, [e.to]: e.hpAfter }));
           setTimeout(() => setGhost((v) => ({ ...v, [e.to]: e.hpAfter })), 450);
-          pulse(e.to, "hurt", { "--kb": e.to === "player" ? "-14px" : "14px" });
+          pulse(e.to, "hurt", { "--kb": isHeroId(e.to) ? "-14px" : "14px" });
           const kind = e.element === "feu" ? "fire" : e.element === "poison" ? "poison" : e.element === "givre" ? "frost" : e.dmgType === "mag" ? "arcane" : "slash";
-          addFx(e.to, kind, { flip: e.to === "player" });
+          addFx(e.to, kind, { flip: isHeroId(e.to) });
           addFx(e.to, "spark", { crit: e.crit });
-          addFloat(e.to, e.crit ? `${e.amount} !` : `${e.amount}`, e.crit ? "crit" : e.to === "player" ? "dmgP" : "dmg");
+          addFloat(e.to, e.crit ? `${e.amount} !` : `${e.amount}`, e.crit ? "crit" : isHeroId(e.to) ? "dmgP" : "dmg");
           if (e.crit) shake(true); else if (e.to === "player") shake(false);
           sfx.hit(e.crit);
           if (cast?.aoe) await sleep(120);
@@ -116,7 +117,7 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
         }
         case "miss":
           addFloat(e.to, "Esquive", "miss");
-          pulse(e.to, "dodge", { "--dg": e.to === "player" ? "-40px" : "40px" });
+          pulse(e.to, "dodge", { "--dg": isHeroId(e.to) ? "-40px" : "40px" });
           sfx.miss();
           break;
         case "death":
@@ -153,8 +154,8 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
           pulse(e.id, "stun");
           break;
         case "counter":
-          addFloat("player", "Contre-attaque", "label", 70);
-          pulse("player", "attackR");
+          addFloat(e.from, "Contre-attaque", "label", 70);
+          pulse(e.from, "attackR");
           await sleep(220);
           break;
         case "phase":
@@ -222,5 +223,5 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
     else if (ph === "playerTurn") onIdleRef.current?.();
   }, [playGroup, csRef]);
 
-  return { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef };
+  return { busy, busyRef, play, allyPos: ALLY_POS, allyH: ALLY_H, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef };
 }
