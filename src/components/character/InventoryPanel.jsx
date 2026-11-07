@@ -1,4 +1,3 @@
-import { wearOf, wearLabel } from "../../utils/durability.js";
 import React from "react";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius } from "../../styles/theme.js";
@@ -44,7 +43,6 @@ function ItemCard({ item, onEquip }) {
           {item.name}
         </div>
         <div style={{ fontSize: 10, color: color.mist }}>{statLines.join(" · ")}</div>
-        {wearOf(item) > 0 && <div data-wear={Math.round(wearOf(item))} style={{ fontSize: 10, color: wearOf(item) >= 60 ? color.blood : color.gold }}>{wearLabel(wearOf(item))} · {Math.round(wearOf(item))} % d'usure</div>}
       </div>
     </button>
   );

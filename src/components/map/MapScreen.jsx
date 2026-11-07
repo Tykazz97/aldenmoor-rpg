@@ -28,7 +28,7 @@ import { canGather, rollHarvest } from "../../utils/gathering.js";
 import { harvestDuration } from "../../utils/perks.js";
 import { findPath, pathToObject, activeGroups, activeNodes, mapWidth, mapHeight } from "../../utils/mapPath.js";
 
-export default function MapScreen({ player, onPlayerChange, stats, world, setWorld, onRewards, onWear, onGather, renderBuilding }) {
+export default function MapScreen({ player, onPlayerChange, stats, world, setWorld, onRewards, onGather, renderBuilding }) {
   const map = MAPS[world.mapKey];
   const W = mapWidth(map), H = mapHeight(map);
   const [fight, setFight] = useState(null);       // { group, enc }
@@ -197,7 +197,6 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
         player={player}
         stats={stats}
         onRewards={onRewards}
-        onWear={onWear}
         onPlayerChange={onPlayerChange}
         onDone={(cleared) => {
           setWorld((w) => ({ ...w, pos: { ...posRef.current } }));
@@ -217,7 +216,6 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
         player={player}
         stats={stats}
         onRewards={onRewards}
-        onWear={onWear}
         onExit={(victory) => {
           if (victory) {
             setWorld((w) => ({ ...w, pos: { ...posRef.current }, cleared: { ...w.cleared, [fight.group.id]: Date.now() } }));

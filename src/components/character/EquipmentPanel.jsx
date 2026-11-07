@@ -3,7 +3,6 @@ import SLOT_ICONS from "../icons/SlotIcons.jsx";
 import SLOT_LUDO_ICONS from "../icons/SlotLudoIcons.jsx";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius } from "../../styles/theme.js";
-import { wearOf, wearLabel } from "../../utils/durability.js";
 
 const SLOT_LABELS = {
   chapeau: "Chapeau",
@@ -36,7 +35,7 @@ function SlotButton({ slotKey, item, disabled, onEquipSlotClick, onUnequip }) {
   return (
     <button
       onClick={() => !disabled && (filled ? onUnequip(slotKey) : onEquipSlotClick(slotKey))}
-      title={disabled ? "Indisponible avec une arme à deux mains" : filled ? `${item.name}${wearOf(item) > 0 ? ` (${wearLabel(wearOf(item))}, ${Math.round(wearOf(item))} % d'usure)` : ""} — clic pour retirer` : SLOT_LABELS[slotKey] || slotKey}
+      title={disabled ? "Indisponible avec une arme à deux mains" : filled ? `${item.name} — clic pour retirer` : SLOT_LABELS[slotKey] || slotKey}
       disabled={disabled}
       style={{
         width: 64,
@@ -68,11 +67,6 @@ function SlotButton({ slotKey, item, disabled, onEquipSlotClick, onUnequip }) {
         <img src={ludoIcon} alt="" width="44" height="44" style={{ objectFit: "contain", display: "block", opacity: filled ? 1 : 0.8 }} />
       ) : (
         svgIcon || <span style={{ fontSize: 10 }}>{SLOT_LABELS[slotKey]}</span>
-      )}
-      {filled && wearOf(item) > 0 && (
-        <span data-wear={Math.round(wearOf(item))} style={{ position: "absolute", left: 5, right: 5, bottom: 4, height: 4, borderRadius: 2, background: "#00000088", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: `${100 - wearOf(item)}%`, background: wearOf(item) >= 60 ? color.blood : wearOf(item) >= 25 ? color.gold : "#7a9a5a" }} />
-        </span>
       )}
     </button>
   );

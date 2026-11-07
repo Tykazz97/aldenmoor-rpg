@@ -123,27 +123,6 @@ try {
     assert.deepEqual(errors, []);
   });
 
-  await step("durabilité : équipement usé affiché, réparé à l'atelier contre de l'or et la taxe de la ville", async () => {
-    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 5000; for (const it of Object.values(s.player.equipped)) if (it && !String(it.type).startsWith("relique")) it.wear = 60; return s; })());
-    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-wear")) { sessionStorage.setItem("ui-wear", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
-    await page.reload(); await page.waitForTimeout(800);
-    await tab("Personnage").click(); await page.waitForTimeout(300);
-    assert.ok((await page.locator("[data-wear]").count()) >= 2, "la barre d'usure s'affiche sur les pièces");
-    await tab("Atelier").click(); await page.waitForTimeout(300);
-    const rows = await page.locator("[data-repair-row]").count();
-    assert.ok(rows >= 2, "les pièces usées sont listées");
-    assert.match(await page.locator("[data-repair-all]").innerText(), /Tout réparer · \d+ or/);
-    await page.locator("[data-repair-all]").click(); await page.waitForTimeout(300);
-    assert.equal(await page.locator("[data-repair-row]").count(), 0, "plus rien à réparer");
-    assert.match(await page.locator("[data-repair]").innerText(), /bon état/);
-    await page.waitForTimeout(1500);
-    const pl = (await save()).player;
-    assert.ok(pl.gold < 5000, "l'or a été dépensé");
-    assert.ok(Object.values(pl.taxPaid || {}).reduce((a, b) => a + b, 0) > 0, "la taxe de la ville est inscrite");
-    assert.ok(Object.values(pl.equipped).every((it) => !it || !it.wear), "tout est remis à neuf");
-    assert.deepEqual(errors, []);
-  });
-
   await step("combat complet : carte → monstres → victoire → butin → retour à la carte", async () => {
     // on place le héros dans les Prairies, près des loups (et on vérifie que la barre du grimoire est bien celle du combat)
     const mod = JSON.stringify(await (async () => { const s = await save(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; return s; })());
@@ -170,8 +149,7 @@ try {
       await page.waitForTimeout(500);
     }
     const issue = await page.locator(".cb-card h2").innerText();
-    const lost = issue.toLowerCase() === "défaite";
-    if (lost) {                                                         // un combat perdu est normal : on relance et on réessaie
+    if (issue.toLowerCase() === "défaite") {                           // un combat perdu est normal : on relance et on réessaie
       await page.locator("button", { hasText: "Recommencer" }).click();
       for (let i = 0; i < 200 && !(await page.locator(".cb-overlay").count()); i++) {
         const sp = page.locator(".cb-spell:not([disabled])");
@@ -184,35 +162,6 @@ try {
     assert.equal(await page.locator(".cb-root").count(), 0, "le combat est fermé");
     assert.equal(await page.locator(".mp-map").count(), 1, "retour à la carte");
     assert.ok((await save()).player.gold > goldBefore, "l'or du butin est enregistré");
-    await page.waitForTimeout(1500);
-    const wearNow = (await save()).player.equipped.arme?.wear ?? 0;       // durabilité : un combat perdu use (+25), un combat gagné de justesse use (+10), sinon rien
-    if (lost) assert.ok(wearNow >= 25, `défaite : l'arme doit être usée (usure ${wearNow})`);
-    else assert.ok(wearNow === 0 || wearNow % 10 === 0, `usure incohérente ${wearNow}`);
-    assert.deepEqual(errors, []);
-  });
-
-  await step("durabilité : un combat perdu use vraiment l'équipement (+25 %)", async () => {
-    const mod = JSON.stringify(await (async () => { const s = await save(); for (const it of Object.values(s.player.equipped)) if (it) delete it.wear; return s; })());
-    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-lose")) { sessionStorage.setItem("ui-lose", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
-    await page.reload(); await page.waitForTimeout(800);
-    await tab("Carte").click(); await page.waitForTimeout(1000);
-    await page.evaluate(() => {
-      const v = document.querySelector(".mp-map").getBoundingClientRect();
-      const c = [...document.querySelectorAll(".mp-group")].filter((e) => { const r = e.getBoundingClientRect(); return r.left > v.left && r.right < v.right && r.top > v.top && r.bottom < v.bottom; });
-      c[0].click();
-    });
-    await page.locator("button", { hasText: "Combattre" }).click({ timeout: 15000 });
-    await page.locator(".cb-spell:not([disabled])").first().waitFor({ timeout: 20000 });
-    for (let i = 0; i < 300 && !(await page.locator(".cb-overlay").count()); i++) {          // le héros ne lance aucun sort : il passe son tour jusqu'à tomber
-      if (await page.locator(".cb-btn:not([disabled])", { hasText: "Fin du tour" }).count()) await page.keyboard.press("Space");
-      await page.waitForTimeout(400);
-    }
-    assert.match((await page.locator(".cb-card h2").innerText()).toLowerCase(), /défaite/);
-    await page.waitForTimeout(1500);
-    const eq = (await save()).player.equipped;
-    const pieces = Object.entries(eq).filter(([k, it]) => it && !k.startsWith("relique"));
-    assert.ok(pieces.length >= 2 && pieces.every(([, it]) => it.wear === 25), "chaque pièce portée a 25 % d'usure : " + JSON.stringify(pieces.map(([k, it]) => [k, it.wear])));
-    await page.locator("button", { hasText: "Retour à la carte" }).click(); await page.waitForTimeout(500);
     assert.deepEqual(errors, []);
   });
 

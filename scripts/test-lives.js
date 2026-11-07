@@ -408,7 +408,7 @@ await test("boss : un simulé trop faible n'en tente aucun ; un boss ne se reten
   clearFightCache();                                  // les estimations des tests précédents (profils voisins) ne comptent pas ici
   assert.equal(winChance(bot, high, ["cavalier_dechu"]), 1);
   const pv = winChance(bot, high, ["veilleur_corrompu"]);
-  assert.ok(pv > 0 && pv <= 1, "pv=" + pv);
+  assert.ok(pv > 0 && pv <= 1);
   assert.ok(winChance(bot, high, ["veilleur_corrompu"], ["guerrier", "magicien"]) >= pv, "à trois c'est plus facile");
   const weak = { ...high, level: 8, gear: starterGear("assassin") };
   assert.ok(winChance(bot, weak, ["epouvantail_ancestral"]) < 0.5, "trop faible pour l'Épouvantail");

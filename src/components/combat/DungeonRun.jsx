@@ -12,7 +12,7 @@ import { getLivePopulation } from "../../sim/simWorld.js";
 // Les PV se reportent d'une salle à l'autre ; seules les potions soignent. Le groupe est formé une fois pour toute l'expédition.
 // La clé a déjà été consommée à l'entrée. `onDone(cleared)` quand on sort (victoire sur la dernière salle, défaite ou abandon).
 // ------------------------------------------------------------
-export default function DungeonRun({ dungeon, player, stats, onRewards, onWear, onPlayerChange, onDone }) {
+export default function DungeonRun({ dungeon, player, stats, onRewards, onPlayerChange, onDone }) {
   const [room, setRoom] = useState(0);
   const [fighting, setFighting] = useState(false);
   const allySpecs = useMemo(() => buildAllies(player, player.companions, getLivePopulation(player)), []); // eslint-disable-line
@@ -57,7 +57,6 @@ export default function DungeonRun({ dungeon, player, stats, onRewards, onWear, 
       carry={{ player: party[0].hp, allies: party.slice(1).map((h) => h.hp) }}
       dungeon={{ index: room, total: dungeon.rooms.length }}
       onRewards={onRewards}
-      onWear={onWear}
       onRestart={() => {}}
       onExit={(victory, end) => {
         if (!victory) { onDone(false); return; }

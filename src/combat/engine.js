@@ -108,7 +108,6 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     apply(player, carry.player);
     allyHeroes.forEach((a, i) => apply(a, carry.allies?.[i]));
   }
-  player.low = player.hp;      // PV les plus bas atteints par le héros (sert à l'usure de l'équipement, voir utils/durability.js)
   const hpScale = PARTY_HP_SCALE[1 + allyHeroes.length] ?? PARTY_HP_SCALE[3];
 
   const enemies = enemyKeys.map((key, i) => {
@@ -210,7 +209,6 @@ function attack(s, events, attacker, target, opts) {
   const damage = Math.max(1, Math.round(atk * power * variance * reduction * weaken * finalMult * (crit ? CRIT_MULT : 1)));
   const fatal = target.hp - damage <= 0;
   target.hp = Math.max(0, target.hp - damage);
-  if (target.low !== undefined && target.hp < target.low) target.low = target.hp;
   events.push({
     type: "hit", from: attacker.id, to: target.id, amount: damage, crit,
     hpAfter: target.hp, spellId, label, element, dmgType: type,
@@ -228,7 +226,6 @@ function attack(s, events, attacker, target, opts) {
   if (target.isPlayer && target.alive && target.flags.thorns > 0 && attacker.alive && !noCounter) {
     const back = Math.max(1, Math.round(damage * target.flags.thorns));
     attacker.hp = Math.max(0, attacker.hp - back);
-    if (attacker.low !== undefined && attacker.hp < attacker.low) attacker.low = attacker.hp;
     events.push({ type: "dot", id: attacker.id, amount: back, element: "feu", hpAfter: attacker.hp });
     if (attacker.hp <= 0) { attacker.alive = false; events.push({ type: "death", id: attacker.id }); }
     else if (!attacker.isPlayer) checkPhases(s, events, attacker);
@@ -313,7 +310,6 @@ function startTurn(s, events, actor) {
     if (!actor.alive) break;
     const fatal = actor.hp - e.damage <= 0;
     actor.hp = Math.max(0, actor.hp - e.damage);
-    if (actor.low !== undefined && actor.hp < actor.low) actor.low = actor.hp;
     events.push({ type: "dot", id: actor.id, amount: e.damage, element: e.element, hpAfter: actor.hp });
     if (fatal) survivesFatal(events, actor);
     if (actor.hp <= 0) {

@@ -1,4 +1,3 @@
-import { fightWear } from "../../utils/durability.js";
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./combat.css";
 import { createCombat, advance, castSpell, endTurn, canCast } from "../../combat/engine.js";
@@ -21,7 +20,7 @@ import Fx from "./Fx.jsx";
 // ============================================================
 // Écran principal : choix de la rencontre, puis combat
 // ============================================================
-export default function CombatScreen({ player, stats, onRewards, onWear }) {
+export default function CombatScreen({ player, stats, onRewards }) {
   const [encounter, setEncounter] = useState(null);
   const [fightKey, setFightKey] = useState(0);
 
@@ -40,7 +39,6 @@ export default function CombatScreen({ player, stats, onRewards, onWear }) {
       weaponType={weaponType}
       heroSrc={heroSrc}
       onRewards={onRewards}
-      onWear={onWear}
       onRestart={() => setFightKey((k) => k + 1)}
       onExit={() => setEncounter(null)}
     />
@@ -48,13 +46,13 @@ export default function CombatScreen({ player, stats, onRewards, onWear }) {
 }
 
 // Combat lancé depuis la carte : onExit(true) si victoire (butin récupéré)
-export function EncounterFight({ encounter, player, stats, party = false, onRewards, onWear, onExit }) {
+export function EncounterFight({ encounter, player, stats, party = false, onRewards, onExit }) {
   const [fightKey, setFightKey] = useState(0);
   const weaponType = player.equipped.arme?.weaponType || null;
   const heroSrc = heroSpriteUrl(heroLook(player, stats));
   return (
     <Fight key={fightKey} encounter={encounter} player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc} party={party}
-      onRewards={onRewards} onWear={onWear} onRestart={() => setFightKey((k) => k + 1)} onExit={onExit} backLabel="Retour à la carte" />
+      onRewards={onRewards} onRestart={() => setFightKey((k) => k + 1)} onExit={onExit} backLabel="Retour à la carte" />
   );
 }
 
@@ -63,7 +61,7 @@ export function EncounterFight({ encounter, player, stats, party = false, onRewa
 // mise en scène dans useFightPlayback, affichage dans les composants.
 // ------------------------------------------------------------
 // `carry` / `dungeon` : salle d'un donjon (PV reportés de la salle précédente, pas de relance en cas de défaite)
-export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onWear = null, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null, allySpecs: givenAllies = null }) {
+export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null, allySpecs: givenAllies = null }) {
   // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
   const allySpecs = useMemo(() => givenAllies || (party ? buildAllies(player, player.companions, getLivePopulation(player)) : []), []); // eslint-disable-line
   const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, heroSpriteUrl(a.look)])), [allySpecs]);
@@ -84,15 +82,6 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
 
   const pb = useFightPlayback({ initial, csRef, speed, onIdle: keepTarget });
   const { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, allyPos, allyH, spriteRefs, shakeRef } = pb;
-
-  // Fin du combat : l'équipement s'use si le héros a perdu ou s'il a gagné de justesse (utils/durability.js)
-  const wornRef = useRef(false);
-  useEffect(() => {
-    if (!ended || wornRef.current) return;
-    wornRef.current = true;
-    const amount = fightWear({ victory: ended === "victory", low: csRef.current.player.low, maxHp: csRef.current.player.maxHp });
-    if (amount > 0 && onWear) onWear(amount);
-  }, [ended]); // eslint-disable-line
 
   // Fait jouer les ennemis (dans l'ordre d'initiative, fixé au début du combat) jusqu'au tour du joueur
   const step = useCallback(() => {
