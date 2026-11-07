@@ -124,4 +124,15 @@ await test("rattrapage de plusieurs jours : rapide", () => run(() => {
   assert.ok(ms < 4000, `7 jours rattrapés en ${Math.round(ms)} ms`);
 }));
 
+await test("le colporteur ne vend jamais de ressource rare, ni d'équipement au-dessus du commun (relique, épique, pièces fabriquées)", () => run(() => {
+  let m = newMarket(T0);
+  for (let d = 1; d <= 20; d++) {
+    m = tickMarket(m, T0 + d * DAY);
+    for (const l of m.listings.filter((x) => x.seller === "npc")) {
+      if (l.kind === "res") assert.notEqual(RESOURCES[l.rid].rarity, "rare", `${l.rid} rare vendu par le colporteur`);
+      else assert.equal(ITEMS[l.rid].rarity, "commune", `${l.rid} vendu par le colporteur`);
+    }
+  }
+}));
+
 console.log(`\n${n} tests passent.`);

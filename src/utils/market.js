@@ -41,6 +41,8 @@ let JOINT = false;
 export const enableSimMarket = (on = true) => { JOINT = !!on; };
 export const simMarketEnabled = () => JOINT;
 const NPC = "npc";
+// Le colporteur ne vend ni ressources rares, ni équipement au-dessus du commun (pièces fabriquées, épiques, reliques) : cela ne vient que des joueurs
+const NPC_ITEMS = ITEM_ORDER.filter((id) => ITEMS[id].rarity === "commune");
 const SIM_SELL_KEEP = 8;                       // un simulé garde au moins 8 unités de chaque ressource pour ses fabrications
 const MAX_CATCHUP_JOINT = 1008;                // 7 jours de rattrapage quand les simulés vivent ici
 const HOUR_STEPS = 6, HIST_LEN = 24, MAX_CATCHUP = 288;   // 48 h de rattrapage au plus
@@ -162,7 +164,7 @@ function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
     const qty = Math.min(sellableOf(life, id, SIM_SELL_KEEP), rng.int(lo, hi));
     return { seller: b.id, greed: b.greed, qty, life, bot: b };
   }
-  if (supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
+  if (RESOURCES[id].rarity !== "rare" && supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
   return null;
 }
 
@@ -260,7 +262,7 @@ function stepListings(s, bucket) {
         const tax = saleTax(unit);
         if (life.gold >= tax) { life.gold -= tax; life.bag.items.pop(); s.listings.push({ id: s.nextId++, seller: b.id, kind: "item", rid, qty: 1, unit, exp: bucket + 144 + rng.int(0, 144) }); }
       } else if (rng() < 0.2) {
-        const rid = rng.pick(ITEM_ORDER);
+        const rid = rng.pick(NPC_ITEMS);
         s.listings.push({ id: s.nextId++, seller: NPC, kind: "item", rid, qty: 1, unit: Math.max(1, Math.round(itemValue(rid) * 1.5)), exp: bucket + 144 + rng.int(0, 144) });
       }
     } else {
