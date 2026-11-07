@@ -86,4 +86,6 @@ Le tableau de quêtes d'Aldenmoor (bâtiment de la ville) propose chaque jour un
 
 ## Idées à venir
 
+**Groupes de 3 joueurs** (décision prise) : un seul joueur par combat aujourd'hui. Le groupe de 3 colle aux 3 classes (un guerrier, un assassin, un magicien). Il demandera un moteur de combat à plusieurs héros (initiative mélangée), un écran de combat à 3 héros, un serveur pour synchroniser les joueurs, et des monstres dont les PV et le nombre s'adaptent à la taille du groupe (jusqu'à 5 ou 6 ennemis, boss bien plus costauds). À faire après le Veilleur Corrompu.
+
 Enchères à l'hôtel des ventes, vrais joueurs sur le même marché, joueurs simulés dans les régions, groupes et guildes, régions 2 et 3, emplacements d'équipement restants.
