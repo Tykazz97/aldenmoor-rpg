@@ -93,6 +93,16 @@ export const saleTax = (gross) => (gross <= 1 ? 0 : Math.min(gross - 1, Math.max
 // ============================================================
 const sorted = (arr) => arr.slice().sort((a, b) => a.unit - b.unit || a.id - b.id);
 
+// Activité du marché, par jour réel (les 14 derniers jours) : unités de ressources achetées par les simulés / par la demande
+// générale, équipements vendus, annonces mises en vente
+function tally(s, bucket, key, n = 1) {
+  const day = Math.floor(bucket / 144);
+  const v = (s.volume ||= []);
+  let d = v[v.length - 1];
+  if (!d || d.day !== day) { d = { day, simBuy: 0, demandBuy: 0, playerBuy: 0, items: 0, posted: 0 }; v.push(d); if (v.length > 14) v.shift(); }
+  d[key] += n;
+}
+
 // L'or d'une vente va au vendeur : toi (en attente d'encaissement), un simulé (directement dans son personnage) ou le colporteur (perdu)
 function creditSeller(s, l, take, bucket) {
   if (l.seller === "player") {
@@ -128,6 +138,7 @@ function simsShop(s, bucket, rng) {
         life.gold -= take * l.unit;
         life.bag.res[rid] = (life.bag.res[rid] || 0) + take;
         life.bought = (life.bought || 0) + take;
+        tally(s, bucket, "simBuy", take);
         creditSeller(s, l, take, bucket);
       }
     }
@@ -190,6 +201,7 @@ function stepListings(s, bucket) {
       const take = Math.min(l.qty, Math.floor(left * accept(l.unit / ref) + rng()));
       if (take < 1) continue;
       l.qty -= take; left -= take;
+      tally(s, bucket, "demandBuy", take);
       creditSeller(s, l, take, bucket);
     }
     s.listings = s.listings.filter((l) => l.qty > 0);
@@ -219,6 +231,7 @@ function stepListings(s, bucket) {
           if (pick.life.gold < tax) ok = false;
           else { pick.life.gold -= tax; pick.life.bag.res[id] -= qty; if (pick.life.bag.res[id] <= 0) delete pick.life.bag.res[id]; }
         }
+        if (ok) tally(s, bucket, "posted");
         if (ok) s.listings.push({ id: s.nextId++, seller: sims ? pick.seller : bot.id, kind: "res", rid: id, qty, unit, exp: bucket + 144 + rng.int(0, 144) });
       }
     }
@@ -230,6 +243,7 @@ function stepListings(s, bucket) {
     const ratio = l.unit / ((l.item ? itemWorth(l.item) : itemValue(l.rid)) * 1.15);
     if (rng() < 0.025 * accept(ratio)) {
       l.qty = 0;
+      tally(s, bucket, "items");
       creditSeller(s, l, 1, bucket);
     }
   }
@@ -281,6 +295,7 @@ export function tickMarket(m, now = Date.now()) {
     listings: m.listings.map((l) => ({ ...l })),
     proceeds: m.proceeds, returns: [...m.returns], sales: [...m.sales], nextId: m.nextId,
     credits: { ...(m.credits || {}) },
+    volume: (m.volume || []).map((d) => ({ ...d })),
   };
   if (JOINT) s.sims = needSims ? createLives({ population: getPopulation(), mode: SIM_START.mode, epoch: SIM_START.epoch, now }) : structuredClone(m.sims);
   for (; b < target; b++) stepListings(s, b + 1);
