@@ -13,10 +13,10 @@ import { NODES, NODE_ORDER } from "../data/gathering.js";
 import { RESOURCES } from "../data/resources.js";
 import { RECIPES } from "../data/recipes.js";
 import { ITEMS } from "../data/items.js";
-import { itemSellPrice } from "./market.js";
+import { itemSellPrice, TAX_RATE } from "./market.js";
 
 export const GOLD_SHARE_MIN = 0.25, GOLD_SHARE_MAX = 0.55;
-export const RESALE = 0.92;                    // une ressource se revend ~92 % de sa valeur (écart du marché)
+export const RESALE = 1 - TAX_RATE;            // ce qu'on garde en revendant : le prix moins la taxe de mise en vente
 const avg = (a, b) => (a + b) / 2;
 
 // Revenu moyen d'une rencontre : { gold, drops, total, goldShare }

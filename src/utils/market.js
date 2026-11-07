@@ -6,7 +6,9 @@
 //   - Quand le joueur VEND, le stock monte (le prix baisse). Quand il ACHÈTE, le stock baisse.
 //   - Avec le temps, le stock revient vers sa cible et fluctue (autres marchands, caravanes, pénuries).
 //     Cette évolution ne dépend que de l'heure : on la rejoue à l'ouverture, même après des heures d'absence.
-//   - Écart achat / vente de 8 % de chaque côté (au moins 1 or) : racheter ce qu'on vient de vendre fait toujours perdre de l'or.
+//   - Un seul prix par ressource, le même pour acheter et vendre. ACHETER N'EST JAMAIS TAXÉ.
+//     Mettre en vente (ressource ou équipement) est taxé : TAX_RATE du montant, retiré au vendeur.
+//     Racheter ce qu'on vient de vendre fait donc toujours perdre de l'or (taxe + variation du cours).
 // player.market = { bucket, stock: { id: n }, hist: { id: [coefficients horaires] } }
 // Les saves sans marché en reçoivent un à la volée. Plus tard, les vrais joueurs et les simulés
 // viendront remplir ce même marché avec leurs propres annonces.
@@ -20,7 +22,7 @@ export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 1
 const HOUR_STEPS = 6, HIST_LEN = 24, MAX_CATCHUP = 288;   // 48 h de rattrapage au plus
 const REVERT = 0.02, NOISE = 0.07, EVENT_P = 0.004, EVENT = 0.5;
 const EXPONENT = 0.6, MULT_MIN = 0.45, MULT_MAX = 2.3;
-const SPREAD = 0.08;                           // écart achat / vente autour du prix moyen
+export const TAX_RATE = 0.05;                  // taxe de mise en vente : 5 % du montant, payée par le vendeur
 const MIN_FLOOR = 0.25;                        // le marché ne vend pas en dessous de 25 % de son stock cible
 export const ITEM_SELL_RATE = 0.6;             // un équipement se revend 60 % de sa valeur
 
@@ -67,10 +69,11 @@ export const marketOf = (player, now = Date.now()) => (player.market ? tickMarke
 
 const baseValue = (id) => RESOURCES[id].value;
 export const midPrice = (m, id) => baseValue(id) * multiplier(id, m.stock[id]);
-const sellAt = (mid) => Math.max(1, Math.round(mid * (1 - SPREAD)));
-const buyAt = (mid) => Math.max(sellAt(mid) + 1, Math.round(mid * (1 + SPREAD)));      // toujours au moins 1 or de plus qu'à la vente
-export const buyPrice = (m, id) => buyAt(midPrice(m, id));
-export const sellPrice = (m, id) => sellAt(midPrice(m, id));
+const unitAt = (mid) => Math.max(1, Math.round(mid));
+export const unitPrice = (m, id) => unitAt(midPrice(m, id));        // prix affiché, à l'achat comme à la vente
+
+// Taxe de mise en vente sur un montant : 5 %, au moins 1 or, sans jamais manger tout le montant
+export const saleTax = (gross) => (gross <= 1 ? 0 : Math.min(gross - 1, Math.max(1, Math.ceil(gross * TAX_RATE))));
 
 // Combien le marché peut-il vendre ? (il garde un plancher de stock)
 export const availableToBuy = (m, id) => Math.max(0, Math.floor(m.stock[id] - MIN_FLOOR * targetStock(id)));
@@ -79,13 +82,15 @@ export const availableToBuy = (m, id) => Math.max(0, Math.floor(m.stock[id] - MI
 export function quoteBuy(m, id, qty) {
   let stock = m.stock[id], total = 0, n = 0;
   const floor = MIN_FLOOR * targetStock(id);
-  while (n < qty && stock - 1 >= floor) { total += buyAt(baseValue(id) * multiplier(id, stock)); stock -= 1; n++; }
+  while (n < qty && stock - 1 >= floor) { total += unitAt(baseValue(id) * multiplier(id, stock)); stock -= 1; n++; }
   return { qty: n, total };
 }
+// Mise en vente de `qty` unités : montant brut, taxe, et net reçu par le vendeur
 export function quoteSell(m, id, qty) {
-  let stock = m.stock[id], total = 0;
-  for (let n = 0; n < qty; n++) { total += sellAt(baseValue(id) * multiplier(id, stock)); stock += 1; }
-  return { qty, total };
+  let stock = m.stock[id], gross = 0;
+  for (let n = 0; n < qty; n++) { gross += unitAt(baseValue(id) * multiplier(id, stock)); stock += 1; }
+  const tax = saleTax(gross);
+  return { qty, gross, tax, net: gross - tax };
 }
 
 // Plus grand lot achetable avec `gold`
@@ -93,7 +98,7 @@ export function maxAffordable(m, id, gold) {
   let stock = m.stock[id], left = gold, n = 0;
   const floor = MIN_FLOOR * targetStock(id);
   for (;;) {
-    const p = buyAt(baseValue(id) * multiplier(id, stock));
+    const p = unitAt(baseValue(id) * multiplier(id, stock));
     if (left < p || stock - 1 < floor) return n;
     left -= p; stock -= 1; n++;
   }
@@ -108,7 +113,8 @@ export function trend(m, id) {
 export const stockLabel = (m, id) => { const r = m.stock[id] / targetStock(id); return r < 0.5 ? "Pénurie" : r < 0.85 ? "Stock bas" : r > 1.6 ? "Abondant" : "Normal"; };
 
 // ---- transactions (renvoient un nouveau joueur, jamais de modification en place) ----
-const fail = (player, reason) => ({ ok: false, reason, player, qty: 0, total: 0 });
+// total = ce qui a été payé (achat) ou reçu net (vente) ; gross et tax détaillent une vente
+const fail = (player, reason) => ({ ok: false, reason, player, qty: 0, total: 0, gross: 0, tax: 0 });
 
 export function buyResource(player, id, qty, now = Date.now()) {
   if (!RESOURCES[id]) return fail(player, "inconnu");
@@ -120,7 +126,7 @@ export function buyResource(player, id, qty, now = Date.now()) {
   if (n < 1) return fail(player, "or");
   const real = quoteBuy(m, id, n);
   const next = { ...m, stock: { ...m.stock, [id]: m.stock[id] - real.qty } };
-  return { ok: true, qty: real.qty, total: real.total, player: { ...player, gold: player.gold - real.total, resources: { ...player.resources, [id]: (player.resources[id] || 0) + real.qty }, market: next } };
+  return { ok: true, qty: real.qty, gross: real.total, tax: 0, total: real.total, player: { ...player, gold: player.gold - real.total, resources: { ...player.resources, [id]: (player.resources[id] || 0) + real.qty }, market: next } };
 }
 
 export function sellResource(player, id, qty, now = Date.now()) {
@@ -132,10 +138,10 @@ export function sellResource(player, id, qty, now = Date.now()) {
   const q = quoteSell(m, id, n);
   const res = { ...player.resources, [id]: have - n };
   if (res[id] <= 0) delete res[id];
-  return { ok: true, qty: n, total: q.total, player: { ...player, gold: player.gold + q.total, resources: res, market: { ...m, stock: { ...m.stock, [id]: m.stock[id] + n } } } };
+  return { ok: true, qty: n, gross: q.gross, tax: q.tax, total: q.net, player: { ...player, gold: player.gold + q.net, resources: res, market: { ...m, stock: { ...m.stock, [id]: m.stock[id] + n } } } };
 }
 
-// ---- équipement : prix fixe (60 % de la valeur de fabrication) ----
+// ---- équipement : prix fixe (60 % de la valeur de fabrication), puis taxe de mise en vente ----
 export function itemValue(id) {
   const rec = RECIPES[id];
   if (!rec) return 60;                                              // armes qui tombent directement
@@ -146,6 +152,6 @@ export const itemSellPrice = (id) => Math.max(1, Math.floor(itemValue(id) * ITEM
 export function sellItem(player, uid) {
   const item = player.inventory.find((i) => i.uid === uid);
   if (!item) return fail(player, "aucun");
-  const price = itemSellPrice(item.id);
-  return { ok: true, qty: 1, total: price, player: { ...player, gold: player.gold + price, inventory: player.inventory.filter((i) => i.uid !== uid) } };
+  const gross = itemSellPrice(item.id), tax = saleTax(gross);
+  return { ok: true, qty: 1, gross, tax, total: gross - tax, player: { ...player, gold: player.gold + gross - tax, inventory: player.inventory.filter((i) => i.uid !== uid) } };
 }
