@@ -23,6 +23,7 @@ import { xpToNext, MAX_LEVEL } from "../utils/progression.js";
 import { xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
 import { BAG_ITEMS_MAX, starterGear, tierGear, acquireItem, craftStep, sellSurplus } from "./lifeCraft.js";
 import { makeRng, hashString } from "./rng.js";
+import { emptyQuests, bump, questStep, huntTarget } from "./lifeQuests.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
 export const MAX_CATCHUP_STEPS = 7 * 144;              // au plus 7 jours rejoués à la fois
@@ -30,6 +31,7 @@ export const FIGHTS_PER_STEP = 0.6;                    // combats par pas de 10 
 export const GATHERS_PER_STEP = 2;                     // récoltes par pas de 10 min
 export { BAG_ITEMS_MAX };
 export const OVERLEVEL_HALF = 2;                       // au-delà du niveau max de la région : l'xp est divisée par 2 tous les 2 niveaux
+const QUEST_CHANCE = 0.5;                              // chance de passer au tableau des quêtes pendant un pas actif
 const PROFESSIONS_OF_GATHER = ["bucheron", "mineur", "herboriste"];
 
 const hash01 = (s) => hashString(s) / 4294967296;
@@ -42,7 +44,8 @@ function buildRegions() {
     const map = Object.values(MAPS).find((x) => x.regionKey === r.key);
     if (!m || !map) continue;
     const encs = [...new Set(map.groups.map((g) => g.encounter))].map((id) => ENCOUNTERS.find((e) => e.id === id)).filter((e) => e && !e.boss);
-    out.push({ key: r.key, lo: Number(m[1]), hi: Number(m[2]), encounters: encs.map((e) => ({ enemies: e.enemies, xp: e.enemies.reduce((s, k) => s + (ENEMIES[k].xp || 0), 0), gold: e.enemies.reduce((s, k) => s + ((ENEMIES[k].gold?.[0] + ENEMIES[k].gold?.[1]) / 2 || 0), 0) })) });
+    const enemyKeys = new Set(encs.flatMap((e) => e.enemies));
+    out.push({ key: r.key, lo: Number(m[1]), hi: Number(m[2]), enemyKeys, encounters: encs.map((e) => ({ enemies: e.enemies, xp: e.enemies.reduce((s, k) => s + (ENEMIES[k].xp || 0), 0), gold: e.enemies.reduce((s, k) => s + ((ENEMIES[k].gold?.[0] + ENEMIES[k].gold?.[1]) / 2 || 0), 0) })) });
   }
   return out.sort((a, b) => a.lo - b.lo);
 }
@@ -86,11 +89,11 @@ const SHARES = { combattant: { fight: 0.75, gather: 0.1, craft: 0.15 }, recolteu
 //   gear: { emplacement: idObjet }  (équipement porté),  bag: { res: { idRessource: quantité }, items: [idObjet, ...] } }
 export function initialLife(bot, mode = "generated", seed = 1) {
   const t = traitsOf(bot);
-  if (mode === "fresh") return { id: bot.id, level: 1, xp: 0, gold: 0, kills: 0, gathers: 0, prof: { key: t.primary, level: 1, xp: 0 }, pro: {}, crafted: 0, gear: starterGear(bot.classKey), bag: emptyBag() };
+  if (mode === "fresh") return { id: bot.id, level: 1, xp: 0, gold: 0, kills: 0, gathers: 0, prof: { key: t.primary, level: 1, xp: 0 }, pro: {}, crafted: 0, gear: starterGear(bot.classKey), bag: emptyBag(), quests: emptyQuests() };
   const r = makeRng(hashString(`init:${bot.id}:${seed}`));
   const level = bot.level;
   const profLevel = Math.max(1, Math.min(MAX_PROFESSION_LEVEL, Math.round(level * (bot.activity === "recolteur" ? 1.3 : 0.6) * (0.7 + r() * 0.6))));
-  return { id: bot.id, level, xp: Math.floor(r() * xpToNext(level)), gold: Math.round(level * (20 + r() * 60)), kills: level * 12, gathers: profLevel * 8, prof: { key: t.primary, level: profLevel, xp: Math.floor(r() * xpForLevel(profLevel)) }, pro: {}, crafted: 0, gear: tierGear(bot.classKey, level), bag: emptyBag() };
+  return { id: bot.id, level, xp: Math.floor(r() * xpToNext(level)), gold: Math.round(level * (20 + r() * 60)), kills: level * 12, gathers: profLevel * 8, prof: { key: t.primary, level: profLevel, xp: Math.floor(r() * xpForLevel(profLevel)) }, pro: {}, crafted: 0, gear: tierGear(bot.classKey, level), bag: emptyBag(), quests: emptyQuests() };
 }
 
 export const emptyBag = () => ({ res: {}, items: [] });
@@ -131,9 +134,10 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
     const n = Math.floor(FIGHTS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());   // arrondi au hasard : 0,4 combat = 4 chances sur 10 d'en faire un
     const mult = overlevelMult(life.level);
     let xp = 0, gold = 0;
+    const hunt = huntTarget(life);                                // il chasse en priorité l'ennemi de sa quête
     for (let i = 0; i < n; i++) {
-      const e = rng.pick(region.encounters); xp += e.xp; gold += e.gold;
-      for (const k of e.enemies) rollDrops(life, bot, ENEMIES[k], rng);
+      const e = rng.weighted(region.encounters.map((x) => [x, hunt && x.enemies.includes(hunt) ? 6 : 1])); xp += e.xp; gold += e.gold;
+      for (const k of e.enemies) { rollDrops(life, bot, ENEMIES[k], rng); bump(life, "kills", k); }
     }
     life.kills += n;
     life.gold += Math.round(gold);
@@ -143,11 +147,12 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
     const node = bestNode(life.prof.key, life.prof.level);
     if (node) {
       life.gathers += n; addProfXp(life.prof, n * node.xp);
-      for (let i = 0; i < n; i++) life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + rng.int(node.yield[0], node.yield[1]);
+      for (let i = 0; i < n; i++) { const q = rng.int(node.yield[0], node.yield[1]); life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + q; bump(life, "gathered", node.resource, q); }
     }
   } else {
     craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : raffiner, fabriquer, s'équiper
   }
+  if (rng() < QUEST_CHANCE) questStep(life, bot, step * STEP_MS, rng, regionFor(life.level).enemyKeys);   // tableau des quêtes
   sellSurplus(life, opts.keep);
   return life;
 }
@@ -192,11 +197,11 @@ export function liveBots(world, population) {
 // Anciennes sauvegardes (sans sac) : on ajoute un sac vide plutôt que de tout effacer
 export function migrateWorld(w, population = []) {
   const byId = new Map(population.map((b) => [b.id, b]));
-  if (w && w.lives && typeof w.lives === "object") for (const l of Object.values(w.lives)) if (l && typeof l === "object") { if (!l.bag) l.bag = emptyBag(); if (!l.pro) l.pro = {}; if (l.crafted == null) l.crafted = 0; if (!l.gear) { const b = byId?.get(l.id); l.gear = b ? tierGear(b.classKey, l.level) : {}; } }
+  if (w && w.lives && typeof w.lives === "object") for (const l of Object.values(w.lives)) if (l && typeof l === "object") { if (!l.bag) l.bag = emptyBag(); if (!l.quests) l.quests = emptyQuests(); if (!l.pro) l.pro = {}; if (l.crafted == null) l.crafted = 0; if (!l.gear) { const b = byId?.get(l.id); l.gear = b ? tierGear(b.classKey, l.level) : {}; } }
   return w;
 }
 
 export function validWorld(w, { mode, epoch }, population) {
   return !!w && w.v === 1 && w.mode === mode && w.epoch === epoch && Number.isFinite(w.step) && w.lives && typeof w.lives === "object"
-    && population.every((b) => { const l = w.lives[b.id]; return l && Number.isFinite(l.level) && l.level >= 1 && l.prof && Number.isFinite(l.prof.level) && l.bag && typeof l.bag.res === "object" && Array.isArray(l.bag.items) && l.gear && typeof l.gear === "object" && l.pro && typeof l.pro === "object"; });
+    && population.every((b) => { const l = w.lives[b.id]; return l && Number.isFinite(l.level) && l.level >= 1 && l.prof && Number.isFinite(l.prof.level) && l.bag && typeof l.bag.res === "object" && Array.isArray(l.bag.items) && l.gear && typeof l.gear === "object" && l.pro && typeof l.pro === "object" && l.quests && Array.isArray(l.quests.active); });
 }

@@ -153,6 +153,8 @@ export function shoppingList(life, bot) {
   return want;
 }
 
+const bumpCraft = (life, id) => { const q = life.quests || (life.quests = { active: [], done: { day: -1, ids: [] }, rep: {}, chain: [], counters: { kills: {}, gathered: {}, crafted: {} } }); const c = q.counters || (q.counters = { kills: {}, gathered: {}, crafted: {} }); (c.crafted || (c.crafted = {}))[id] = ((c.crafted || {})[id] || 0) + 1; };
+
 // Essaie de fabriquer l'une des pièces (ingrédients raffinés ou achetés au besoin) ; renvoie l'id fabriqué ou null
 function tryCraft(life, base, picks, rng, merchant = true) {
   for (const id of picks) {
@@ -165,6 +167,7 @@ function tryCraft(life, base, picks, rng, merchant = true) {
     const craftKeys = Object.keys(after.professions).filter((k) => k !== life.prof.key);
     life.pro = Object.fromEntries(craftKeys.map((k) => [k, after.professions[k]]));
     life.crafted = (life.crafted || 0) + 1;
+    bumpCraft(life, id);
     acquireItem(life, id);
     return id;
   }

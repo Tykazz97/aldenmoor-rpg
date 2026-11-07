@@ -38,19 +38,43 @@ function gear(build, level) {
   return equipped;
 }
 
+// --- Le style de jeu d'un simulé (caractéristiques et grimoire), propre à chacun et qui ne change pas ---------------------
+// Comme un vrai joueur, il répartit ses points de caractéristiques (3 par niveau) et ses points de sort (1 par niveau)
+// à sa façon : plus ou moins concentré sur sa caractéristique principale, une caractéristique secondaire (chance, vitesse…),
+// un goût pour les sorts de zone, et des sorts montés haut (peu de sorts) ou répartis. Tiré de son id : rien à sauvegarder,
+// et sa répartition est recalculée à chaque niveau gagné, exactement comme si tu avais dépensé les points un par un.
+export const DEFAULT_BUILD = { main: 0.65, extra: null, extraShare: 0, aoe: 1, rankCap: 3 };
+const EXTRA_CARACS = [["chance", 3], ["vitesse", 3], ["agilite", 2], ["force", 2], ["intelligence", 2]];
+const BUILD_CACHE = new Map();
+export function buildOf(bot) {
+  const hit = BUILD_CACHE.get(bot.id);
+  if (hit) return hit;
+  const r = makeRng(hashString(`build:${bot.id}`));
+  const mainKey = BUILDS[bot.classKey].main;
+  const main = Math.round((0.5 + r() * 0.3) * 100) / 100;
+  const extra = r.weighted(EXTRA_CARACS.filter(([k]) => k !== mainKey));
+  const build = { main, extra, extraShare: Math.round(r() * Math.min(0.3, 0.92 - main) * 100) / 100, aoe: Math.round((0.5 + r() * 1.2) * 100) / 100, rankCap: r.int(2, 4) };
+  BUILD_CACHE.set(bot.id, build);
+  return build;
+}
+
 // Un personnage complet (comme un joueur) de classe et niveau donnés
-export function makeBotPlayer(classKey, level, gearIds = null) {
+export function makeBotPlayer(classKey, level, gearIds = null, style = DEFAULT_BUILD) {
   const cls = CLASSES[classKey], b = BUILDS[classKey];
   const pts = POINTS_PER_LEVEL * (level - 1);
-  const mainPts = Math.round(pts * 0.65);
+  const mainPts = Math.round(pts * style.main);
+  const extraPts = style.extra ? Math.round(pts * style.extraShare) : 0;
   const caracs = { ...cls.startCaracs };
   caracs[b.main] = (caracs[b.main] || 0) + mainPts;
-  caracs.vitalite = (caracs.vitalite || 0) + (pts - mainPts) + FREE_VITALITE_PER_LEVEL * (level - 1);
+  if (style.extra) caracs[style.extra] = (caracs[style.extra] || 0) + extraPts;
+  caracs.vitalite = (caracs.vitalite || 0) + (pts - mainPts - extraPts) + FREE_VITALITE_PER_LEVEL * (level - 1);
   let p = { classKey, level, gold: 0, caracs, baseHp: 100, equipped: gearIds ? Object.fromEntries(Object.entries(gearIds).filter(([, id]) => ITEMS[id]).map(([slot, id]) => [slot, ITEMS[id]])) : gear(b, level), spellbook: { ranks: {}, loadout: null } };
-  // points de sort : sur le sort le plus rentable de la barre, jusqu'au rang 3, puis le suivant…
+  // points de sort : sur le sort le plus rentable de la barre (les sorts de zone pèsent selon son goût), jusqu'à son rang préféré, puis le suivant…
+  let cap = style.rankCap;
   for (let guard = 0; guard < 200 && spellPointsLeft(p) > 0; guard++) {
-    const bar = buildSpellBar(p).filter((s) => s.type !== "buff" && s.rank < 3);
-    bar.sort((a, c) => (c.power * (c.aoe ? 2 : 1)) / c.pa - (a.power * (a.aoe ? 2 : 1)) / a.pa);
+    const bar = buildSpellBar(p).filter((s) => s.type !== "buff" && s.rank < cap);
+    if (!bar.length) { if (cap >= 5) break; cap += 1; continue; }
+    bar.sort((a, c) => (c.power * (c.aoe ? 1 + style.aoe : 1)) / c.pa - (a.power * (a.aoe ? 1 + style.aoe : 1)) / a.pa);
     const target = bar.find((s) => rankCost(s.rank) <= spellPointsLeft(p));
     if (!target) break;
     p = rankUp(p, target.id);
@@ -59,8 +83,8 @@ export function makeBotPlayer(classKey, level, gearIds = null) {
 }
 
 // Ce que createCombat attend pour un allié : { name, stats, weaponType, classKey, level, spells } (+ look pour l'affichage)
-export function botSpec(classKey, level, { name, body = "m", look, gear: gearIds = null } = {}) {
-  const player = makeBotPlayer(classKey, level, gearIds);
+export function botSpec(classKey, level, { name, body = "m", look, gear: gearIds = null, style = DEFAULT_BUILD } = {}) {
+  const player = makeBotPlayer(classKey, level, gearIds, style);
   return {
     name: name || CLASSES[classKey].label,
     classKey, level,
@@ -107,7 +131,7 @@ export function buildAllies(player, companionIds = [], population = []) {
     if (b && !chosen.includes(b)) chosen.push(b);
     if (chosen.length >= PARTY_SIZE - 1) break;
   }
-  const specs = chosen.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look, gear: b.life?.gear }));
+  const specs = chosen.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look, gear: b.life?.gear, style: buildOf(b) }));
   if (specs.length >= PARTY_SIZE - 1) return specs;
   const generic = defaultAllies(player);
   const have = new Set([player.classKey, ...specs.map((s) => s.classKey)]);

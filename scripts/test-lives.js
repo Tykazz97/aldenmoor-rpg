@@ -10,7 +10,11 @@ import { RESOURCES } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";
 import { makeRng } from "../src/sim/rng.js";
 import { craftStep, starterGear, tierGear, gearScore, acquireItem, sellSurplus, STOCK_KEEP } from "../src/sim/lifeCraft.js";
-import { botSpec } from "../src/sim/partyBots.js";
+import { botSpec, buildOf, makeBotPlayer, DEFAULT_BUILD } from "../src/sim/partyBots.js";
+import { calcStats } from "../src/utils/calcStats.js";
+import { emptyQuests, questStep, bump, huntTarget } from "../src/sim/lifeQuests.js";
+import { boardFor, progressOf, dayKey, standingOf } from "../src/utils/quests.js";
+import { ENEMIES } from "../src/data/zones.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { MAX_PROFESSION_LEVEL } from "../src/data/professions.js";
 
@@ -244,6 +248,86 @@ await test("les compagnons combattent avec leur vrai équipement : un simulé ma
   const dflt = botSpec("guerrier", 20, { name: "C" });
   assert.ok(strong.stats.maxHp > weak.stats.maxHp && strong.stats.defPhys > weak.stats.defPhys);
   assert.equal(dflt.stats.maxHp, strong.stats.maxHp, "sans équipement connu : celui du palier, comme avant");
+});
+
+await test("quêtes : après un mois, les simulés ont rendu des quêtes du vrai tableau (réputation, chaîne, compteurs) sans jamais s'attaquer à un boss", () => {
+  const w = run(fresh(), 30);
+  let withRep = 0, chain = 0, counters = 0, boss = 0;
+  for (const b of pop) {
+    const q = w.lives[b.id].quests;
+    assert.ok(Array.isArray(q.active) && q.active.length <= 3 && q.done && q.rep && Array.isArray(q.chain));
+    if (Object.values(q.rep).some((v) => v > 0)) withRep++;
+    if (q.chain.length) chain++;
+    if (Object.values(q.counters.kills).some((v) => v > 0)) counters++;
+    if (q.chain.includes("chain_veilleur") || q.counters.kills.veilleur_corrompu) boss++;
+    for (const a of q.active) assert.ok(a.type !== "craft" && !ENEMIES[a.target]?.miniBoss, `quête interdite ${a.id}`);
+  }
+  assert.ok(withRep > 150, `${withRep} simulés ont de la réputation`);
+  assert.ok(counters > 150 && chain > 20, `${counters} compteurs, ${chain} chaînes`);
+  assert.equal(boss, 0);
+});
+
+await test("quêtes : questStep utilise les vraies règles (acceptation, progression par compteurs, récompenses) et rend l'or et l'xp", () => {
+  const bot = pop.find((b) => b.activity === "combattant");
+  const life = initialLife(bot, "fresh");
+  const pool = regionFor(1).enemyKeys;
+  const now = Date.UTC(2027, 0, 4, 12);
+  const rng = makeRng(7);
+  // le tableau du jour ne propose que ce que le joueur peut faire ; on force l'acceptation d'une quête de chasse
+  for (let i = 0; i < 40 && !life.quests.active.length; i++) questStep(life, bot, now, rng, pool);
+  assert.ok(life.quests.active.length >= 1);
+  const q = life.quests.active[0];
+  assert.ok(boardFor({ level: 1, quests: emptyQuests() }, now).some((x) => x.id === q.id) || q.chain);
+  assert.equal(progressOf({ resources: life.bag.res, quests: life.quests }, q).done, false);
+  // on fait ce que la quête demande : ses compteurs avancent, puis il la rend
+  if (q.type === "kill") bump(life, "kills", q.target, q.qty);
+  else if (q.type === "gather") bump(life, "gathered", q.target, q.qty);
+  else life.bag.res[q.target] = q.qty;
+  const g0 = life.gold, xp0 = life.xp + life.level * 1e6;
+  for (let i = 0; i < 40 && life.quests.active.some((a) => a.id === q.id); i++) questStep(life, bot, now, rng, pool);
+  assert.ok(!life.quests.active.some((a) => a.id === q.id), "quête rendue");
+  assert.ok(life.gold > g0 && life.xp + life.level * 1e6 > xp0, "or et xp reçus");
+  assert.ok(Object.values(life.quests.rep).reduce((a, b) => a + b, 0) > 0, "réputation reçue");
+  assert.ok(life.quests.done.ids.includes(q.id) || q.chain);
+});
+
+await test("quêtes : une quête de chasse en cours oriente son combat ; une quête qui traîne est abandonnée ; les anciennes sauvegardes reçoivent un carnet vide", () => {
+  const bot = pop[3], life = initialLife(bot, "fresh");
+  life.quests.active.push({ id: "x:kill", type: "kill", target: "loup", qty: 3, base: 0, day: dayKey(T0), rewards: { gold: 1, xp: 1, rep: 1 } });
+  assert.equal(huntTarget(life), "loup");
+  life.quests.active.push({ id: "old:gather", type: "gather", target: "ortie", qty: 99, base: 0, day: dayKey(T0) - 5, rewards: { gold: 1, xp: 1, rep: 1 } });
+  questStep(life, bot, T0, makeRng(1), regionFor(1).enemyKeys);
+  assert.ok(!life.quests.active.some((a) => a.id === "old:gather"), "quête abandonnée");
+  const w = fresh(); delete w.lives[pop[0].id].quests;
+  assert.equal(validWorld(w, { mode: "fresh", epoch: T0 }, pop), false);
+  migrateWorld(w, pop);
+  assert.ok(validWorld(w, { mode: "fresh", epoch: T0 }, pop));
+});
+
+await test("quêtes : même histoire en une fois ou en plusieurs morceaux (déterminisme)", () => {
+  const a = run(fresh(), 6);
+  const b = fresh(); for (let h = 1; h <= 6 * 24; h += 7) advanceLives(b, pop, T0 + h * 3600000); advanceLives(b, pop, T0 + 6 * DAY);
+  const pick = (w) => JSON.stringify(pop.slice(0, 20).map((x) => [w.lives[x.id].quests, w.lives[x.id].level, w.lives[x.id].gold]));
+  assert.equal(pick(a), pick(b));
+});
+
+await test("styles de jeu : chaque simulé répartit ses caractéristiques et son grimoire à sa façon (stable, propre à lui, plus fort ou plus faible selon le choix)", () => {
+  const warriors = pop.filter((b) => b.classKey === "guerrier").slice(0, 40);
+  const distinct = new Set(warriors.map((b) => JSON.stringify(buildOf(b))));
+  assert.ok(distinct.size > 25, `${distinct.size} styles différents sur 40 guerriers`);
+  assert.equal(JSON.stringify(buildOf(warriors[0])), JSON.stringify(buildOf(warriors[0])));
+  for (const b of warriors) { const s = buildOf(b); assert.ok(s.main >= 0.5 && s.main + s.extraShare <= 0.93 && s.rankCap >= 2 && s.rankCap <= 4 && s.aoe > 0); }
+  // les points sont tous dépensés : somme des caracs = départ + 3/niveau + 1 vitalité gratuite par niveau
+  for (const b of warriors.slice(0, 10)) {
+    const p = makeBotPlayer("guerrier", 20, null, buildOf(b));
+    const total = Object.values(p.caracs).reduce((a, c) => a + c, 0);
+    assert.equal(total, 5 + 4 * 19);
+  }
+  // un style tout en force frappe plus fort qu'un style tout en vitalité
+  const glass = botSpec("guerrier", 20, { style: { ...DEFAULT_BUILD, main: 0.9 } }), tank = botSpec("guerrier", 20, { style: { ...DEFAULT_BUILD, main: 0.3 } });
+  assert.ok(glass.stats.maxHp < tank.stats.maxHp);
+  // style par défaut inchangé
+  assert.equal(JSON.stringify(botSpec("magicien", 12).stats), JSON.stringify(botSpec("magicien", 12, { style: DEFAULT_BUILD }).stats));
 });
 
 console.log(`\n${n} tests passent.`);
