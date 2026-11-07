@@ -1,7 +1,7 @@
 // Tests des joueurs simulés :  node scripts/test-sim.js
 import assert from "node:assert/strict";
 import { generatePopulation, POPULATION_SIZE } from "../src/sim/population.js";
-import { createCityLife, stepCityLife, playerSays, visibleAgents, CITY_POPULATION } from "../src/sim/cityLife.js";
+import { createCityLife, stepCityLife, playerSays, visibleAgents, pickResponder, queueSay, whereIs, CITY_POPULATION } from "../src/sim/cityLife.js";
 import { MAPS, CITY_KEY } from "../src/data/maps.js";
 import { canStand } from "../src/utils/mapPath.js";
 import { CLASSES } from "../src/data/classes.js";
@@ -78,6 +78,25 @@ test("le fil de discussion : phrases correctes, et un simulé répond au joueur"
     for (let t = 0; t < 80; t++) for (const e of stepCityLife(life, 0.1)) if (e.type === "say" && !/\{|undefined/.test(e.text)) replies++;
   }
   assert.ok(replies > 10, `${replies}`);
+});
+
+test("chaque simulé a une personnalité et un objectif, sans changer les pseudos de la population", () => {
+  for (const b of pop) assert.ok(b.trait && b.goal, b.name);
+  assert.ok(new Set(pop.map((b) => b.trait)).size >= 8);
+});
+
+test("répondre au joueur : le pseudo cité répond, sinon un simulé proche ; la réponse du modèle est dite après un délai", () => {
+  const life = createCityLife({ map: city, population: pop, seed: 5 });
+  const target = life.agents.find((a) => a.state !== "inside");
+  assert.equal(pickResponder(life, `eh ${target.bot.name.toUpperCase()} t'es où ?`, { x: 20, y: 15 }), target);
+  const r = pickResponder(life, "quelqu'un ?", { x: 20, y: 15 });
+  assert.ok(r && r.state !== "inside");
+  assert.ok(/devant|près|sur la place/.test(whereIs(life, r)));
+  queueSay(life, r.id, "salut toi", 1.5);
+  const said = [];
+  for (let t = 0; t < 40; t++) for (const e of stepCityLife(life, 0.1)) if (e.type === "say" && e.id === r.id && e.text === "salut toi") said.push(e);
+  assert.equal(said.length, 1);
+  assert.ok(said[0].t >= 1.5);
 });
 
 console.log(`\n${n} tests passent.`);

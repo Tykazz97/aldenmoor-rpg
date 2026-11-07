@@ -6,7 +6,8 @@ import WorldMap from "./WorldMap.jsx";
 import CityCrowd from "./CityCrowd.jsx";
 import CityChat from "./CityChat.jsx";
 import { generatePopulation } from "../../sim/population.js";
-import { createCityLife, playerSays } from "../../sim/cityLife.js";
+import { createCityLife, playerSays, pickResponder, queueSay, whereIs } from "../../sim/cityLife.js";
+import { askBot, loadMemory, remember } from "../../sim/brain.js";
 import { EncounterFight } from "../combat/CombatScreen.jsx";
 import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
@@ -93,12 +94,27 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
     setFeed(life ? life.history.map((h) => ({ ...h, key: ++feedKey.current })) : []);
   }, [life]);
   const onCityEvents = useCallback((evs) => { for (const e of evs) if (e.type === "say") addFeed(e); }, [addFeed]);
-  const sendChat = useCallback((text) => {
-    addFeed({ name: playerRef.current.name, level: playerRef.current.level, text, me: true });
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
+  const sendChat = useCallback(async (text) => {
+    const pl = playerRef.current;
+    addFeed({ name: pl.name, level: pl.level, text, me: true });
     setHeroBubble(text);
     clearTimeout(bubbleTimer.current);
     bubbleTimer.current = setTimeout(() => setHeroBubble(null), 5500);
-    if (life) playerSays(life, text);
+    if (!life) return;
+    // un simulé répond : via le modèle de langage si disponible, sinon avec une phrase préécrite
+    const agent = pickResponder(life, text, posRef.current);
+    if (!agent) return;
+    const reply = await askBot({
+      bot: agent.bot, place: whereIs(life, agent), player: { name: pl.name, classKey: pl.classKey, level: pl.level },
+      message: text, history: loadMemory(agent.id),
+      feed: feedRef.current.filter((m) => !m.me).slice(-5).map((m) => ({ name: m.name, text: m.text })),
+    });
+    if (reply) {
+      remember(agent.id, [{ me: true, text }, { me: false, text: reply }]);
+      queueSay(life, agent.id, reply, 0.5 + Math.min(2.5, reply.length * 0.05));   // le temps de taper
+    } else playerSays(life, text);
   }, [addFeed, life]);
   useEffect(() => () => clearTimeout(bubbleTimer.current), []);
   const region = isCity ? CITY : ZONES.aldenmoor.regions.find((r) => r.key === map.regionKey);

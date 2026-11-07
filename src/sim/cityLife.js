@@ -160,11 +160,40 @@ export function stepCityLife(life, dt) {
   life.pending = life.pending.filter((p) => {
     if (p.at > life.clock) return true;
     const a = life.agents.find((x) => x.id === p.id);
-    const line = a ? replyLine(rng, a.bot, p.to) : null;
+    const line = a ? (p.text ?? replyLine(rng, a.bot, p.to)) : null;
     if (line) events.push(say(life, a, line));
     return false;
   });
   return events;
+}
+
+// Où se trouve un simulé, dit en français (pour que le modèle de langage sache de quoi il parle)
+const PLACE = { atelier: "devant l'atelier", coffre: "devant le coffre", marche: "devant le marché", panneau: "devant le panneau de recrutement", portail: "près du portail des régions" };
+export function whereIs(life, agent) {
+  let best = "sur la place d'Aldenmoor", bd = 3.2;
+  for (const [kind, f] of Object.entries(life.poi.byKind)) { const d = Math.hypot(f.x - agent.x, f.y - agent.y); if (d < bd) { bd = d; best = PLACE[kind] || best; } }
+  if (Math.hypot(life.poi.fountain.x - agent.x, life.poi.fountain.y - agent.y) < 3.4) best = "près de la fontaine";
+  return best;
+}
+
+// Qui répond au joueur ? Celui dont le pseudo est cité, sinon le plus proche (à portée de voix).
+export function pickResponder(life, text, near) {
+  const cands = life.agents.filter((a) => a.state !== "inside");
+  if (!cands.length) return null;
+  const t = String(text).toLowerCase();
+  const named = cands.find((a) => t.includes(a.bot.name.toLowerCase()));
+  if (named) return named;
+  const reach = near ? cands.filter((a) => Math.hypot(a.x - near.x, a.y - near.y) < 9) : [];
+  const pool = reach.length ? reach : cands;
+  const total = pool.reduce((s, a) => s + 0.2 + a.bot.chatty, 0);
+  let r = life.rng() * total;
+  for (const a of pool) { r -= 0.2 + a.bot.chatty; if (r <= 0) return a; }
+  return pool[0];
+}
+
+// Fait dire une phrase toute faite (réponse du modèle de langage) à un simulé, après un délai de frappe
+export function queueSay(life, id, text, delay = 1) {
+  life.pending.push({ at: life.clock + delay, id, text });
 }
 
 export const agentCount = (life) => life.agents.length;

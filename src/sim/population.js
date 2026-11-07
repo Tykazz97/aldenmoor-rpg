@@ -7,11 +7,23 @@
 import { CLASSES, CLASS_ORDER } from "../data/classes.js";
 import { HERO_OUTFITS } from "../data/heroSprites.js";
 import { MAX_LEVEL } from "../utils/progression.js";
-import { makeRng } from "./rng.js";
+import { makeRng, hashString } from "./rng.js";
 import { makePseudo } from "./names.js";
 
 export const POPULATION_SIZE = 200;
 export const DEFAULT_SEED = 1337;
+// Traits de caractère et objectifs du moment : de quoi donner une personnalité à chacun
+const TRAITS = [
+  "blagueur, adore taquiner", "timide et poli", "grognon mais serviable", "passionné d'artisanat", "radin, compte chaque pièce",
+  "enthousiaste, plein d'énergie", "calme et posé", "compétitif, veut être le meilleur", "curieux, pose beaucoup de questions",
+  "sarcastique", "serviable avec les débutants", "rêveur, aime l'ambiance du jeu", "pragmatique et direct", "bavard, raconte sa vie",
+];
+const GOALS = {
+  combattant: ["tu veux monter de niveau en chassant", "tu cherches un groupe pour les Prairies", "tu veux battre le boss des prairies"],
+  recolteur: ["tu montes ton métier de récolte", "il te manque des ressources pour un craft", "tu veux équiper ta classe en entier"],
+  marchand: ["tu amasses un stock pour l'ouverture du marché", "tu surveilles les prix des ressources"],
+  flaneur: ["tu découvres le jeu tranquillement", "tu cherches une guilde sympa", "tu discutes en attendant des amis"],
+};
 export const ACTIVITIES = ["combattant", "recolteur", "marchand", "flaneur"];
 
 // niveaux : beaucoup de débutants, de moins en moins de vétérans
@@ -36,14 +48,18 @@ export function generateBot(rng, index, usedNames) {
   if (level < 8 && r < 0.22) outfit = "base";
   else if (r > 0.84) outfit = rng.pick(HERO_OUTFITS);
   const activity = rng.weighted([["combattant", 36], ["recolteur", 28], ["marchand", 12], ["flaneur", 24]]);
+  const id = `sim_${String(index + 1).padStart(3, "0")}`;
+  const prng = makeRng(hashString(id));            // tirage à part : n'influence pas le reste de la population
   return {
-    id: `sim_${String(index + 1).padStart(3, "0")}`,
+    id,
     name, classKey, gender, level,
     look: `${gender}/${outfit}`,
     activity,
     chatty: Math.round((0.15 + rng() * 0.85) * 100) / 100,   // 0 = muet, 1 = bavard
     casual: rng.chance(0.4),                                  // écrit en minuscules, sans ponctuation
     speed: Math.round((2.3 + rng() * 1.1) * 100) / 100,       // tuiles par seconde
+    trait: prng.pick(TRAITS),
+    goal: prng.pick(GOALS[activity]),
     sim: true,
   };
 }
