@@ -10,6 +10,8 @@ import { ENEMIES } from "../data/zones.js";
 import { PARTY_DROP_MULT, SOLO_XP_MULT } from "../combat/engine.js";
 import { CLASSES } from "../data/classes.js";
 import { winChance } from "./botFight.js";
+import { wearLife } from "./lifeRepair.js";
+import { WEAR_DEFEAT } from "../utils/durability.js";
 import { bump } from "./lifeQuests.js";
 
 export const BOSSES = [
@@ -50,7 +52,7 @@ export function bossStep(life, bot, step, rng, { hunt = null, acquire, addXp, xp
     else if (pSolo < BOSS_MIN_CHANCE) return null;
   }
   st.last[boss.key] = step; st.lastAny = step;
-  if (rng() >= p) { st.deaths++; return "lose"; }
+  if (rng() >= p) { st.deaths++; wearLife(life, WEAR_DEFEAT); return "lose"; }
   const def = ENEMIES[boss.key];
   st.kills[boss.key] = (st.kills[boss.key] || 0) + 1;
   if (group) st.groupKills++;

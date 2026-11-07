@@ -16,7 +16,7 @@ import { emptyQuests, questStep, bump, huntTarget } from "../src/sim/lifeQuests.
 import { boardFor, progressOf, dayKey, standingOf } from "../src/utils/quests.js";
 import { ENEMIES } from "../src/data/zones.js";
 import { bossStep, BOSSES, bossOf, BOSS_COOLDOWN_STEPS, reachableBosses } from "../src/sim/lifeBoss.js";
-import { winChance } from "../src/sim/botFight.js";
+import { winChance, clearFightCache } from "../src/sim/botFight.js";
 import { bankStep, drawFromBank, bankFreeSlots, emptyBank, sellableOf, takeForSale, BANK_SELL_KEEP, BANK_MAX_PER_RES, BAG_RES_DEPOSIT, BAG_RES_KEEP, BAG_ITEMS_KEEP } from "../src/sim/lifeBank.js";
 import { bankCapacity, bankUsed, BANK_START } from "../src/utils/bank.js";
 import { RECIPES } from "../src/data/recipes.js";
@@ -405,9 +405,10 @@ await test("boss : un simulé trop faible n'en tente aucun ; un boss ne se reten
   assert.equal(bossStep(low, bot, 1000, rng, { acquire: acquireItem, addXp: () => {} }), null);
   // niveau 22 bien équipé : le Cavalier est une formalité, le Veilleur en solo est incertain
   const high = { ...initialLife(bot, "fresh"), level: 22, gear: tierGear("assassin", 22) };
+  clearFightCache();                                  // les estimations des tests précédents (profils voisins) ne comptent pas ici
   assert.equal(winChance(bot, high, ["cavalier_dechu"]), 1);
   const pv = winChance(bot, high, ["veilleur_corrompu"]);
-  assert.ok(pv > 0 && pv <= 1);
+  assert.ok(pv > 0 && pv <= 1, "pv=" + pv);
   assert.ok(winChance(bot, high, ["veilleur_corrompu"], ["guerrier", "magicien"]) >= pv, "à trois c'est plus facile");
   const weak = { ...high, level: 8, gear: starterGear("assassin") };
   assert.ok(winChance(bot, weak, ["epouvantail_ancestral"]) < 0.5, "trop faible pour l'Épouvantail");

@@ -71,6 +71,8 @@ const audit = (day) => {
       if (dj.runs > 0 && l.level < 20) bad(`${where} ${who} : a fait le donjon à ${l.level}`);
     }
     for (const id of ALCHEMY_ORDER) if ((l.bag.res[id] || 0) > 0 && !(l.pro?.alchimiste || (l.dj && l.dj.runs >= 0))) bad(`${where} ${who} : des potions sans jamais avoir distillé`);
+    if (l.wear != null && !(num(l.wear) && l.wear >= 0 && l.wear <= 100)) bad(`${where} ${who} : usure invalide ${l.wear}`);
+    if (l.repaired != null && !(num(l.repaired) && l.repaired >= 0)) bad(`${where} ${who} : réparations invalides ${l.repaired}`);
     if (l.taxPaid) bad(`${where} ${who} : registre de taxe inattendu`);
   }
   // marché
@@ -89,6 +91,8 @@ const audit = (day) => {
   for (const [id, g] of Object.entries(m.credits || {})) if (!num(g) || g < 0) bad(`${where} : crédit ${id}=${g}`);
 };
 
+const kills0 = Object.values(m.sims?.lives || {}).reduce((a, l) => a + (l.kills || 0), 0);
+const gold0 = Object.values(m.sims?.lives || {}).reduce((a, l) => a + (l.gold || 0), 0);
 const t0 = Date.now();
 for (let d = 1; d <= DAYS; d++) {
   m = tickMarket(m, T(d));
@@ -110,6 +114,10 @@ console.log(`  niveaux : médian ${med(L.map((l) => l.level))}, max ${Math.max(.
 console.log(`  Alchimiste > 1 : ${L.filter((l) => (l.pro?.alchimiste?.level || 1) > 1).length} simulés, niveau max ${Math.max(...L.map((l) => l.pro?.alchimiste?.level || 1))}`);
 console.log(`  potions en possession : ${JSON.stringify(potionStock)} ; en vente à l'hôtel des ventes : ${JSON.stringify(potionListed)}`);
 console.log(`  donjon : ${dj.runs} expéditions, ${dj.clears} réussies, ${dj.relics} reliques, ${dj.potions} potions bues, ${dj.keys} clés en poche ; ${tier4} simulés portent du palier 4`);
+const days = Math.max(1, DAYS);
+console.log(`  rythme : ${Math.round((sum((l) => l.kills || 0) - kills0) / L.length / days)} combats et ${Math.round((sum((l) => l.gold) - gold0) / L.length / days)} or gagnés (net) par simulé et par jour`);
+const rep = L.map((l) => l.repaired || 0);
+console.log(`  usure : médiane ${med(L.map((l) => Math.round(l.wear || 0)))} %, ${L.filter((l) => (l.wear || 0) >= 50).length} simulés à 50 % ou plus ; réparations : ${rep.reduce((a, b) => a + b, 0)} or en tout, ${Math.round(rep.reduce((a, b) => a + b, 0) / L.length / days)} or par simulé et par jour, ${L.filter((l) => (l.repaired || 0) > 0).length} simulés ont réparé`);
 console.log(`  annonces : ${m.listings.length} (dont ${m.listings.filter((x) => x.seller === "npc").length} du colporteur)`);
 if (problems.length) { console.log(`\n${problems.length} anomalie(s) :`); problems.forEach((p) => console.log("  ✖", p)); process.exitCode = 1; }
 else console.log("\nAucune anomalie.");

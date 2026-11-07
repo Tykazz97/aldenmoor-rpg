@@ -1,3 +1,4 @@
+import { wearEquipped, repair, repairAll } from "../utils/durability.js";
 import { useState, useMemo, useCallback } from "react";
 import { calcStats } from "../utils/calcStats.js";
 import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
@@ -105,6 +106,14 @@ export function usePlayer(initial) {
   }, []);
 
   // Récompenses d'un combat gagné (xp, or, ressources, objets)
+  // Usure de l'équipement après un combat (voir utils/durability.js) et réparation en ville
+  const wearGear = useCallback((amount) => { if (amount > 0) setPlayer((prev) => wearEquipped(prev, amount)); }, []);
+  const repairGear = useCallback((ref, opts) => {
+    let result = { ok: false };
+    setPlayer((prev) => { const r = ref === "all" ? repairAll(prev, opts) : repair(prev, ref, opts); result = r; return r.player; });
+    return result;
+  }, []);
+
   const applyCombatRewards = useCallback((rewards) => {
     setPlayer((prev) => applyRewards(prev, rewards, `loot-${Date.now()}-${craftCounter++}`).player);
   }, []);
@@ -130,7 +139,7 @@ export function usePlayer(initial) {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, refine, brew, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
+    craft, refine, brew, wearGear, repairGear, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
   };
 }
 

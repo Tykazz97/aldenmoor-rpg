@@ -29,6 +29,8 @@ import { bossStep, reachableBosses } from "./lifeBoss.js";
 import { dungeonStep, keyCraftStep } from "./lifeDungeon.js";
 import { wantsPotions, brewStep, BREW_CHANCE } from "./lifePotions.js";
 import { emptyQuests, bump, questStep, huntTarget } from "./lifeQuests.js";
+import { wearLife, repairStep, ZONE_CLOSE_CHANCE } from "./lifeRepair.js";
+import { WEAR_CLOSE } from "../utils/durability.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
 export const MAX_CATCHUP_STEPS = 7 * 144;              // au plus 7 jours rejoués à la fois
@@ -151,6 +153,7 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
       for (const k of e.enemies) { rollDrops(life, bot, ENEMIES[k], rng); bump(life, "kills", k); }
     }
     life.kills += n;
+    for (let i = 0; i < n; i++) if (rng() < ZONE_CLOSE_CHANCE) wearLife(life, WEAR_CLOSE);      // un combat de zone gagné de justesse
     life.gold += Math.round(gold);
     addXp(life, Math.round(xp * mult));
   } else if (roll < share.fight + share.gather) {
@@ -161,6 +164,7 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
       for (let i = 0; i < n; i++) { const q = rng.int(node.yield[0], node.yield[1]); life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + q; bump(life, "gathered", node.resource, q); }
     }
   } else {
+    repairStep(life);                                           // à l'atelier : il répare son équipement s'il est trop usé
     if (life.bank && Object.keys(life.bank.resources).length) drawFromBank(life, shoppingList(life, bot));   // il sort du coffre ce dont l'atelier a besoin
     if (!keyCraftStep(life, rng, { merchant: opts.merchant !== false }) && !(wantsPotions(life) && rng() < BREW_CHANCE && brewStep(life, rng, { merchant: opts.merchant !== false }))) craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : la clé du donjon d'abord, sinon raffiner, fabriquer, s'équiper
   }

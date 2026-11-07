@@ -135,6 +135,16 @@ Chaque grande région dépend d'une ville (`data/cities.js` ; aujourd'hui une se
 
 À savoir : à 1 %, l'or dépensé en fabrication tombe à quelques pièces (une clé de donjon passe de 500 or à 16) : l'or n'est presque plus un puits à l'atelier. Sur 30 jours simulés, l'or médian des simulés passe d'environ 1 200 à 2 900. C'est la taxe réglable (jusqu'à 5 %) qui rééquilibrera cela.
 
+## Durabilité de l'équipement
+
+Chaque pièce portée a une **usure** `wear` (0 à 100, absente = neuve), voir `utils/durability.js`. Un combat gagné proprement n'use rien. **+10 %** si le héros est descendu sous **25 %** de ses PV pendant le combat (gagné de justesse ; le moteur note les PV les plus bas dans `player.low`), **+25 %** s'il a perdu. Dans un donjon, chaque salle compte. Les reliques et les clés ne s'usent pas. Une pièce usée perd **jusqu'à 30 %** de ses bonus à 100 % (`calcStats`) ; elle ne casse jamais et rien n'est perdu.
+
+On **répare dans l'atelier** (même raccourci que la fabrication, donc dans n'importe quelle zone de la ville) : **10 % de la valeur** de la pièce à 100 % d'usure (5 % à moitié usée), plus la **taxe de la ville**, inscrite au registre `taxPaid`. Moitié prix si l'on sait fabriquer la pièce (niveau de métier suffisant). « Tout réparer » commence par les pièces les plus usées et s'arrête quand l'or manque. L'usure s'affiche en barre sur chaque emplacement et dans le sac.
+
+Les simulés ont une usure unique `life.wear` (toutes leurs pièces s'usent ensemble, `sim/lifeRepair.js`) : donjon (+10 par salle de justesse, mesuré par le moteur, +25 si l'expédition échoue), boss perdu (+25), petit risque en zone (4 % par combat). Ils réparent à l'atelier dès 35 %, ou avant un donjon dès 12 %, s'ils ont l'or. Leur chance de victoire tient compte de l'usure (arrondie par quarts dans le cache).
+
+À savoir : c'est un puits d'or **proportionnel au nombre de combats**, et les simulés ne se battent que 4 fois par jour en moyenne (ils gagnent leur or surtout en récoltant et en vendant) : leur or médian ne baisse donc presque pas (environ 3 or de réparation par simulé et par jour contre plus de 500 gagnés). Pour les vrais joueurs, qui combattent beaucoup plus, c'est le puits visé.
+
 ## Raffinage
 
 Entre la récolte et la fabrication, il y a le raffinage, à l'atelier : quatre métiers (fondeur, scieur, tanneur, tisserand), chacun avec son niveau. Deux matières brutes donnent une matière raffinée (lingot, planche, cuir, étoffe, fil), qui vaut un peu plus que les deux brutes, en échange d'un peu d'or et de temps. Les recettes d'équipement demandent maintenant ces matières raffinées. Les ressources raffinées se vendent à l'hôtel des ventes (les joueurs simulés en proposent) et certaines quêtes de livraison les demandent. Données dans `src/data/refining.js` ; `node scripts/simulate-economy.js` affiche le bénéfice de chaque transformation.

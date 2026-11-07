@@ -14,6 +14,8 @@ import { RECIPES } from "../data/recipes.js";
 import { CLASSES } from "../data/classes.js";
 import { PARTY_DROP_MULT } from "../combat/engine.js";
 import { dungeonOdds, kitOfBag } from "./botFight.js";
+import { wearLife, repairStep, REPAIR_BEFORE_DUNGEON } from "./lifeRepair.js";
+import { WEAR_CLOSE, WEAR_DEFEAT } from "../utils/durability.js";
 import { craftOne } from "./lifeCraft.js";
 import { drawFromBank } from "./lifeBank.js";
 import { rollDrop } from "./lifeBoss.js";
@@ -60,6 +62,7 @@ export function dungeonStep(life, bot, step, rng, { acquire, addXp, xpMult = 1 }
   if (!eligible(life) || st.keys < 1 || step - st.last < DJ_COOLDOWN_STEPS) return null;
   if (rng() >= DJ_FRIENDS) return null;
   const others = Object.keys(CLASSES).filter((c) => c !== bot.classKey);
+  repairStep(life, REPAIR_BEFORE_DUNGEON);                      // il passe à l'atelier avant de partir, s'il a l'or
   const odds = dungeonOdds(bot, life, DUNGEON, others, kitOfBag(life.bag.res));      // avec les potions de son sac, qu'il boit entre les salles
   if (odds[odds.length - 1] < DJ_MIN_CHANCE) return null;       // trop faible : il attend de monter ou de mieux s'équiper
   st.keys--; st.last = step; st.runs++;
@@ -71,6 +74,8 @@ export function dungeonStep(life, bot, step, rng, { acquire, addXp, xpMult = 1 }
   let r = rng(), rooms = 0;
   for (; rooms < odds.length - 1; rooms++) { r -= odds[rooms]; if (r < 0) break; }
   const cleared = rooms >= DUNGEON.rooms.length;
+  const closeRooms = Math.min(rooms, Math.floor((odds.close || 0) + rng()));      // salles gagnées de justesse (moyenne mesurée, arrondie au hasard)
+  wearLife(life, closeRooms * WEAR_CLOSE + (cleared ? 0 : WEAR_DEFEAT));        // l'équipement s'use (utils/durability.js)
   let xp = 0, gold = 0;
   const get = (l, id) => { if (id === DUNGEON.relic) st.relics++; acquire(l, id); };      // la relique, si elle tombe, est comptée puis portée
   for (const room of DUNGEON.rooms.slice(0, rooms)) {

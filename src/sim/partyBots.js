@@ -4,6 +4,7 @@
 // dans ses meilleurs sorts. Même logique que le joueur automatique de scripts/simulate-zones.js (qui l'utilise).
 // Pur (sans React) : sert à l'écran de combat, aux tests et aux simulations.
 // ============================================================
+import { isWearable } from "../utils/durability.js";
 import { ITEMS, SETS } from "../data/items.js";
 import { CLASSES } from "../data/classes.js";
 import { POINTS_PER_LEVEL, FREE_VITALITE_PER_LEVEL } from "../data/caracs.js";
@@ -62,7 +63,7 @@ export function buildOf(bot) {
 }
 
 // Un personnage complet (comme un joueur) de classe et niveau donnés
-export function makeBotPlayer(classKey, level, gearIds = null, style = DEFAULT_BUILD) {
+export function makeBotPlayer(classKey, level, gearIds = null, style = DEFAULT_BUILD, wear = 0) {
   const cls = CLASSES[classKey], b = BUILDS[classKey];
   const pts = POINTS_PER_LEVEL * (level - 1);
   const mainPts = Math.round(pts * style.main);
@@ -71,7 +72,7 @@ export function makeBotPlayer(classKey, level, gearIds = null, style = DEFAULT_B
   caracs[b.main] = (caracs[b.main] || 0) + mainPts;
   if (style.extra) caracs[style.extra] = (caracs[style.extra] || 0) + extraPts;
   caracs.vitalite = (caracs.vitalite || 0) + (pts - mainPts - extraPts) + FREE_VITALITE_PER_LEVEL * (level - 1);
-  let p = { classKey, level, gold: 0, caracs, baseHp: 100, equipped: gearIds ? Object.fromEntries(Object.entries(gearIds).filter(([, id]) => ITEMS[id]).map(([slot, id]) => [slot, ITEMS[id]])) : gear(b, level), spellbook: { ranks: {}, loadout: null } };
+  let p = { classKey, level, gold: 0, caracs, baseHp: 100, equipped: gearIds ? Object.fromEntries(Object.entries(gearIds).filter(([, id]) => ITEMS[id]).map(([slot, id]) => [slot, wear > 0 && isWearable(ITEMS[id]) ? { ...ITEMS[id], wear } : ITEMS[id]])) : gear(b, level), spellbook: { ranks: {}, loadout: null } };
   // points de sort : sur le sort le plus rentable de la barre (les sorts de zone pèsent selon son goût), jusqu'à son rang préféré, puis le suivant…
   let cap = style.rankCap;
   for (let guard = 0; guard < 200 && spellPointsLeft(p) > 0; guard++) {

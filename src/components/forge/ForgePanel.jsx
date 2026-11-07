@@ -11,6 +11,7 @@ import { ALCHEMY, alchemyOf } from "../../data/alchemy.js";
 import { canCraft, canRefine, maxRefine, canBrew, maxBrew, professionOf } from "../../utils/crafting.js";
 import { perkLines, isMasterwork } from "../../utils/perks.js";
 import { itemStatLines } from "../../utils/itemText.js";
+import RepairPanel from "./RepairPanel.jsx";
 
 const RARITY_ITEM_COLOR = { commune: "#9a95a8", rare: "#5fa3c4", epique: "#a855f7", legendaire: "#d9b568" };
 
@@ -215,7 +216,7 @@ function NodeCard({ node, level }) {
   );
 }
 
-export default function ForgePanel({ player, city = { key: "aldenmoor", name: "Aldenmoor", rate: 0.01 }, onCraft, onRefine, onBrew, onTestResources, onTestGold }) {
+export default function ForgePanel({ player, city = { key: "aldenmoor", name: "Aldenmoor", rate: 0.01 }, onCraft, onRefine, onBrew, onRepair, onTestResources, onTestGold }) {
   const fx = { rate: city.rate, city: city.key };                    // la taxe de la ville où l'on fabrique
   const [selected, setSelected] = useState(PROFESSION_ORDER[0]);
   const [flash, setFlash] = useState(null);
@@ -285,6 +286,7 @@ export default function ForgePanel({ player, city = { key: "aldenmoor", name: "A
           Atelier de {city.name}{city.place ? ` (tu es en ${city.place})` : ""} · taxe de fabrication <span style={{ fontFamily: font.data, color: color.goldBright }}>{String(Math.round(city.rate * 1000) / 10).replace(".", ",")} %</span> du prix de ce que tu obtiens
           {!city.guild && <span style={{ color: color.mist }}> · aucune guilde ne contrôle encore la ville : taux par défaut</span>}
         </div>
+        {onRepair && <RepairPanel player={player} city={city} onRepair={onRepair} />}
         <div data-perks style={{ margin: "8px 12px 0", padding: "8px 10px", background: color.void, border, borderRadius: radius.sm, display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em" }}>Avantages du niveau {professionOf(player, selected).level}</div>
           {perkLines(selected, professionOf(player, selected).level, MAX_PROFESSION_LEVEL).map((l) => (
