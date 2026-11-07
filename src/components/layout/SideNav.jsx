@@ -3,7 +3,8 @@ import { color, border, font } from "../../styles/theme.js";
 
 const NAV_ITEMS = [
   { key: "personnage", label: "Personnage", icon: "🛡" },
-  { key: "combat", label: "Combat", icon: "⚔" },
+  // Onglet Combat retiré pour l'instant (les combats se lancent depuis la carte).
+  // Pour le remettre : { key: "combat", label: "Combat", icon: "⚔" } — l'écran existe toujours dans App.jsx.
   { key: "carte", label: "Carte", icon: "🗺" },
   { key: "forge", label: "Forge", icon: "🔨" },
   { key: "sac", label: "Sac", icon: "🎒" },
