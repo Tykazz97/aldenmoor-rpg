@@ -252,17 +252,17 @@
   "pngH": 384
  },
  "f/apprenti": {
-  "w": 317,
-  "h": 284,
+  "w": 379,
+  "h": 301,
   "box": [
-   124,
-   205,
-   653,
-   679
+   112,
+   203,
+   744,
+   705
   ],
   "anchor": [
-   123.6,
-   279.0
+   130.8,
+   280.2
   ],
   "scale": 0.6,
   "actions": {
@@ -270,25 +270,25 @@
     "frames": 16,
     "cols": 6,
     "rows": 3,
-    "duration": 2.125
+    "duration": 2.25
    },
    "mine": {
     "frames": 36,
     "cols": 6,
     "rows": 6,
-    "duration": 2.333
+    "duration": 2.792
    },
    "chop": {
     "frames": 36,
     "cols": 6,
     "rows": 6,
-    "duration": 2.708
+    "duration": 2.542
    },
    "herb": {
     "frames": 36,
     "cols": 6,
     "rows": 6,
-    "duration": 2.792
+    "duration": 2.667
    }
   },
   "pngH": 392
