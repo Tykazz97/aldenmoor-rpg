@@ -167,3 +167,6 @@
 .mp-chat form { padding: 0 8px 8px; }
 .mp-chat input { width: 100%; box-sizing: border-box; background: #14141f; border: 1px solid #33334a; border-radius: 6px; padding: 6px 8px; color: #e6dcc0; font: 12px 'Inter', sans-serif; outline: none; }
 .mp-chat input:focus { border-color: #b8923f; }
+
+.mp-group.busy { filter: brightness(.55) saturate(.7); }
+.mp-group.busy .mp-plate::after { content: " ⚔"; }

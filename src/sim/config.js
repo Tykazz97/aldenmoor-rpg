@@ -2,3 +2,7 @@
 // Désactivés pour l'instant, en attendant que le jeu soit plus abouti : passer à true pour les remettre.
 // Tout le code (src/sim, api/chat.js) est conservé et testé (scripts/test-sim.js, test-api.js).
 export const SIM_PLAYERS = false;
+
+// Aventuriers simulés sur les cartes de région : ils se promènent en groupe, vont affronter des groupes de monstres
+// (qui disparaissent vraiment, puis réapparaissent comme d'habitude). Sans chat, donc sans appel au modèle de langage.
+export const SIM_ON_MAPS = true;

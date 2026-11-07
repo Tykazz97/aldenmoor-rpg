@@ -110,6 +110,8 @@ Le tableau de quêtes d'Aldenmoor (bâtiment de la ville) propose chaque jour un
 
 **Compagnons** : dans la fenêtre d'engagement, « Choisir mes compagnons » propose des joueurs simulés de la population (`src/sim/population.js`) dont le niveau est à 5 niveaux ou moins du tien. Le compagnon garde sa classe, son niveau, son pseudo et son apparence ; on en choisit 2 au maximum (`player.companions`, sauvegardé avec le personnage) et le groupe est complété par des alliés génériques d'une classe absente (`buildAllies` dans `partyBots.js`). Ça marche même quand les simulés sont désactivés en ville (`SIM_PLAYERS`).
 
-Étapes suivantes possibles : voir les simulés sur les cartes et les faire se mettre en groupe entre eux, les faire progresser avec le temps, des vrais joueurs dans le groupe (serveur), l'IA des bots (parade, sorts de soutien).
+**Aventuriers sur les cartes** : sur les cartes de région, 3 petits groupes de 1 à 3 simulés (niveau de la région, niveaux proches entre eux) se promènent ensemble, vont affronter un groupe de monstres ordinaire (jamais un mini-boss, jamais celui que tu engages) et le vainquent après une dizaine de secondes : le groupe est alors vraiment éliminé et réapparaît après son délai habituel, comme si tu l'avais tué. Un groupe en cours de combat est assombri (⚔) et ne peut pas être engagé. Au plus une victoire toutes les 14 à 30 secondes sur une carte, pour qu'ils ne la vident pas. Logique pure dans `src/sim/mapLife.js` (testée par `test-maplife.js`), rendu partagé avec la ville (`CityCrowd`), interrupteur `SIM_ON_MAPS` dans `sim/config.js`.
+
+Étapes suivantes possibles : les faire progresser avec le temps, les inviter à te rejoindre en pleine carte, des vrais joueurs dans le groupe (serveur), l'IA des bots (parade, sorts de soutien).
 
 Enchères à l'hôtel des ventes, vrais joueurs sur le même marché, joueurs simulés dans les régions, groupes et guildes, régions 2 et 3, emplacements d'équipement restants.

@@ -10,7 +10,9 @@ import BuildingModal from "./BuildingModal.jsx";
 import { useHeroLoop } from "./useHeroLoop.js";
 import { useCityChat } from "./useCityChat.js";
 import { HARVEST_MS, cq, key, encounterOf } from "./mapConstants.js";
-import { SIM_PLAYERS } from "../../sim/config.js";
+import { SIM_PLAYERS, SIM_ON_MAPS } from "../../sim/config.js";
+import { createMapLife, stepMapLife, whoFights } from "../../sim/mapLife.js";
+import { getPopulation } from "../../sim/population.js";
 import { EncounterFight } from "../combat/CombatScreen.jsx";
 import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
@@ -72,6 +74,16 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const heroLayout = heroFrameLayout(outfit);
   const isCity = map.kind === "city";
   const { life, feed, heroBubble, sendChat, onCityEvents } = useCityChat({ map, isCity, playerRef, posRef });
+  // Aventuriers simulés des régions : leurs victoires éliminent vraiment le groupe (réapparition habituelle)
+  const mapLife = useMemo(() => (!isCity && SIM_ON_MAPS ? createMapLife({ map, population: getPopulation(), seed: (Date.now() & 0xfffff) + 7 }) : null), [isCity, map]);
+  if (mapLife) {
+    mapLife.blocked = blocked;
+    mapLife.activeGroups = groups;
+    mapLife.avoid = new Set([popup?.id, fight?.group?.id].filter(Boolean));
+  }
+  const onMapLifeEvents = useCallback((evs) => {
+    for (const e of evs) if (e.type === "cleared") setWorld((w) => ({ ...w, cleared: { ...w.cleared, [e.id]: Date.now() } }));
+  }, [setWorld]);
   const region = isCity ? CITY : ZONES.aldenmoor.regions.find((r) => r.key === map.regionKey);
   const places = useMemo(() => [CITY, ...ZONES.aldenmoor.regions], []);
 
@@ -118,9 +130,11 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   }, [onGather, setWorld, showToast]);
 
   const openPopup = useCallback((g) => {
+    const busy = mapLife && whoFights(mapLife, g.id);
+    if (busy) { showToast(busy.includes(",") ? `${busy} affrontent déjà ce groupe.` : `${busy} affronte déjà ce groupe.`); return; }
     facingRef.current = g.x + 0.5 >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
     setPopup(g);
-  }, []);
+  }, [mapLife, showToast]);
 
   const openBuilding = useCallback((b) => {
     facingRef.current = b.cx >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
@@ -264,7 +278,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
               return (
                 <button
                   key={g.id}
-                  className={`mp-group ${enc.boss ? "boss" : ""}`}
+                  className={`mp-group ${enc.boss ? "boss" : ""} ${mapLife && whoFights(mapLife, g.id) ? "busy" : ""}`}
                   style={{ left: `calc(var(--tile) * ${g.x + 0.5})`, top: `calc(var(--tile) * ${g.y + 0.95})`, zIndex: g.y * 10 + 4 }}
                   onClick={(e) => { e.stopPropagation(); goToObject(g, openPopup); }}
                 >
@@ -283,6 +297,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
 
             {/* joueurs simulés de la ville */}
             {life && <CityCrowd life={life} onEvents={onCityEvents} />}
+            {mapLife && <CityCrowd life={mapLife} step={stepMapLife} onEvents={onMapLifeEvents} />}
 
             {/* héros (position mise à jour à chaque image par la boucle d'animation) */}
             <div className="mp-ent" ref={heroRef}>

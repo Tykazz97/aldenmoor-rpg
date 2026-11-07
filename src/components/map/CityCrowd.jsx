@@ -8,7 +8,7 @@ const BUBBLE_MS = 5500;
 
 // Les joueurs simulés présents en ville. Même rendu que le héros : feuille d'animation de marche,
 // ombre, pseudo au-dessus de la tête, bulle quand ils parlent. La simulation avance ici, à chaque image.
-export default function CityCrowd({ life, paused, onEvents }) {
+export default function CityCrowd({ life, paused, onEvents, step = stepCityLife }) {
   const [ids, setIds] = useState(() => life.agents.map((a) => a.id));
   const [bubbles, setBubbles] = useState({});          // id -> { text, until }
   const els = useRef({});                               // id -> { ent, flip, anim }
@@ -27,7 +27,7 @@ export default function CityCrowd({ life, paused, onEvents }) {
       const dt = Math.min(0.1, (t - last) / 1000);
       last = t;
       // la simulation continue même pendant un combat ou une fenêtre ouverte : la ville vit sans nous
-      const events = stepCityLife(life, dt);
+      const events = step(life, dt);
       if (events.length) {
         onEvents?.(events);
         const says = events.filter((e) => e.type === "say");
@@ -63,7 +63,7 @@ export default function CityCrowd({ life, paused, onEvents }) {
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [life, onEvents]);
+  }, [life, onEvents, step]);
 
   // efface les bulles périmées
   useEffect(() => {
