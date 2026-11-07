@@ -49,6 +49,13 @@ function randomStandable(life, near = null, radius = 12) {
   return null;
 }
 
+// Tailles des groupes d'une carte : un mélange équilibré (solo, duo, trio, puis on recommence), dans un ordre tiré au hasard
+export function partySizes(count, rng) {
+  const sizes = Array.from({ length: count }, (_, i) => (i % 3) + 1);
+  for (let i = sizes.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [sizes[i], sizes[j]] = [sizes[j], sizes[i]]; }
+  return sizes;
+}
+
 // Forme les groupes : un chef de niveau adapté à la région, puis des compagnons de niveau proche
 function formParties(life, population, count) {
   const { rng } = life;
@@ -56,15 +63,16 @@ function formParties(life, population, count) {
   const pool = population.filter((b) => b.level >= lo && b.level <= hi).sort(() => rng() - 0.5);
   const used = new Set();
   const parties = [];
+  const sizes = partySizes(count, rng);
   for (let i = 0; i < count; i++) {
-    const size = rng.weighted([[1, 3], [2, 4], [3, 4]]);
+    const size = sizes[i];
     const leader = pool.find((b) => !used.has(b.id));
     if (!leader) break;
     used.add(leader.id);
     const members = [leader];
     for (const b of pool) {
       if (members.length >= size) break;
-      if (!used.has(b.id) && Math.abs(b.level - leader.level) <= 3) { members.push(b); used.add(b.id); }
+      if (!used.has(b.id) && members.every((m) => Math.abs(b.level - m.level) <= 3)) { members.push(b); used.add(b.id); }      // tout le groupe tient dans 3 niveaux
     }
     parties.push(members);
   }

@@ -1,6 +1,6 @@
 // Tests de la vie des joueurs simulés sur les cartes de région :  node scripts/test-maplife.js
 import assert from "node:assert/strict";
-import { createMapLife, stepMapLife, whoFights, regionLevels, MAP_PARTIES } from "../src/sim/mapLife.js";
+import { createMapLife, stepMapLife, whoFights, regionLevels, partySizes, MAP_PARTIES } from "../src/sim/mapLife.js";
 import { getPopulation } from "../src/sim/population.js";
 import { MAPS } from "../src/data/maps.js";
 import { ENCOUNTERS } from "../src/data/encounters.js";
@@ -28,6 +28,22 @@ function run(mapKey, { seed = 5, seconds = 240, avoid = null } = {}) {
   }
   return { life, events, map, seenFight };
 }
+
+test("groupes équilibrés : un solo, un duo et un trio sur chaque carte (dans un ordre qui change)", () => {
+  assert.deepEqual([...partySizes(3, Math.random)].sort(), [1, 2, 3]);
+  assert.deepEqual([...partySizes(6, Math.random)].sort(), [1, 1, 2, 2, 3, 3]);
+  assert.equal(MAP_PARTIES, 3);
+  const orders = new Set();
+  for (let seed = 1; seed <= 12; seed++) {
+    const map = MAPS.prairies_sauvages;
+    const life = createMapLife({ map, population: pop, seed, blocked: blockedOf(map) });
+    const sizes = life.parties.map((p) => p.members.length);
+    if (sizes.length === MAP_PARTIES) assert.ok(sizes.every((s) => s <= 3), `tailles ${sizes}`);
+    const wanted = sizes.length === MAP_PARTIES && sizes.slice().sort().join() === "1,2,3";
+    if (wanted) orders.add(sizes.join());
+  }
+  assert.ok(orders.size >= 1, "au moins une carte a le mélange solo/duo/trio");
+});
 
 test("régions : niveaux lus dans les données, groupes de 1 à 3 aventuriers de niveau adapté", () => {
   assert.deepEqual(regionLevels(MAPS.prairies_sauvages), [1, 8]);
