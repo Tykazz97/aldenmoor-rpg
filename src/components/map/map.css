@@ -43,6 +43,23 @@
 .mp-plate i { font-style: normal; color: #a89f8c; margin-left: .7cqw; font-weight: 500; }
 .mp-group:hover .mp-plate { display: block; }
 
+/* nœuds de récolte */
+.mp-node { position: absolute; transform: translate(-50%, -100%); background: none; border: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+.mp-node img { display: block; width: auto; filter: drop-shadow(0 .4cqw .4cqw rgba(0,0,0,.55)); pointer-events: none; -webkit-user-drag: none; transform-origin: 50% 100%; transition: filter .15s; }
+.mp-node:hover img { filter: drop-shadow(0 0 .7cqw rgba(255,230,150,.95)) drop-shadow(0 .4cqw .4cqw rgba(0,0,0,.55)); }
+.mp-node.locked img { filter: grayscale(.65) brightness(.7) drop-shadow(0 .4cqw .4cqw rgba(0,0,0,.55)); }
+.mp-node.locked:hover img { filter: grayscale(.5) brightness(.8) drop-shadow(0 0 .6cqw rgba(224,121,106,.8)); }
+.mp-node.busy img { animation: mp-shake .22s linear infinite; }
+.mp-node:hover .mp-plate { display: block; }
+.mp-node .mp-plate { transform: translate(-50%, -.6cqw); }
+.mp-node.locked .mp-plate { border-color: #6b2a2a; color: #e0a090; }
+.mp-prog { position: absolute; left: 50%; bottom: 105%; transform: translateX(-50%); width: 5cqw; height: .8cqw; border-radius: .5cqw; background: rgba(10,8,18,.85); border: 1px solid #b8923f; overflow: hidden; }
+.mp-prog i { display: block; height: 100%; background: linear-gradient(90deg, #d9b568, #f3dca0); width: 0; animation: mp-fill linear forwards; }
+.mp-gain { position: absolute; transform: translate(-50%, -100%); z-index: 1050; pointer-events: none; text-align: center; white-space: nowrap;
+  font: 700 1.6cqw 'Inter', sans-serif; color: #f3dca0; text-shadow: 0 1px 3px #000, 0 0 .8cqw rgba(0,0,0,.9); animation: mp-gain 1.8s ease-out forwards; }
+.mp-gain small { display: block; font: 600 1.05cqw 'Inter', sans-serif; color: #9ccf8a; }
+.mp-ent .mp-flip.harvesting img { animation: mp-chop .3s ease-in-out infinite; transform-origin: 50% 100%; }
+
 /* fenêtre d'engagement */
 .mp-popup { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); width: min(520px, 92%); z-index: 1100; padding: 16px 18px;
   background: linear-gradient(180deg, #1c1a2b, #12121c); border: 1px solid #5e4a1f; border-radius: 14px; box-shadow: 0 8px 40px rgba(0,0,0,.7), 0 0 30px rgba(184,146,63,.18);
@@ -71,3 +88,7 @@
 @keyframes mp-walk { 0%,100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-.7cqw) rotate(1.5deg); } }
 @keyframes mp-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-.5cqw); } }
 @keyframes mp-toast { 0% { opacity: 0; transform: translate(-50%, -10px); } 10% { opacity: 1; transform: translate(-50%, 0); } 85% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes mp-shake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-1.4deg); } 75% { transform: rotate(1.4deg); } }
+@keyframes mp-fill { from { width: 0; } to { width: 100%; } }
+@keyframes mp-gain { 0% { opacity: 0; transform: translate(-50%, -60%); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -260%); } }
+@keyframes mp-chop { 0%,100% { transform: rotate(0) translateY(0); } 50% { transform: rotate(5deg) translateY(.3cqw); } }

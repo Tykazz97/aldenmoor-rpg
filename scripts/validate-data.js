@@ -8,6 +8,7 @@
 import { existsSync } from "node:fs";
 import { ITEMS, SETS } from "../src/data/items.js";
 import { RESOURCES } from "../src/data/resources.js";
+import { NODES } from "../src/data/gathering.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { ENEMIES, ZONES } from "../src/data/zones.js";
 import { getCraftInfo } from "../src/data/professions.js";
@@ -48,7 +49,9 @@ for (const [resId, res] of Object.entries(RESOURCES)) {
   if (res.img && !existsSync(new URL(`../public${res.img}`, import.meta.url))) {
     err(`Ressource ${resId} : icône introuvable (${res.img})`);
   }
-  if (!ENEMIES[res.source]) err(`Ressource ${resId} : source inconnue ${res.source}`);
+  if (res.source === "recolte") {
+    if (!Object.values(NODES).some((nd) => nd.resource === resId)) err(`Ressource ${resId} : aucun nœud de récolte ne la donne`);
+  } else if (!ENEMIES[res.source]) err(`Ressource ${resId} : source inconnue ${res.source}`);
   else if (!dropped.has(`resource:${resId}`)) warn(`Ressource ${resId} : aucun ennemi ne la lâche`);
 }
 
@@ -89,6 +92,9 @@ for (const w of Object.values(WEAPON_TYPES)) {
     if (sp.type !== "buff" && !(sp.power > 0)) err(`Sort ${sp.id} : puissance manquante`);
     if (!(sp.pa >= 1 && sp.pa <= 6)) err(`Sort ${sp.id} : coût en PA invalide`);
   }
+}
+for (const nd of Object.values(NODES)) {
+  if (!existsSync(`public${nd.img}`)) err(`Nœud ${nd.id} : image absente (${nd.img})`);
 }
 for (const o of HERO_OUTFITS) {
   if (!existsSync(`public/assets/combat/hero/${o}.png`)) err(`Tenue du héros absente : ${o}`);

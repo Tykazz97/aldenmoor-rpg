@@ -34,7 +34,7 @@ assert.deepEqual(p.professions.forgeron, { level: 2, xp: 20 });
 assert.deepEqual(p.professions.tailleur, { level: 1, xp: 0 });
 
 // 7. la ressource à 0 est supprimée de l'inventaire
-let q = { gold: 100, resources: { peau_de_sanglier: 3, ferraille_emoussee: 1, defense_ebrechee: 1 }, inventory: [], professions: emptyProfessions(PROFESSION_ORDER) };
+let q = { gold: 100, resources: { peau_de_sanglier: 3, minerai_de_fer: 2, defense_ebrechee: 1 }, inventory: [], professions: emptyProfessions(PROFESSION_ORDER) };
 q = applyCraft(q, "gants_veteran", "x");
 assert.deepEqual(q.resources, {});
 

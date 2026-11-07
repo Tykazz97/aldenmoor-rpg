@@ -3,9 +3,9 @@
 // Chaque métier a son propre niveau et sa propre xp ; le niveau
 // débloque les recettes par paliers (voir getCraftInfo).
 //
-// Pour l'instant : métiers de craft uniquement. La récolte
-// (bûcheron, mineur, herboriste) viendra avec la carte, le
-// Bijoutier et l'Alchimiste avec les capes/amulettes/consommables.
+// Métiers de craft (forgeron, tailleur, maroquinier, menuisier) et de
+// récolte (bûcheron, mineur, herboriste : voir gathering.js). Le
+// Bijoutier et l'Alchimiste viendront avec les capes/amulettes/consommables.
 // ============================================================
 
 import { ITEMS } from "./items.js";
@@ -29,6 +29,19 @@ export const PROFESSIONS = {
   menuisier: {
     key: "menuisier", name: "Menuisier", icon: "🪵",
     desc: "Arcs et bâtons.",
+  },
+  // --- Récolte : se pratique sur la carte ---
+  bucheron: {
+    key: "bucheron", name: "Bûcheron", icon: "🪓", kind: "gather",
+    desc: "Abat les arbres de la carte pour récupérer du bois.",
+  },
+  mineur: {
+    key: "mineur", name: "Mineur", icon: "⛏️", kind: "gather",
+    desc: "Extrait le minerai des filons.",
+  },
+  herboriste: {
+    key: "herboriste", name: "Herboriste", icon: "🌿", kind: "gather",
+    desc: "Cueille les plantes sauvages.",
   },
 };
 

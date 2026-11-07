@@ -58,3 +58,12 @@ export function activeGroups(map, world) {
     return at === undefined || world.steps - at >= map.respawnSteps;
   });
 }
+
+// Nœuds de récolte présents (non récoltés récemment). Même table `cleared` que les groupes.
+export function activeNodes(map, world) {
+  const delay = map.nodeRespawnSteps ?? 30;
+  return (map.nodes || []).filter((n) => {
+    const at = world.cleared[n.id];
+    return at === undefined || world.steps - at >= delay;
+  });
+}

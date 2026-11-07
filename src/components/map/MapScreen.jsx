@@ -8,15 +8,19 @@ import { ENCOUNTERS } from "../../data/encounters.js";
 import { RESOURCES, RESOURCE_RARITIES } from "../../data/resources.js";
 import { ITEMS } from "../../data/items.js";
 import { heroOutfitFor, heroSpriteUrl } from "../../data/heroSprites.js";
-import { findPath, pathToAdjacent, activeGroups, isWalkable, mapWidth, mapHeight } from "../../utils/mapPath.js";
+import { findPath, pathToAdjacent, activeGroups, activeNodes, isWalkable, mapWidth, mapHeight } from "../../utils/mapPath.js";
+import { NODES } from "../../data/gathering.js";
+import { PROFESSIONS } from "../../data/professions.js";
+import { canGather, rollYield } from "../../utils/gathering.js";
 import { color, font } from "../../styles/theme.js";
 
 const STEP_MS = 190;     // durée d'un pas du héros (doit correspondre au CSS)
+const HARVEST_MS = 1100; // durée d'une récolte
 const HERO_H = 10.5;     // hauteur du héros en cqw (1 tuile = 6.25 cqw)
 const key = (x, y) => `${x},${y}`;
 const encounterOf = (id) => ENCOUNTERS.find((e) => e.id === id);
 
-export default function MapScreen({ player, stats, world, setWorld, onRewards }) {
+export default function MapScreen({ player, stats, world, setWorld, onRewards, onGather }) {
   const map = MAPS[world.mapKey];
   const W = mapWidth(map), H = mapHeight(map);
   const [fight, setFight] = useState(null);     // { group, enc }
@@ -25,16 +29,23 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards })
   const [facing, setFacing] = useState(1);
   const [walking, setWalking] = useState(false);
   const [toast, setToast] = useState(null);
+  const [harvest, setHarvest] = useState(null);  // { node } pendant une récolte
+  const [gains, setGains] = useState([]);        // textes flottants "+2 Frêne"
   const timer = useRef(null);
+  const harvestTimer = useRef(null);
+  const playerRef = useRef(player);
+  playerRef.current = player;
+  const harvestRef = useRef(false);
   const worldRef = useRef(world);
   worldRef.current = world;
 
   const groups = useMemo(() => activeGroups(map, world), [map, world]);
-  const blocked = useMemo(() => new Set(groups.map((g) => key(g.x, g.y))), [groups]);
+  const nodes = useMemo(() => activeNodes(map, world), [map, world]);
+  const blocked = useMemo(() => new Set([...groups, ...nodes].map((g) => key(g.x, g.y))), [groups, nodes]);
   const heroSrc = heroSpriteUrl(heroOutfitFor(stats.setBonuses));
   const region = ZONES.aldenmoor.regions.find((r) => r.key === map.regionKey);
 
-  useEffect(() => () => clearInterval(timer.current), []);
+  useEffect(() => () => { clearInterval(timer.current); clearTimeout(harvestTimer.current); }, []);
 
   const showToast = useCallback((text) => {
     setToast({ text, id: Date.now() });
@@ -42,6 +53,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards })
   }, []);
 
   const walk = useCallback((path, then) => {
+    if (harvestRef.current) return;
     clearInterval(timer.current);
     setPopup(null);
     if (!path.length) { setWalking(false); then?.(); return; }
@@ -65,7 +77,41 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards })
     walk(p, () => { setFacing(g.x >= worldRef.current.pos.x ? 1 : -1); setPopup(g); });
   }, [map, blocked, walk, showToast]);
 
+  const nodeAt = (x, y) => nodes.find((n) => n.x === x && n.y === y);
+
+  // Récolte : on marche jusqu'à une case voisine, puis une courte animation
+  const startHarvest = useCallback((n) => {
+    const def = NODES[n.node];
+    const chk = canGather(playerRef.current, n.node);
+    if (!chk.ok) { showToast(`${PROFESSIONS[def.profession].name} niveau ${def.minLevel} requis (tu es niveau ${chk.level}).`); return; }
+    setFacing(n.x >= worldRef.current.pos.x ? 1 : -1);
+    harvestRef.current = true;
+    setHarvest({ node: n });
+    harvestTimer.current = setTimeout(() => {
+      harvestRef.current = false;
+      setHarvest(null);
+      const qty = rollYield(def);
+      const before = playerRef.current.professions[def.profession];
+      onGather?.(n.node, qty);
+      setWorld((w) => ({ ...w, cleared: { ...w.cleared, [n.id]: w.steps } }));
+      const gid = Date.now() + Math.random();
+      setGains((g) => [...g, { id: gid, x: n.x, y: n.y, text: `+${qty} ${RESOURCES[def.resource].name}`, sub: `+${def.xp} xp ${PROFESSIONS[def.profession].name}` }]);
+      setTimeout(() => setGains((g) => g.filter((e) => e.id !== gid)), 1800);
+      if (before.level < 10 && before.xp + def.xp >= before.level * 30) showToast(`${PROFESSIONS[def.profession].name} : niveau ${before.level + 1} !`);
+    }, HARVEST_MS);
+  }, [onGather, setWorld, showToast]);
+
+  const goHarvest = useCallback((n) => {
+    if (harvestRef.current) return;
+    const p = pathToAdjacent(map, worldRef.current.pos, n, blocked);
+    if (p === null) { showToast("Impossible d'atteindre cette ressource."); return; }
+    walk(p, () => startHarvest(n));
+  }, [map, blocked, walk, startHarvest, showToast]);
+
   const clickTile = (x, y) => {
+    if (harvestRef.current) return;
+    const nd = nodeAt(x, y);
+    if (nd) return goHarvest(nd);
     const g = groupAt(x, y);
     if (g) return engage(g);
     const p = findPath(map, worldRef.current.pos, { x, y }, blocked);
@@ -79,23 +125,26 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards })
       const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], z: [0, -1], s: [0, 1], a: [-1, 0], q: [-1, 0], d: [1, 0] }[ev.key];
       if (!d) return;
       ev.preventDefault();
+      if (harvestRef.current) return;
       const { pos } = worldRef.current;
       const nx = pos.x + d[0], ny = pos.y + d[1];
       const g = groups.find((o) => o.x === nx && o.y === ny);
       if (g) { clearInterval(timer.current); setWalking(false); setFacing(d[0] || facing); setPopup(g); return; }
+      const nd = nodes.find((o) => o.x === nx && o.y === ny);
+      if (nd) { clearInterval(timer.current); setWalking(false); setFacing(d[0] || facing); startHarvest(nd); return; }
       if (isWalkable(map, nx, ny)) walk([{ x: nx, y: ny }]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fight, groups, map, walk, facing]);
+  }, [fight, groups, nodes, map, walk, facing, startHarvest]);
 
   // Aperçu du chemin sous la souris
   const preview = useMemo(() => {
-    if (!hover || walking || popup) return [];
-    const g = groupAt(hover.x, hover.y);
+    if (!hover || walking || popup || harvest) return [];
+    const g = groupAt(hover.x, hover.y) || nodeAt(hover.x, hover.y);
     const p = g ? pathToAdjacent(map, world.pos, g, blocked) : findPath(map, world.pos, hover, blocked);
     return p || [];
-  }, [hover, walking, popup, world.pos, groups]); // eslint-disable-line
+  }, [hover, walking, popup, harvest, world.pos, groups, nodes]); // eslint-disable-line
 
   // ---------- combat ----------
   if (fight) {
@@ -165,6 +214,36 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards })
             <span key={i} className="mp-dot" style={{ left: `${((t.x + 0.5) / W) * 100}%`, top: `${((t.y + 0.5) / H) * 100}%` }} />
           ))}
 
+          {/* nœuds de récolte */}
+          {nodes.map((n) => {
+            const def = NODES[n.node];
+            const chk = canGather(player, n.node);
+            const busy = harvest && harvest.node.id === n.id;
+            return (
+              <button
+                key={n.id}
+                className={`mp-node ${chk.ok ? "" : "locked"} ${busy ? "busy" : ""} ${def.profession}`}
+                style={{ left: `${((n.x + 0.5) / W) * 100}%`, top: `${((n.y + 0.95) / H) * 100}%`, zIndex: n.y * 10 + 3 }}
+                onClick={() => clickTile(n.x, n.y)}
+                onMouseEnter={() => setHover(null)}
+              >
+                <span className="mp-plate">
+                  {def.name}<i>{PROFESSIONS[def.profession].icon} niv. {def.minLevel}</i>
+                </span>
+                <span className="mp-shadow" style={{ width: `${Math.min(def.size, 2) * 3}cqw` }} />
+                <img src={def.img} alt={def.name} draggable={false} style={{ height: `${def.size * 6.25}cqw` }} />
+                {busy && <span className="mp-prog"><i style={{ animationDuration: `${HARVEST_MS}ms` }} /></span>}
+              </button>
+            );
+          })}
+
+          {/* gains flottants */}
+          {gains.map((g) => (
+            <div key={g.id} className="mp-gain" style={{ left: `${((g.x + 0.5) / W) * 100}%`, top: `${(g.y / H) * 100}%` }}>
+              {g.text}<small>{g.sub}</small>
+            </div>
+          ))}
+
           {/* groupes d'ennemis */}
           {groups.map((g) => {
             const enc = encounterOf(g.encounter);
@@ -192,7 +271,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards })
           {/* héros */}
           <div className="mp-ent" style={{ left: `${((world.pos.x + 0.5) / W) * 100}%`, top: `${((world.pos.y + 0.95) / H) * 100}%`, zIndex: world.pos.y * 10 + 5 }}>
             <span className="mp-shadow" />
-            <div className={`mp-flip ${walking ? "walking" : "idle"}`} style={{ transform: `scaleX(${facing})` }}>
+            <div className={`mp-flip ${harvest ? "harvesting" : walking ? "walking" : "idle"}`} style={{ transform: `scaleX(${facing})` }}>
               <img src={heroSrc} alt="Héros" draggable={false} style={{ height: `${HERO_H}cqw` }} />
             </div>
           </div>
@@ -206,8 +285,8 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards })
       </div>
 
       <div className="mp-foot">
-        <span><b>{remaining}</b> groupe{remaining > 1 ? "s" : ""} en vue{soonest !== null && soonest > 0 ? ` · retour d'un groupe dans ${soonest} pas` : ""}</span>
-        <span>Clique une case pour te déplacer, un groupe pour l'affronter · flèches / ZQSD au clavier</span>
+        <span><b>{remaining}</b> groupe{remaining > 1 ? "s" : ""} · <b>{nodes.length}</b> ressource{nodes.length > 1 ? "s" : ""} en vue{soonest !== null && soonest > 0 ? ` · retour d'un groupe dans ${soonest} pas` : ""}</span>
+        <span>Clique une case pour te déplacer, un groupe pour l'affronter, un arbre / filon / plante pour récolter · flèches / ZQSD</span>
         <span style={{ fontFamily: font.data }}>{world.steps} pas</span>
       </div>
     </div>

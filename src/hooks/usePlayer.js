@@ -5,6 +5,7 @@ import { PROFESSION_ORDER } from "../data/professions.js";
 import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
 import { applyCraft, addResourcesTo, emptyProfessions } from "../utils/crafting.js";
 import { applyRewards } from "../utils/progression.js";
+import { applyGather } from "../utils/gathering.js";
 
 let craftCounter = 0;
 
@@ -108,6 +109,11 @@ export function usePlayer() {
     setPlayer((prev) => applyRewards(prev, rewards, `loot-${Date.now()}-${craftCounter++}`).player);
   }, []);
 
+  // Récolte d'un nœud sur la carte (ressource + xp de métier)
+  const gather = useCallback((nodeId, qty) => {
+    setPlayer((prev) => applyGather(prev, nodeId, qty).player);
+  }, []);
+
   // --- Outils de test (à retirer quand le combat donnera les vrais drops) ---
   const testAddResources = useCallback((amounts = { commune: 10, peu_commune: 5, rare: 2 }) => {
     const gains = {};
@@ -124,7 +130,7 @@ export function usePlayer() {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, applyCombatRewards, testAddResources, testAddGold,
+    craft, applyCombatRewards, gather, testAddResources, testAddGold,
   };
 }
 

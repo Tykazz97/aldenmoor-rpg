@@ -19,7 +19,7 @@ const TAB_TITLES = {
 export default function App() {
   const [activeTab, setActiveTab] = useState("personnage");
   const [world, setWorld] = useState(initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, testAddResources, testAddGold } = usePlayer();
+  const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, gather, testAddResources, testAddGold } = usePlayer();
 
   // Pour l'instant, cliquer sur un slot vide ne fait rien — l'équipement
   // se fait depuis le sac (InventoryPanel). Sera étendu plus tard pour
@@ -52,7 +52,7 @@ export default function App() {
         <CombatScreen player={player} stats={stats} onRewards={applyCombatRewards} />
       )}
       {activeTab === "carte" && (
-        <MapScreen player={player} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} />
+        <MapScreen player={player} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onGather={gather} />
       )}
       {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>

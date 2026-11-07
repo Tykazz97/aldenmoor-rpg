@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius, font } from "../../styles/theme.js";
+import { NODES, nodesOfProfession } from "../../data/gathering.js";
 import { PROFESSIONS, PROFESSION_ORDER, recipesOfProfession, xpForLevel, MAX_PROFESSION_LEVEL } from "../../data/professions.js";
 import { RECIPES } from "../../data/recipes.js";
 import { ITEMS } from "../../data/items.js";
@@ -144,6 +145,23 @@ function RecipeCard({ itemId, check, onCraft }) {
   );
 }
 
+function NodeCard({ node, level }) {
+  const res = RESOURCES[node.resource];
+  const ok = level >= node.minLevel;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: color.void, borderRadius: radius.md, border, opacity: ok ? 1 : 0.55 }}>
+      <img src={node.img} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, color: color.parchment }}>{node.name}</div>
+        <div style={{ fontSize: 11, color: color.mist }}>{node.verb} sur la carte · {node.yield[0]}–{node.yield[1]} par récolte · +{node.xp} xp</div>
+      </div>
+      <ResourceIcon resource={res} size={28} />
+      <span style={{ fontSize: 12, color: RESOURCE_RARITIES[res.rarity].color, minWidth: 90 }}>{res.name}</span>
+      <span style={{ fontSize: 11, fontFamily: font.data, color: ok ? color.success : color.mist }}>{ok ? "Disponible" : `Niv. ${node.minLevel} requis`}</span>
+    </div>
+  );
+}
+
 export default function ForgePanel({ player, onCraft, onTestResources, onTestGold }) {
   const [selected, setSelected] = useState(PROFESSION_ORDER[0]);
   const [flash, setFlash] = useState(null);
@@ -157,6 +175,7 @@ export default function ForgePanel({ player, onCraft, onTestResources, onTestGol
     timer.current = setTimeout(() => setFlash(null), 2500);
   };
 
+  const gatherNodes = PROFESSIONS[selected].kind === "gather" ? nodesOfProfession(selected) : null;
   const recipes = recipesOfProfession(selected);
   const owned = RESOURCE_ORDER.filter((id) => (player.resources[id] || 0) > 0);
 
@@ -177,7 +196,7 @@ export default function ForgePanel({ player, onCraft, onTestResources, onTestGol
 
       {/* Recettes */}
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={`${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
+        <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
         <div style={{ padding: "8px 12px 0", fontSize: 12, color: color.mist }}>{PROFESSIONS[selected].desc}</div>
         {flash && (
           <div style={{ margin: "8px 12px 0", padding: "6px 10px", fontSize: 12, color: color.success, background: "#5c9c5c18", border: `1px solid ${color.success}66`, borderRadius: radius.sm }}>
@@ -185,7 +204,8 @@ export default function ForgePanel({ player, onCraft, onTestResources, onTestGol
           </div>
         )}
         <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
-          {recipes.map(({ itemId }) => (
+          {gatherNodes && gatherNodes.map((n) => <NodeCard key={n.id} node={n} level={player.professions[selected]?.level ?? 1} />)}
+          {!gatherNodes && recipes.map(({ itemId }) => (
             <RecipeCard key={itemId} itemId={itemId} check={canCraft(player, itemId)} onCraft={handleCraft} />
           ))}
         </div>
@@ -198,7 +218,7 @@ export default function ForgePanel({ player, onCraft, onTestResources, onTestGol
           <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 6, overflowY: "auto" }}>
             {owned.length === 0 ? (
               <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: color.mist }}>
-                Aucune ressource. Elles tomberont sur les monstres.
+                Aucune ressource. Récolte-les sur la carte ou prends-les aux monstres.
               </div>
             ) : (
               owned.map((id) => {

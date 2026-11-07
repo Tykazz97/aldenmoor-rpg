@@ -59,6 +59,14 @@ export const RESOURCES = {
     source: "bandit_des_routes",
   },
 
+  // --- Récolte (nœuds de la carte, voir gathering.js) ---
+  bois_de_frene: { id: "bois_de_frene", name: "Bois de frêne", rarity: "commune", value: 6, source: "recolte" },
+  bois_de_chene: { id: "bois_de_chene", name: "Bois de chêne", rarity: "peu_commune", value: 24, source: "recolte" },
+  minerai_de_fer: { id: "minerai_de_fer", name: "Minerai de fer", rarity: "commune", value: 6, source: "recolte" },
+  minerai_de_cuivre: { id: "minerai_de_cuivre", name: "Minerai de cuivre", rarity: "peu_commune", value: 24, source: "recolte" },
+  ortie: { id: "ortie", name: "Ortie", rarity: "commune", value: 5, source: "recolte" },
+  sauge: { id: "sauge", name: "Sauge", rarity: "peu_commune", value: 22, source: "recolte" },
+
   // --- Cavalier Déchu (mini-boss, exclusives) ---
   eperon_corrompu: {
     id: "eperon_corrompu", name: "Éperon corrompu", rarity: "rare", value: 400,
