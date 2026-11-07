@@ -30,7 +30,7 @@ Les tests sont de simples scripts Node, sans bibliothèque. GitHub les relance �
 | --- | --- |
 | `src/data/` | Toutes les données du jeu : classes, armes, objets, ressources, recettes, monstres, cartes. On équilibre ici, sans toucher à la logique. |
 | `src/combat/` | Moteur de combat (sans React, déterministe avec une graine). |
-| `src/utils/` | Logique pure : stats, progression, récolte, fabrication, coffre, hôtel des ventes (annonces des joueurs simulés et les tiennes, prix fixés par les joueurs, taxe de mise en vente de 5 %, achat sans taxe), déplacements et chemins, sauvegarde. |
+| `src/utils/` | Logique pure : stats, progression, récolte, fabrication, coffre, hôtel des ventes (annonces des joueurs simulés et les tiennes, prix fixés par les joueurs, taxe de mise en vente de 10 %, achat sans taxe), déplacements et chemins, sauvegarde. |
 | `src/hooks/` | `usePlayer` : l'état du joueur et ses actions. |
 | `src/components/` | L'affichage : `character`, `combat`, `map`, `forge`, `city`, `layout`, `shared`. |
 | `src/sim/` | Joueurs simulés (200 aventuriers, vie en ville, discussion). **Désactivés** : interrupteur `SIM_PLAYERS` dans `src/sim/config.js`. |

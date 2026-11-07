@@ -27,7 +27,7 @@ export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 1
 const HOUR_STEPS = 6, HIST_LEN = 24, MAX_CATCHUP = 288;   // 48 h de rattrapage au plus
 const REVERT = 0.02, NOISE = 0.07, EVENT_P = 0.004, EVENT = 0.5;
 const EXPONENT = 0.6, MULT_MIN = 0.45, MULT_MAX = 2.3;
-export const TAX_RATE = 0.05;                  // taxe de mise en vente : 5 % du montant, payée par le vendeur
+export const TAX_RATE = 0.10;                  // taxe de mise en vente : 10 % du montant, payée par le vendeur
 export const ITEM_SELL_RATE = 0.6;             // utilisé par l'économie : valeur de revente d'un équipement
 export const LISTING_STEPS = 288;              // une annonce du joueur dure 48 h
 export const MAX_PLAYER_LISTINGS = 12;
@@ -75,7 +75,7 @@ export function itemValue(id) {
 }
 export const itemSellPrice = (id) => Math.max(1, Math.floor(itemValue(id) * ITEM_SELL_RATE));   // ordre de grandeur pour l'économie
 
-// Taxe de mise en vente sur un montant : 5 %, au moins 1 or, sans jamais manger tout le montant
+// Taxe de mise en vente sur un montant : TAX_RATE (10 %), au moins 1 or, sans jamais manger tout le montant
 export const saleTax = (gross) => (gross <= 1 ? 0 : Math.min(gross - 1, Math.max(1, Math.ceil(gross * TAX_RATE))));
 
 // ============================================================

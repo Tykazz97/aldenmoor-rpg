@@ -80,7 +80,7 @@ test("les prix bougent vraiment sur une semaine (historique non plat)", () => {
   assert.ok(moved >= RESOURCE_ORDER.length * 0.7, `${moved} ressources ont bougé`);
 });
 
-test("TAXE : mettre en vente retire 5 % tout de suite et enlève la marchandise du sac", () => {
+test("TAXE : mettre en vente retire 10 % tout de suite et enlève la marchandise du sac", () => {
   const p = withMarket(base());
   const r = postListing(p, { kind: "res", rid: "bois_de_frene", qty: 40, unit: 10 }, T0);
   assert.ok(r.ok);
@@ -261,15 +261,15 @@ test("un ancien marché (v1) est remplacé sans perte de joueur", () => {
   assert.equal(marketOf({ ...base() }, T0).v, 2);                                          // aussi pour une vieille sauvegarde sans marché
 });
 
-test("règle de taxe : 5 %, minimum 1 or, jamais tout le montant", () => {
-  assert.equal(TAX_RATE, 0.05);
+test("règle de taxe : 10 %, minimum 1 or, jamais tout le montant", () => {
+  assert.equal(TAX_RATE, 0.1);
   assert.equal(saleTax(0), 0);
   assert.equal(saleTax(1), 0);
   assert.equal(saleTax(2), 1);
-  assert.equal(saleTax(100), 5);
-  assert.equal(saleTax(101), 6);
+  assert.equal(saleTax(100), 10);
+  assert.equal(saleTax(101), 11);
   const q = quotePost(10, 50);
-  assert.deepEqual(q, { gross: 500, tax: 25, net: 475 });
+  assert.deepEqual(q, { gross: 500, tax: 50, net: 450 });
 });
 
 test("valeur d'équipement et prix de revente de référence cohérents (utilisés par l'économie)", () => {
