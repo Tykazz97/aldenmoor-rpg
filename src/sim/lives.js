@@ -27,6 +27,7 @@ import { bankStep, drawFromBank } from "./lifeBank.js";
 import { shoppingList } from "./lifeCraft.js";
 import { bossStep, reachableBosses } from "./lifeBoss.js";
 import { dungeonStep, keyCraftStep } from "./lifeDungeon.js";
+import { wantsPotions, brewStep, BREW_CHANCE } from "./lifePotions.js";
 import { emptyQuests, bump, questStep, huntTarget } from "./lifeQuests.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
@@ -161,7 +162,7 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
     }
   } else {
     if (life.bank && Object.keys(life.bank.resources).length) drawFromBank(life, shoppingList(life, bot));   // il sort du coffre ce dont l'atelier a besoin
-    if (!keyCraftStep(life, rng, { merchant: opts.merchant !== false })) craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : la clé du donjon d'abord, sinon raffiner, fabriquer, s'équiper
+    if (!keyCraftStep(life, rng, { merchant: opts.merchant !== false }) && !(wantsPotions(life) && rng() < BREW_CHANCE && brewStep(life, rng, { merchant: opts.merchant !== false }))) craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : la clé du donjon d'abord, sinon raffiner, fabriquer, s'équiper
   }
   if (rng() < QUEST_CHANCE) questStep(life, bot, step * STEP_MS, rng, new Set([...regionFor(life.level).enemyKeys, ...reachableBosses(life).map((b) => b.key)]));   // tableau des quêtes
   bankStep(life);                                                // il range le surplus au coffre

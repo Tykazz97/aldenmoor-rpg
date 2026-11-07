@@ -5,14 +5,15 @@
 // chances (botFight.js : classe, niveau, équipement et style de chacun, PV reportés d'une salle à l'autre). La clé est
 // consommée à l'entrée. Les salles gagnées rapportent le butin du jeu (xp, or, ressources du donjon, relique à 0,5 %) ;
 // une expédition qui échoue garde le butin des salles déjà gagnées. Il fait ensuite des pièces du palier 4 avec ce butin.
-// `life.dj = { keys, last, runs, clears, fails, relics }`
+// Il emporte les potions de son sac et les boit entre les salles (lifePotions.js) : elles changent ses chances et sortent du sac.
+// `life.dj = { keys, last, runs, clears, fails, relics, potions (bues en tout) }`
 // ============================================================
 import { DUNGEONS } from "../data/dungeons.js";
 import { ENEMIES } from "../data/zones.js";
 import { RECIPES } from "../data/recipes.js";
 import { CLASSES } from "../data/classes.js";
 import { PARTY_DROP_MULT } from "../combat/engine.js";
-import { dungeonOdds } from "./botFight.js";
+import { dungeonOdds, kitOfBag } from "./botFight.js";
 import { craftOne } from "./lifeCraft.js";
 import { drawFromBank } from "./lifeBank.js";
 import { rollDrop } from "./lifeBoss.js";
@@ -59,9 +60,13 @@ export function dungeonStep(life, bot, step, rng, { acquire, addXp, xpMult = 1 }
   if (!eligible(life) || st.keys < 1 || step - st.last < DJ_COOLDOWN_STEPS) return null;
   if (rng() >= DJ_FRIENDS) return null;
   const others = Object.keys(CLASSES).filter((c) => c !== bot.classKey);
-  const odds = dungeonOdds(bot, life, DUNGEON, others);
+  const odds = dungeonOdds(bot, life, DUNGEON, others, kitOfBag(life.bag.res));      // avec les potions de son sac, qu'il boit entre les salles
   if (odds[odds.length - 1] < DJ_MIN_CHANCE) return null;       // trop faible : il attend de monter ou de mieux s'équiper
   st.keys--; st.last = step; st.runs++;
+  for (const [id, avg] of Object.entries(odds.used || {})) {            // les potions bues pendant l'expédition (moyenne mesurée, arrondie au hasard) sortent de son sac
+    const q = Math.min(life.bag.res[id] || 0, Math.floor(avg + rng()));
+    if (q > 0) { life.bag.res[id] -= q; if (life.bag.res[id] <= 0) delete life.bag.res[id]; st.potions = (st.potions || 0) + q; }
+  }
   // jusqu'où va-t-il ? tirage dans la répartition mesurée
   let r = rng(), rooms = 0;
   for (; rooms < odds.length - 1; rooms++) { r -= odds[rooms]; if (r < 0) break; }

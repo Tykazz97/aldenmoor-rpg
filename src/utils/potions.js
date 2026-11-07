@@ -36,3 +36,24 @@ export function drinkPotion(player, party, index, potionId) {
     drunk: true,
   };
 }
+
+// Un joueur simulé (ou un groupe qui joue seul) boit entre deux salles : un tombé d'abord (élixir), puis le plus blessé tant qu'il est sous
+// `threshold` de ses PV, avec la plus petite potion qui comble son manque (sinon la plus grande). `party` : [{ hp, maxHp }] ; `stock` : { potion: n }.
+// Renvoie { party, used } sans rien modifier.
+export function autoDrink(party, stock, { threshold = 0.7, maxDrinks = 12 } = {}) {
+  const hp = party.map((h) => ({ ...h })), used = {};
+  const have = (id) => (stock[id] || 0) - (used[id] || 0);
+  const heals = ALCHEMY_ORDER.filter((id) => ALCHEMY[id].heal).sort((a, b) => ALCHEMY[a].heal - ALCHEMY[b].heal);
+  for (let n = 0; n < maxDrinks; n++) {
+    const fallen = hp.findIndex((h) => h.hp <= 0);
+    if (fallen >= 0 && have("elixir_de_rappel") > 0) { hp[fallen].hp = potionResult(hp[fallen], "elixir_de_rappel"); used.elixir_de_rappel = (used.elixir_de_rappel || 0) + 1; continue; }
+    let idx = -1, worst = threshold;
+    hp.forEach((h, i) => { if (h.hp > 0 && h.hp / h.maxHp < worst) { worst = h.hp / h.maxHp; idx = i; } });
+    if (idx < 0) break;
+    const h = hp[idx], deficit = h.maxHp - h.hp, own = heals.filter((id) => have(id) > 0);
+    if (!own.length) break;
+    const pick = own.find((id) => Math.ceil(h.maxHp * ALCHEMY[id].heal) >= deficit) || own[own.length - 1];
+    h.hp = potionResult(h, pick); used[pick] = (used[pick] || 0) + 1;
+  }
+  return { party: hp, used };
+}

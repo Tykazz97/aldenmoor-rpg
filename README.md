@@ -117,7 +117,11 @@ Un métier de plus à l'atelier (`src/data/alchemy.js`, logique `canBrew` / `app
 | Grande potion de soin | 16 | 80 % des PV | 4 sauges, 2 ectoplasmes, 1 voile spectral | 80 |
 | Élixir de rappel | 24 | relève un héros tombé à 40 % | 5 sauges, 2 voiles spectraux, 1 pelage maudit | 200 |
 
-Avantage du métier : jusqu'à **40 %** de chance de distiller une potion de plus (comme le raffinage, sans rien consommer de plus). Elles servent **entre les salles du donjon** (voir « Le Manoir Englouti ») ; leur emploi par les simulés et le rééquilibrage du donjon viendront ensuite.
+Avantage du métier : jusqu'à **40 %** de chance de distiller une potion de plus (comme le raffinage, sans rien consommer de plus). Elles servent **entre les salles du donjon** (voir « Entre les salles du donjon »).
+
+**Les simulés et les potions** (`src/sim/lifePotions.js`). Un simulé que le donjon intéresse (niveau 20 passé, et une clé, une expédition déjà faite ou de l'essence du Veilleur) distille ses propres potions à l'atelier avec les mêmes règles que toi, pour emporter 3 potions de soin, 2 grandes potions et 1 élixir. Tant que son niveau d'Alchimiste ne permet pas la potion visée, il s'entraîne sur la meilleure qu'il sait faire ; les herbes viennent de sa récolte, de l'hôtel des ventes (ses achats sont dans la liste de courses du marché) ou du marchand de secours. Ses potions en trop (au-delà de 8) sont mises en vente à l'hôtel des ventes : tu peux les lui acheter. En expédition, il emporte le contenu de son sac, boit entre les salles comme un joueur (`autoDrink` : le plus blessé d'abord, la plus petite potion qui suffit, l'élixir pour un tombé) et ses chances sont estimées avec ce sac (`dungeonOdds`) ; les potions bues sortent de son sac.
+
+**Équilibrage du Manoir** (`node scripts/simulate-dungeon.js niveau palier essais potions`, groupe de trois bots naïfs, équipement du palier) : sans potion, le donjon est très dur (≈ 8 % de victoires au palier 3, ≈ 62 % au palier 4 au niveau 24). Avec un petit sac (2 potions de soin + 1 grande, à peu près 230 or) : ≈ 65 % au palier 3 (niveau 22–24) et ≈ 96 % au palier 4 ; avec un sac plein presque 100 %. Les morts se jouent surtout contre la Dame en Deuil. J'ai donc **laissé les ennemis tels quels** : les potions sont désormais la condition d'entrée, et l'équipement du palier 4 récompense la préparation.
 
 ## Raffinage
 

@@ -30,6 +30,7 @@ import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/
 import { shoppingList, stash } from "../sim/lifeCraft.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
+import { potionShopping } from "../sim/lifePotions.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 
@@ -130,7 +131,7 @@ function simsShop(s, bucket, rng) {
   for (const b of getPopulation()) {
     const life = s.sims.lives[b.id];
     if (!life || life.gold < 1 || !isActive(b, bucket) || rng() > 0.4) continue;
-    const want = drawFromBank(life, mergeWant(shoppingList(life, b), keyShopping(life)));          // d'abord son coffre
+    const want = drawFromBank(life, mergeWant(mergeWant(shoppingList(life, b), keyShopping(life)), potionShopping(life)));          // d'abord son coffre
     for (const [rid, qty] of Object.entries(want)) {
       if (!RESOURCES[rid]) continue;
       const cap = refPrice(s, rid) * 1.6;

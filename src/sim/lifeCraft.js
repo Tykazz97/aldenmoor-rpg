@@ -71,9 +71,9 @@ export function acquireItem(life, id) {
 }
 
 // --- Fabrication ------------------------------------------------------------------------------------------------------
-const priceOf = (resId) => Math.ceil(RESOURCES[resId].value * BUY_RATE * (BUY_RARITY[RESOURCES[resId].rarity] || 1));
+export const priceOf = (resId) => Math.ceil(RESOURCES[resId].value * BUY_RATE * (BUY_RARITY[RESOURCES[resId].rarity] || 1));
 
-const asPlayer = (life) => ({ gold: life.gold, resources: { ...life.bag.res }, inventory: [], professions: { ...life.pro, [life.prof.key]: life.prof }, quests: {} });
+export const asPlayer = (life) => ({ gold: life.gold, resources: { ...life.bag.res }, inventory: [], professions: { ...life.pro, [life.prof.key]: life.prof }, quests: {} });
 
 // Prépare les ingrédients de `itemId` sur la copie `p` : raffine ce qu'il peut, achète le reste. Renvoie la copie, ou null
 function gather(p, itemId, rng, merchant = true) {

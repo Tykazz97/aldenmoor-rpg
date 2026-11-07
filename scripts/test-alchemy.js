@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { ALCHEMY, ALCHEMY_ORDER, alchemyOf } from "../src/data/alchemy.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { PROFESSIONS, PROFESSION_ORDER } from "../src/data/professions.js";
-import { canBrew, applyBrew, maxBrew, professionOf } from "../src/utils/crafting.js";
+import { canBrew, applyBrew, maxBrew, professionOf, gainProfessionXp } from "../src/utils/crafting.js";
 import { perksFor, perkLines } from "../src/utils/perks.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { newMarket } from "../src/utils/market.js";
@@ -36,7 +36,7 @@ test("distiller : consomme herbes et or, ajoute les potions et l'xp du métier",
   assert.equal(r.player.resources.potion_mineure, 2);
   assert.equal(r.player.resources.ortie, 12 - 6);
   assert.equal(r.player.gold, 500 - 2 * ALCHEMY.potion_mineure.gold);
-  assert.deepEqual(professionOf(r.player, "alchimiste"), { level: 1, xp: 2 * ALCHEMY.potion_mineure.xp });
+  assert.deepEqual(professionOf(r.player, "alchimiste"), gainProfessionXp({ level: 1, xp: 0 }, 2 * ALCHEMY.potion_mineure.xp));
   assert.equal(p.resources.ortie, 12, "le joueur d'origine n'est pas modifié");
 });
 
