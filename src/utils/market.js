@@ -22,6 +22,7 @@ import { ITEMS, ITEM_ORDER } from "../data/items.js";
 import { RECIPES } from "../data/recipes.js";
 import { makeRng, hashString } from "../sim/rng.js";
 import { generatePopulation } from "../sim/population.js";
+import { MASTERWORK_VALUE_RATE, isMasterwork } from "./perks.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 const HOUR_STEPS = 6, HIST_LEN = 24, MAX_CATCHUP = 288;   // 48 h de rattrapage au plus
@@ -133,7 +134,7 @@ function stepListings(s, bucket) {
   // 4. équipement : les bots en achètent, puis d'autres en proposent
   for (const l of s.listings) {
     if (l.kind !== "item") continue;
-    const ratio = l.unit / (itemValue(l.rid) * 1.15);
+    const ratio = l.unit / ((l.item ? itemWorth(l.item) : itemValue(l.rid)) * 1.15);
     if (rng() < 0.025 * accept(ratio)) {
       l.qty = 0;
       if (l.seller === "player") { s.proceeds += l.unit; s.sales.push({ b: bucket, kind: "item", rid: l.rid, qty: 1, unit: l.unit, name: l.item?.name }); }
@@ -197,7 +198,9 @@ export const marketPrice = (m, id) => cheapest(m, id)?.unit ?? null;
 export const myListings = (m) => m.listings.filter(isMine).sort((a, b) => a.exp - b.exp);
 export const equipmentListings = (m) => sorted(m.listings.filter((l) => l.kind === "item"));
 export const suggestedPrice = (m, id) => Math.max(1, Math.round(marketPrice(m, id) ?? refPrice(m, id)));
-export const suggestedItemPrice = (id) => Math.max(1, Math.round(itemValue(id) * 1.15));
+// Valeur d'un objet précis : un chef-d'œuvre vaut un peu plus que le même objet ordinaire
+export const itemWorth = (item) => itemValue(item.id) * (isMasterwork(item) ? MASTERWORK_VALUE_RATE : 1);
+export const suggestedItemPrice = (item) => Math.max(1, Math.round(itemWorth(item) * 1.15));
 export const minutesLeft = (m, l) => Math.max(0, (l.exp - m.bucket) * (STEP_MS / 60000));
 
 export function trend(m, id) {

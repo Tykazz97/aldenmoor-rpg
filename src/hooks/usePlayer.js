@@ -96,8 +96,8 @@ export function usePlayer(initial) {
   }, []);
 
   // Récolte d'un nœud sur la carte (ressource + xp de métier)
-  const gather = useCallback((nodeId, qty) => {
-    setPlayer((prev) => applyGather(prev, nodeId, qty).player);
+  const gather = useCallback((nodeId, qty, find = null) => {
+    setPlayer((prev) => applyGather(prev, nodeId, qty, find).player);
   }, []);
 
   // --- Outils de test (à retirer quand le combat donnera les vrais drops) ---

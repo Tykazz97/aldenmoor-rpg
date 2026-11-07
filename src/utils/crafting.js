@@ -8,6 +8,7 @@ import { RECIPES } from "../data/recipes.js";
 import { getCraftInfo, xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
 import { REFINING } from "../data/refining.js";
 import { recordCraft } from "./counters.js";
+import { rollRefineBonus, rollMasterwork, makeMasterwork } from "./perks.js";
 
 // État d'un métier (les saves d'avant les métiers de raffinage n'ont pas ces métiers : niveau 1 par défaut)
 export const professionOf = (player, key) => player.professions?.[key] || { level: 1, xp: 0 };
@@ -53,13 +54,14 @@ export function gainProfessionXp(prof, amount) {
 
 // Applique un craft : consomme ressources et or, ajoute l'objet au sac,
 // donne de l'xp au métier. Renvoie le même joueur si le craft est impossible.
-export function applyCraft(player, itemId, uid) {
+export function applyCraft(player, itemId, uid, rng = Math.random) {
   const check = canCraft(player, itemId);
   if (!check.ok) return player;
 
   const recipe = RECIPES[itemId];
   const info = getCraftInfo(itemId);
 
+  const masterwork = rollMasterwork(professionOf(player, info.profession).level, info.profession, rng);
   const resources = { ...player.resources };
   for (const [resId, qty] of Object.entries(recipe.ingredients)) {
     resources[resId] -= qty;
@@ -70,7 +72,7 @@ export function applyCraft(player, itemId, uid) {
     ...player,
     gold: player.gold - recipe.gold,
     resources,
-    inventory: [...player.inventory, { ...ITEMS[itemId], uid }],
+    inventory: [...player.inventory, { ...(masterwork ? makeMasterwork(ITEMS[itemId]) : ITEMS[itemId]), uid }],
     professions: {
       ...player.professions,
       [info.profession]: gainProfessionXp(professionOf(player, info.profession), info.xp),
@@ -109,14 +111,16 @@ export function canRefine(player, id, times = 1) {
 }
 
 // Raffine `times` unités : consomme matières brutes et or, ajoute la ressource raffinée et l'xp du métier.
-// Renvoie { player, made } ; le même joueur et made = 0 si c'est impossible.
-export function applyRefine(player, id, times = 1) {
+// Renvoie { player, made, bonus } ; le même joueur et made = 0 si c'est impossible.
+// `bonus` = unités en plus offertes par le niveau du métier (made les inclut).
+export function applyRefine(player, id, times = 1, rng = Math.random) {
   const n = Math.floor(times);
   if (!canRefine(player, id, n).ok) return { player, made: 0 };
   const rec = REFINING[id];
   const resources = { ...player.resources };
   for (const [r, q] of Object.entries(rec.ingredients)) { resources[r] -= q * n; if (resources[r] <= 0) delete resources[r]; }
-  resources[id] = (resources[id] || 0) + n;
+  const bonus = rollRefineBonus(professionOf(player, rec.profession).level, rec.profession, n, rng);
+  resources[id] = (resources[id] || 0) + n + bonus;
   const prof = gainProfessionXp(professionOf(player, rec.profession), rec.xp * n);
-  return { made: n, player: { ...player, gold: player.gold - rec.gold * n, resources, professions: { ...player.professions, [rec.profession]: prof } } };
+  return { made: n + bonus, bonus, player: { ...player, gold: player.gold - rec.gold * n, resources, professions: { ...player.professions, [rec.profession]: prof } } };
 }

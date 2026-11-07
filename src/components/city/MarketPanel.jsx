@@ -146,7 +146,7 @@ function SellResourceRow({ id, have, m, player, onPost }) {
 }
 
 function SellItemRow({ item, player, onPost }) {
-  const c = RARITY[item.rarity] || color.parchmentDim, sug = suggestedItemPrice(item.id), [unit, setUnit] = useState(String(sug));
+  const c = RARITY[item.rarity] || color.parchmentDim, sug = suggestedItemPrice(item), [unit, setUnit] = useState(String(sug));
   const u = Math.floor(Number(unit) || 0);
   return (
     <div data-sell-item={item.uid} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", background: color.panel, border: `1px solid ${c}33`, borderRadius: radius.md, flexWrap: "wrap" }}>

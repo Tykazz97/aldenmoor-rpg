@@ -48,6 +48,10 @@ Clé `aldenmoor:save` (localStorage) : `{ version, savedAt, player, world }`. En
 
 Pour les remettre : `SIM_PLAYERS = true` dans `src/sim/config.js`. Pour qu'ils répondent avec un modèle de langage : ajouter `ANTHROPIC_API_KEY` dans les variables d'environnement de Vercel (voir `.env.example` et `api/chat.js`), puis fixer une limite de dépense dans la console Anthropic. Sans clé, ils utilisent des phrases préécrites.
 
+## Avantages des métiers
+
+Chaque niveau de métier (jusqu'au niveau 10) apporte un pas de plus, affiché dans l'Atelier avec la valeur du niveau suivant. **Récolte** (bûcheron, mineur, herboriste) : récolte 4 % plus rapide par niveau (−32 % au niveau 10), 5 % de chance de récolte double et 2 % de chance de trouvaille d'une ressource peu commune (chêne, cuivre, sauge). **Raffinage** : 4 % de chance par niveau de produire 1 unité de plus, sans consommer plus. **Fabrication** : 3 % de chance par niveau d'un chef-d'œuvre, un objet aux stats +10 % qui se vend 25 % plus cher. Les pas et les plafonds sont dans `src/utils/perks.js` et vérifiés par `test-perks.js`.
+
 ## Raffinage
 
 Entre la récolte et la fabrication, il y a le raffinage, à l'atelier : quatre métiers (fondeur, scieur, tanneur, tisserand), chacun avec son niveau. Deux matières brutes donnent une matière raffinée (lingot, planche, cuir, étoffe, fil), qui vaut un peu plus que les deux brutes, en échange d'un peu d'or et de temps. Les recettes d'équipement demandent maintenant ces matières raffinées. Les ressources raffinées se vendent à l'hôtel des ventes (les joueurs simulés en proposent) et certaines quêtes de livraison les demandent. Données dans `src/data/refining.js` ; `node scripts/simulate-economy.js` affiche le bénéfice de chaque transformation.

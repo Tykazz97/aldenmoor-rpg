@@ -8,6 +8,7 @@ import { ITEMS } from "../../data/items.js";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_RARITIES } from "../../data/resources.js";
 import { REFINING, refiningOf } from "../../data/refining.js";
 import { canCraft, canRefine, maxRefine, professionOf } from "../../utils/crafting.js";
+import { perkLines, isMasterwork } from "../../utils/perks.js";
 import { itemStatLines } from "../../utils/itemText.js";
 
 const RARITY_ITEM_COLOR = { commune: "#9a95a8", rare: "#5fa3c4", epique: "#a855f7", legendaire: "#d9b568" };
@@ -216,18 +217,30 @@ export default function ForgePanel({ player, onCraft, onRefine, onTestResources,
   const timer = useRef(null);
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const handleCraft = (itemId) => {
-    onCraft(itemId);
-    setFlash(`${ITEMS[itemId].name} fabriqué — ajouté à ton sac`);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setFlash(null), 2500);
-  };
+  // Ce qu'une action a vraiment produit (avantages de niveau compris) se lit sur le joueur une fois mis à jour
+  const pending = useRef(null);
+  useEffect(() => {
+    const p = pending.current;
+    if (!p) return;
+    pending.current = null;
+    let text = null;
+    if (p.type === "craft" && player.inventory.length > p.invLen) {
+      const it = player.inventory[player.inventory.length - 1];
+      text = isMasterwork(it) ? `✦ Chef-d'œuvre ! ${it.name} — ajouté à ton sac` : `${it.name} fabriqué — ajouté à ton sac`;
+    } else if (p.type === "refine") {
+      const made = (player.resources[p.id] || 0) - p.have;
+      if (made > 0) text = `${RESOURCES[p.id].name} ×${made} produit${made > 1 ? "s" : ""}${made > p.n ? ` (dont ${made - p.n} en bonus de niveau)` : ""} — ajouté${made > 1 ? "s" : ""} à ton sac`;
+    }
+    if (text) { setFlash(text); clearTimeout(timer.current); timer.current = setTimeout(() => setFlash(null), 3000); }
+  }, [player]);
 
+  const handleCraft = (itemId) => {
+    pending.current = { type: "craft", invLen: player.inventory.length };
+    onCraft(itemId);
+  };
   const handleRefine = (id, n) => {
+    pending.current = { type: "refine", id, n, have: player.resources[id] || 0 };
     onRefine(id, n);
-    setFlash(`${RESOURCES[id].name} ×${n} produit${n > 1 ? "s" : ""} — ajouté${n > 1 ? "s" : ""} à ton sac`);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setFlash(null), 2500);
   };
 
   const kind = PROFESSIONS[selected].kind;
@@ -258,6 +271,16 @@ export default function ForgePanel({ player, onCraft, onRefine, onTestResources,
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
         <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : refineIds ? `${refineIds.length} transformation${refineIds.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
         <div style={{ padding: "8px 12px 0", fontSize: 12, color: color.mist }}>{PROFESSIONS[selected].desc}</div>
+        <div data-perks style={{ margin: "8px 12px 0", padding: "8px 10px", background: color.void, border, borderRadius: radius.sm, display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em" }}>Avantages du niveau {professionOf(player, selected).level}</div>
+          {perkLines(selected, professionOf(player, selected).level, MAX_PROFESSION_LEVEL).map((l) => (
+            <div key={l.label} style={{ display: "flex", gap: 8, fontSize: 12, color: color.parchmentDim, flexWrap: "wrap" }}>
+              <span style={{ flex: 1, minWidth: 180 }}>{l.label}</span>
+              <span data-perk-now style={{ fontFamily: font.data, color: color.goldBright }}>{l.now}</span>
+              {l.next && <span style={{ fontFamily: font.data, fontSize: 11, color: color.mist }}>→ {l.next} au niveau {professionOf(player, selected).level + 1}</span>}
+            </div>
+          ))}
+        </div>
         {flash && (
           <div style={{ margin: "8px 12px 0", padding: "6px 10px", fontSize: 12, color: color.success, background: "#5c9c5c18", border: `1px solid ${color.success}66`, borderRadius: radius.sm }}>
             ✔ {flash}

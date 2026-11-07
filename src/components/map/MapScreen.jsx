@@ -19,7 +19,8 @@ import { NODES } from "../../data/gathering.js";
 import { PROFESSIONS } from "../../data/professions.js";
 import { heroLook } from "../../data/heroSprites.js";
 import { heroSheetUrl, heroFrameLayout, HERO_ACTION_FOR_PROFESSION } from "../../data/heroAnims.js";
-import { canGather, rollYield } from "../../utils/gathering.js";
+import { canGather, rollHarvest } from "../../utils/gathering.js";
+import { harvestDuration } from "../../utils/perks.js";
 import { findPath, pathToObject, activeGroups, activeNodes, mapWidth, mapHeight } from "../../utils/mapPath.js";
 
 export default function MapScreen({ player, stats, world, setWorld, onRewards, onGather, renderBuilding }) {
@@ -96,21 +97,24 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
     if (!chk.ok) { showToast(`${PROFESSIONS[def.profession].name} niveau ${def.minLevel} requis (tu es niveau ${chk.level}).`); return; }
     facingRef.current = n.x + 0.5 >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
     harvestRef.current = true;
-    harvestAct.current = { action: HERO_ACTION_FOR_PROFESSION[def.profession], t0: performance.now() };
-    setHarvest({ node: n });
+    const ms = harvestDuration(chk.level, def.profession, HARVEST_MS);      // les métiers de haut niveau récoltent plus vite
+    harvestAct.current = { action: HERO_ACTION_FOR_PROFESSION[def.profession], t0: performance.now(), ms };
+    setHarvest({ node: n, ms });
     harvestTimer.current = setTimeout(() => {
       harvestRef.current = false;
       harvestAct.current = null;
       setHarvest(null);
-      const qty = rollYield(def);
+      const roll = rollHarvest(playerRef.current, n.node);
+      const qty = roll.qty;
       const before = playerRef.current.professions[def.profession];
-      onGather?.(n.node, qty);
+      onGather?.(n.node, qty, roll.find);
       setWorld((w) => ({ ...w, pos: { ...posRef.current }, cleared: { ...w.cleared, [n.id]: Date.now() } }));
       const gid = Date.now() + Math.random();
-      setGains((g) => [...g, { id: gid, x: n.x, y: n.y, text: `+${qty} ${RESOURCES[def.resource].name}`, sub: `+${def.xp} xp ${PROFESSIONS[def.profession].name}` }]);
-      setTimeout(() => setGains((g) => g.filter((e) => e.id !== gid)), 1800);
+      const found = roll.find ? Object.keys(roll.find)[0] : null;
+      setGains((g) => [...g, { id: gid, x: n.x, y: n.y, text: `+${qty} ${RESOURCES[def.resource].name}${roll.doubled ? " (récolte double !)" : ""}`, sub: found ? `+1 ${RESOURCES[found].name} (trouvaille !) · +${def.xp} xp` : `+${def.xp} xp ${PROFESSIONS[def.profession].name}` }]);
+      setTimeout(() => setGains((g) => g.filter((e) => e.id !== gid)), 2200);
       if (before.level < 10 && before.xp + def.xp >= before.level * 30) showToast(`${PROFESSIONS[def.profession].name} : niveau ${before.level + 1} !`);
-    }, HARVEST_MS);
+    }, ms);
   }, [onGather, setWorld, showToast]);
 
   const openPopup = useCallback((g) => {
@@ -228,7 +232,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
                   <span className="mp-plate">{def.name}<i>{PROFESSIONS[def.profession].icon} niv. {def.minLevel}</i></span>
                   <span className="mp-shadow" style={{ width: cq(Math.min(def.size, 2) * 3) }} />
                   <img src={def.img} alt={def.name} draggable={false} style={{ height: cq(def.size * 6.25) }} />
-                  {busy && <span className="mp-prog"><i style={{ animationDuration: `${HARVEST_MS}ms` }} /></span>}
+                  {busy && <span className="mp-prog"><i style={{ animationDuration: `${harvest.ms || HARVEST_MS}ms` }} /></span>}
                 </button>
               );
             })}
