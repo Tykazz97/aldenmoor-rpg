@@ -59,7 +59,7 @@ export function makeBotPlayer(classKey, level) {
 }
 
 // Ce que createCombat attend pour un allié : { name, stats, weaponType, classKey, level, spells } (+ look pour l'affichage)
-export function botSpec(classKey, level, { name, body = "m" } = {}) {
+export function botSpec(classKey, level, { name, body = "m", look } = {}) {
   const player = makeBotPlayer(classKey, level);
   return {
     name: name || CLASSES[classKey].label,
@@ -67,7 +67,7 @@ export function botSpec(classKey, level, { name, body = "m" } = {}) {
     stats: calcStats(player),
     weaponType: BUILDS[classKey].wtype,
     spells: buildSpellBar(player),
-    look: `${body}/${CLASSES[classKey].outfit}`,       // apparence de combat : tenue de la classe
+    look: look || `${body}/${CLASSES[classKey].outfit}`,       // apparence de combat : tenue de la classe (ou celle du simulé)
   };
 }
 
@@ -79,4 +79,39 @@ export function defaultAllies(player) {
     .filter((k) => k !== player.classKey)
     .slice(0, PARTY_SIZE - 1)
     .map((k) => botSpec(k, player.level || 1, { name: makePseudo(rng), body: rng.chance(0.5) ? "m" : "f" }));
+}
+
+// ------------------------------------------------------------
+// Compagnons choisis : des joueurs simulés (sim/population.js) qui combattent à tes côtés avec leur propre
+// classe, niveau, pseudo et apparence. Pour rester honnête, seuls ceux de niveau proche du tien sont proposés.
+// ------------------------------------------------------------
+export const COMPANION_LEVEL_WINDOW = 5;      // écart de niveau maximal proposé
+export const COMPANION_LIST_MAX = 30;
+
+export function companionCandidates(player, population, { max = COMPANION_LIST_MAX } = {}) {
+  const lvl = player.level || 1;
+  const ranked = population
+    .map((b) => ({ b, d: Math.abs(b.level - lvl) }))
+    .sort((x, y) => x.d - y.d || x.b.level - y.b.level || x.b.name.localeCompare(y.b.name));
+  const near = ranked.filter((r) => r.d <= COMPANION_LEVEL_WINDOW);
+  return (near.length >= 6 ? near : ranked.slice(0, 6)).slice(0, max).map((r) => r.b);
+}
+
+// Le groupe de combat : les compagnons choisis (ids de simulés), complétés par des alliés génériques des classes
+// absentes du groupe quand il en manque (jusqu'à 2 alliés). Un id inconnu est ignoré.
+export function buildAllies(player, companionIds = [], population = []) {
+  const byId = new Map(population.map((b) => [b.id, b]));
+  const chosen = [];
+  for (const id of companionIds || []) {
+    const b = byId.get(id);
+    if (b && !chosen.includes(b)) chosen.push(b);
+    if (chosen.length >= PARTY_SIZE - 1) break;
+  }
+  const specs = chosen.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look }));
+  if (specs.length >= PARTY_SIZE - 1) return specs;
+  const generic = defaultAllies(player);
+  const have = new Set([player.classKey, ...specs.map((s) => s.classKey)]);
+  // d'abord les classes absentes du groupe, puis les autres génériques
+  const pool = [...generic.filter((g) => !have.has(g.classKey)), ...generic.filter((g) => have.has(g.classKey))];
+  return [...specs, ...pool].slice(0, PARTY_SIZE - 1);
 }

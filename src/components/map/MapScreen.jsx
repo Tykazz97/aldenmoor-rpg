@@ -23,7 +23,7 @@ import { canGather, rollHarvest } from "../../utils/gathering.js";
 import { harvestDuration } from "../../utils/perks.js";
 import { findPath, pathToObject, activeGroups, activeNodes, mapWidth, mapHeight } from "../../utils/mapPath.js";
 
-export default function MapScreen({ player, stats, world, setWorld, onRewards, onGather, renderBuilding }) {
+export default function MapScreen({ player, onPlayerChange, stats, world, setWorld, onRewards, onGather, renderBuilding }) {
   const map = MAPS[world.mapKey];
   const W = mapWidth(map), H = mapHeight(map);
   const [fight, setFight] = useState(null);       // { group, enc }
@@ -303,7 +303,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
 
           {life && <CityChat feed={feed} online={life.agents.length + 1} onSend={sendChat} playerName={player.name} />}
 
-          {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} classKey={player.classKey} onFight={(party) => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter), party }); setPopup(null); }} onBack={() => setPopup(null)} />}
+          {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} classKey={player.classKey} player={player} onCompanions={(ids) => onPlayerChange?.((p) => ({ ...p, companions: ids }))} onFight={(party) => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter), party }); setPopup(null); }} onBack={() => setPopup(null)} />}
         </div>
       </div>
       )}

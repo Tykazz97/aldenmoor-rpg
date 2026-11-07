@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { generatePopulation } from "../../sim/population.js";
+import { getPopulation } from "../../sim/population.js";
 import { createCityLife, playerSays, pickResponder, queueSay, whereIs } from "../../sim/cityLife.js";
 import { askBot, loadMemory, remember } from "../../sim/brain.js";
 import { SIM_PLAYERS } from "../../sim/config.js";
 
-const POPULATION = generatePopulation();   // les 200 joueurs simulés (toujours les mêmes)
+const POPULATION = getPopulation();   // les 200 joueurs simulés (toujours les mêmes)
 
 // Joueurs simulés de la ville et fil de discussion (inactifs tant que SIM_PLAYERS est à false :
 // `life` vaut alors null et le reste ne fait rien).

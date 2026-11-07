@@ -152,14 +152,26 @@ try {
       const c = [...document.querySelectorAll(".mp-group")].filter((e) => { const r = e.getBoundingClientRect(); return r.left > v.left && r.right < v.right && r.top > v.top && r.bottom < v.bottom; });
       c[0].click();
     });
+    // on choisit un compagnon parmi les aventuriers proposés : son pseudo se retrouve dans le groupe, puis dans la sauvegarde
+    await page.locator("button", { hasText: "Choisir mes compagnons" }).click({ timeout: 15000 });
+    const row = page.locator(".mp-comp-row").first();
+    const companion = (await row.locator("b").innerText()).trim();
+    await row.click();
+    assert.ok((await page.locator(".mp-comp-chip", { hasText: companion }).count()) >= 1, "le compagnon choisi apparaît dans le groupe");
+    await page.waitForTimeout(800);
+    assert.equal((await save()).player.companions.length, 1, "le choix est enregistré");
     await page.locator("button", { hasText: "En groupe" }).click({ timeout: 15000 });
-    await page.locator(".cb-spell:not([disabled])").first().waitFor({ timeout: 30000 });
+    await page.locator(".cb-tl.ally").first().waitFor({ timeout: 30000 });
     const heroBars = await page.locator(".cb-timeline .cb-tl.hero").count();
     assert.equal(heroBars, 3, "la frise d'initiative montre le héros et ses 2 alliés");
     assert.equal(await page.locator(".cb-tl.ally").count(), 2);
     assert.ok((await page.locator(".cb-actor").count()) >= 5, "héros + 2 alliés + au moins 2 ennemis à l'écran");
-    await page.keyboard.press("1"); await page.waitForTimeout(800);
-    await page.locator(".cb-btn", { hasText: "Quitter" }).click(); await page.waitForTimeout(500);
+    await page.waitForTimeout(1500);
+    // à trois, le combat peut déjà être gagné avant le premier tour du héros : on sort par le bouton disponible
+    const loot = page.locator("button", { hasText: "Récupérer" });
+    if (await loot.count()) await loot.click();
+    else { await page.keyboard.press("1"); await page.waitForTimeout(800); await page.locator(".cb-btn", { hasText: "Quitter" }).click(); }
+    await page.waitForTimeout(500);
     assert.equal(await page.locator(".cb-root").count() <= 1, true);
     assert.deepEqual(errors, []);
   });

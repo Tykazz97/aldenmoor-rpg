@@ -1,14 +1,26 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { ENEMIES } from "../../data/zones.js";
 import { RESOURCES, RESOURCE_RARITIES } from "../../data/resources.js";
 import { ITEMS } from "../../data/items.js";
 import { color } from "../../styles/theme.js";
 import { encounterOf } from "./mapConstants.js";
+import { CLASSES } from "../../data/classes.js";
+import { PARTY_SIZE, buildAllies, companionCandidates } from "../../sim/partyBots.js";
+import { getPopulation } from "../../sim/population.js";
 
 // ------------------------------------------------------------
 // Fenêtre d'engagement : aperçu du groupe et du butin possible
 // ------------------------------------------------------------
-export default function EngagePopup({ group, hasWeapon, classKey, onFight, onBack }) {
+export default function EngagePopup({ group, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
+  const [picking, setPicking] = useState(false);
+  const population = getPopulation();
+  const companions = player?.companions || [];
+  const allies = useMemo(() => (player ? buildAllies(player, companions, population) : []), [player?.level, player?.classKey, companions.join()]); // eslint-disable-line
+  const candidates = useMemo(() => (player && picking ? companionCandidates(player, population) : []), [picking, player?.level]); // eslint-disable-line
+  const toggle = (id) => {
+    const next = companions.includes(id) ? companions.filter((c) => c !== id) : [...companions, id].slice(-(PARTY_SIZE - 1));
+    onCompanions?.(next);
+  };
   const enc = encounterOf(group.encounter);
   const drops = [];
   const seen = new Set();
@@ -48,10 +60,29 @@ export default function EngagePopup({ group, hasWeapon, classKey, onFight, onBac
           return <img key={i} src={it.img} alt={it.name} title={it.name + (d.type === "item" ? " (équipement)" : "")} style={{ borderColor: d.type === "item" ? color.gold : rar?.color || color.line }} />;
         })}
       </div>
+      {player && (
+        <div className="mp-pop-party">
+          <span className="lbl">Ton groupe</span>
+          {allies.map((a, i) => (
+            <span key={i} className="mp-comp-chip" title={`${CLASSES[a.classKey].label} niveau ${a.level}`}>{a.name} <i>{CLASSES[a.classKey].label} · niv. {a.level}</i></span>
+          ))}
+          <button className="cb-btn" onClick={() => setPicking(!picking)}>{picking ? "Fermer" : "Choisir mes compagnons"}</button>
+        </div>
+      )}
+      {picking && (
+        <div className="mp-comp-list">
+          <div className="hint">Aventuriers de niveau proche du tien. Choisis-en {PARTY_SIZE - 1} au maximum ; le reste du groupe est complété automatiquement.</div>
+          {candidates.map((b) => (
+            <button key={b.id} className={`mp-comp-row ${companions.includes(b.id) ? "sel" : ""}`} onClick={() => toggle(b.id)}>
+              <b>{b.name}</b><span>{CLASSES[b.classKey].label}</span><i>niv. {b.level}</i>
+            </button>
+          ))}
+        </div>
+      )}
       {!hasWeapon && <div className="mp-pop-warn">Aucune arme équipée : tu te battras à mains nues.</div>}
       <div className="mp-pop-btns">
         <button className="cb-btn" onClick={onBack}>Reculer</button>
-        <button className="cb-btn" onClick={() => onFight(true)} title="Deux alliés (les deux autres classes) combattent à tes côtés ; les monstres ont beaucoup plus de PV">👥 En groupe</button>
+        <button className="cb-btn" onClick={() => onFight(true)} title="Deux compagnons combattent à tes côtés : butin meilleur (jusqu'à ×1,5), mais moins d'xp qu'en solo">👥 En groupe</button>
         <button className="cb-btn primary" onClick={() => onFight(false)}>⚔ Combattre seul</button>
       </div>
     </div>

@@ -130,7 +130,7 @@ function Game({ initial, onNewCharacter }) {
         <CombatScreen player={player} stats={stats} onRewards={applyCombatRewards} />
       )}
       {activeTab === "carte" && (
-        <MapScreen player={player} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onGather={gather} renderBuilding={renderBuilding} />
+        <MapScreen player={player} onPlayerChange={setPlayer} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onGather={gather} renderBuilding={renderBuilding} />
       )}
       {activeTab === "journal" && (
         <div style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>

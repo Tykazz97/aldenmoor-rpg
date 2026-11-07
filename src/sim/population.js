@@ -75,3 +75,7 @@ export function generatePopulation(seed = DEFAULT_SEED, n = POPULATION_SIZE) {
   const used = new Set();
   return Array.from({ length: n }, (_, i) => generateBot(rng, i, used));
 }
+
+// La population par défaut, générée une seule fois (partagée par la ville et le choix des compagnons)
+let cached = null;
+export function getPopulation() { return (cached ||= generatePopulation()); }

@@ -1,7 +1,8 @@
 // Tests des combats en groupe (le joueur + 2 alliés bots) :  node scripts/test-party.js
 import assert from "node:assert/strict";
 import { createCombat, advance, castSpell, endTurn, PARTY_HP_SCALE, PARTY_DROP_MULT, SOLO_XP_MULT } from "../src/combat/engine.js";
-import { defaultAllies, botSpec, makeBotPlayer, PARTY_SIZE } from "../src/sim/partyBots.js";
+import { defaultAllies, botSpec, makeBotPlayer, PARTY_SIZE, buildAllies, companionCandidates, COMPANION_LEVEL_WINDOW } from "../src/sim/partyBots.js";
+import { getPopulation } from "../src/sim/population.js";
 import { ENEMIES } from "../src/data/zones.js";
 import { CLASSES } from "../src/data/classes.js";
 import { ITEMS } from "../src/data/items.js";
@@ -169,6 +170,36 @@ test("en groupe, les ennemis ne sont pas plus costauds et le butin est meilleur 
   const count = (party) => { let c = 0; for (let seed = 1; seed <= 400; seed++) { const { st } = autoplay(fightOf("guerrier", 14, [key], { party, seed, tweak: (x) => { x.enemies[0].hp = 1; } })); assert.equal(st.phase, "victory"); c += st.rewards.resources[d.id] ? 1 : 0; } return c; };
   const solo = count(false), grp = count(true);
   assert.ok(grp > solo * 1.15, `groupe ${grp} > solo ${solo}`);
+});
+
+test("compagnons : des simulés de niveau proche, avec leur pseudo, classe et apparence ; groupe complété si besoin", () => {
+  const pop = getPopulation();
+  const me = { name: "Test", classKey: "guerrier", level: 18 };
+  const cand = companionCandidates(me, pop);
+  assert.ok(cand.length >= 6 && cand.length <= 30);
+  assert.ok(cand.every((b) => Math.abs(b.level - 18) <= COMPANION_LEVEL_WINDOW), "écart de niveau limité");
+  // même résultat à chaque appel
+  assert.deepEqual(cand.map((b) => b.id), companionCandidates(me, pop).map((b) => b.id));
+  // un niveau très haut où il y a peu de monde : on propose quand même les plus proches
+  assert.ok(companionCandidates({ ...me, level: 60 }, pop).length >= 6);
+  const [a, b] = cand;
+  const two = buildAllies(me, [a.id, b.id], pop);
+  assert.deepEqual(two.map((x) => x.name), [a.name, b.name]);
+  assert.equal(two[0].level, a.level); assert.equal(two[0].classKey, a.classKey); assert.equal(two[0].look, a.look);
+  // un seul compagnon : complété par un allié générique d'une classe absente du groupe
+  const one = buildAllies(me, [a.id], pop);
+  assert.equal(one.length, 2); assert.equal(one[0].name, a.name);
+  const classes = new Set(["guerrier", a.classKey, one[1].classKey]);
+  assert.ok(classes.size >= Math.min(3, new Set(["guerrier", a.classKey]).size + 1), "classe manquante préférée");
+  // aucun compagnon, id inconnu ou doublon : retombe sur le groupe par défaut
+  assert.deepEqual(buildAllies(me, [], pop).map((x) => x.classKey), defaultAllies(me).map((x) => x.classKey));
+  assert.equal(buildAllies(me, ["sim_999", "sim_999"], pop).length, 2);
+  assert.equal(buildAllies(me, [a.id, a.id], pop).length, 2);
+  // et le combat se déroule avec eux
+  const h = hero("guerrier", 18);
+  const st = createCombat({ stats: h.stats, weaponType: "epee", classKey: "guerrier", level: 18, enemyKeys: ["chevalier_dechu"], spells: h.spells, allies: two, seed: 3 });
+  assert.deepEqual(st.allies.map((x) => x.name), [a.name, b.name]);
+  assert.ok(["victory", "defeat"].includes(autoplay(st).st.phase));
 });
 
 console.log(`\n${n} tests passent.`);
