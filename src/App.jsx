@@ -12,11 +12,13 @@ import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
 import { createPlayer } from "./utils/newPlayer.js";
 import { loadSave, writeSave, clearSave, exportSave, parseSave } from "./utils/save.js";
+import { color, font } from "./styles/theme.js";
 
 const TAB_TITLES = {
   combat: "Combat",
   carte: "Carte du monde",
-  forge: "Forge",
+  forge: "Atelier",
+  coffre: "Coffre d'Aldenmoor",
   sac: "Sac & Inventaire",
   journal: "Journal de quêtes",
 };
@@ -108,13 +110,19 @@ function Game({ initial, onNewCharacter }) {
           onTestGold={testAddGold}
         />
       )}
+      {activeTab === "coffre" && (
+        <div style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
+          <div style={{ fontFamily: font.display, fontSize: 22, color: color.goldBright, marginBottom: 16 }}>Coffre d'Aldenmoor</div>
+          <BankPanel player={player} bank={bank} />
+        </div>
+      )}
       {activeTab === "combat" && (
         <CombatScreen player={player} stats={stats} onRewards={applyCombatRewards} />
       )}
       {activeTab === "carte" && (
         <MapScreen player={player} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onGather={gather} renderBuilding={renderBuilding} />
       )}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }
