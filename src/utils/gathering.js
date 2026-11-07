@@ -4,6 +4,7 @@
 
 import { NODES } from "../data/gathering.js";
 import { gainProfessionXp } from "./crafting.js";
+import { recordGather } from "./counters.js";
 
 export function canGather(player, nodeId) {
   const node = NODES[nodeId];
@@ -27,11 +28,11 @@ export function applyGather(player, nodeId, qty) {
   const prof = player.professions[node.profession];
   const next = gainProfessionXp(prof, node.xp);
   return {
-    player: {
+    player: recordGather({
       ...player,
       resources: { ...player.resources, [node.resource]: (player.resources[node.resource] || 0) + qty },
       professions: { ...player.professions, [node.profession]: next },
-    },
+    }, node.resource, qty),
     gained: { [node.resource]: qty },
     xp: node.xp,
     levelUp: next.level > prof.level,

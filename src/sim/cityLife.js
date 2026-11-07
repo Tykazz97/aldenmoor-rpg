@@ -168,7 +168,7 @@ export function stepCityLife(life, dt) {
 }
 
 // Où se trouve un simulé, dit en français (pour que le modèle de langage sache de quoi il parle)
-const PLACE = { atelier: "devant l'atelier", coffre: "devant le coffre", marche: "devant le marché", panneau: "devant le panneau de recrutement", portail: "près du portail des régions" };
+const PLACE = { atelier: "devant l'atelier", coffre: "devant le coffre", marche: "devant le marché", panneau: "devant le tableau de quêtes", portail: "près du portail des régions" };
 export function whereIs(life, agent) {
   let best = "sur la place d'Aldenmoor", bd = 3.2;
   for (const [kind, f] of Object.entries(life.poi.byKind)) { const d = Math.hypot(f.x - agent.x, f.y - agent.y); if (d < bd) { bd = d; best = PLACE[kind] || best; } }

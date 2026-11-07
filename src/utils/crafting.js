@@ -6,6 +6,7 @@
 import { ITEMS } from "../data/items.js";
 import { RECIPES } from "../data/recipes.js";
 import { getCraftInfo, xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
+import { recordCraft } from "./counters.js";
 
 export function emptyProfessions(keys) {
   return Object.fromEntries(keys.map((k) => [k, { level: 1, xp: 0 }]));
@@ -61,7 +62,7 @@ export function applyCraft(player, itemId, uid) {
     if (resources[resId] <= 0) delete resources[resId];
   }
 
-  return {
+  return recordCraft({
     ...player,
     gold: player.gold - recipe.gold,
     resources,
@@ -70,7 +71,7 @@ export function applyCraft(player, itemId, uid) {
       ...player.professions,
       [info.profession]: gainProfessionXp(player.professions[info.profession], info.xp),
     },
-  };
+  }, itemId);
 }
 
 // Ajoute des ressources { idRessource: quantité } à un joueur

@@ -7,7 +7,7 @@ import MapScreen from "./components/map/MapScreen.jsx";
 import { initialWorld } from "./data/maps.js";
 import BankPanel from "./components/city/BankPanel.jsx";
 import MarketPanel from "./components/city/MarketPanel.jsx";
-import ComingSoonPlace from "./components/city/ComingSoonPlace.jsx";
+import QuestPanel from "./components/city/QuestPanel.jsx";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
@@ -74,7 +74,7 @@ function Game({ initial, onNewCharacter }) {
     if (kind === "atelier") return <ForgePanel player={player} onCraft={craft} onTestResources={testAddResources} onTestGold={testAddGold} />;
     if (kind === "coffre") return <BankPanel player={player} bank={bank} />;
     if (kind === "marche") return <MarketPanel player={player} onPlayerChange={setPlayer} />;
-    if (kind === "panneau") return <ComingSoonPlace icon="📜" title="Panneau de recrutement" lines={["Un endroit pour trouver un groupe, proposer une chasse ou chercher une guilde.", "Il s'ouvrira avec les autres aventuriers."]} />;
+    if (kind === "panneau") return <QuestPanel player={player} onPlayerChange={setPlayer} atBoard />;
     return null;
   };
 
@@ -130,7 +130,13 @@ function Game({ initial, onNewCharacter }) {
       {activeTab === "carte" && (
         <MapScreen player={player} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onGather={gather} renderBuilding={renderBuilding} />
       )}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab === "journal" && (
+        <div style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
+          <div style={{ fontFamily: font.display, fontSize: 22, color: color.goldBright, marginBottom: 16 }}>Journal de quêtes</div>
+          <QuestPanel player={player} onPlayerChange={setPlayer} />
+        </div>
+      )}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }

@@ -7,6 +7,8 @@
 // (quelle que soit la quantité). Il s'agrandit contre de l'or : c'est une des dépenses d'or du jeu.
 // bank.upgrades = nombre d'agrandissements achetés (absent = 0).
 // ============================================================
+import { perksOf } from "./quests.js";
+
 export const BANK_START = 20;                                           // emplacements au départ
 export const BANK_STEP = 10;                                            // emplacements gagnés par agrandissement
 export const BANK_UPGRADES = [100, 250, 500, 1000, 1800, 3000, 5000, 8000];   // prix de chaque agrandissement, dans l'ordre
@@ -15,7 +17,7 @@ export const emptyBank = () => ({ items: [], resources: {} });
 export const bankOf = (player) => player.bank || emptyBank();
 
 export const bankUpgrades = (player) => bankOf(player).upgrades || 0;
-export const bankCapacity = (player) => BANK_START + BANK_STEP * bankUpgrades(player);
+export const bankCapacity = (player) => BANK_START + BANK_STEP * bankUpgrades(player) + perksOf(player).bankSlots;   // + emplacements offerts par la réputation d'Aldenmoor
 export const bankUsed = (player) => { const b = bankOf(player); return b.items.length + Object.keys(b.resources).length; };
 export const bankFree = (player) => bankCapacity(player) - bankUsed(player);
 export const nextUpgradeCost = (player) => BANK_UPGRADES[bankUpgrades(player)] ?? null;   // null = taille maximale

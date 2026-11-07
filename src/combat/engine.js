@@ -241,11 +241,12 @@ function startTurn(s, events, actor) {
 // Fin de combat
 // ------------------------------------------------------------
 function rollRewards(s) {
-  const rewards = { xp: 0, gold: 0, resources: {}, items: [] };
+  const rewards = { xp: 0, gold: 0, resources: {}, items: [], kills: {} };
   const mult = 1 + (s.player.dropBonus || 0) / 100;
   for (const e of s.enemies) {
     const def = ENEMIES[e.key];
     rewards.xp += def.xp || 0;
+    rewards.kills[e.key] = (rewards.kills[e.key] || 0) + 1;
     if (def.gold) rewards.gold += randInt(s, def.gold[0], def.gold[1]);
     for (const d of def.drops || []) {
       if (rand(s) < Math.min(1, d.chance * mult)) {
