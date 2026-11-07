@@ -1,6 +1,6 @@
 // Tests de la vie des joueurs simulés sur les cartes de région :  node scripts/test-maplife.js
 import assert from "node:assert/strict";
-import { createMapLife, stepMapLife, whoFights, regionLevels, partySizes, MAP_PARTIES } from "../src/sim/mapLife.js";
+import { createMapLife, stepMapLife, whoFights, regionLevels, partySizes, partiesFor, MAP_PARTIES } from "../src/sim/mapLife.js";
 import { getPopulation } from "../src/sim/population.js";
 import { MAPS } from "../src/data/maps.js";
 import { ENCOUNTERS } from "../src/data/encounters.js";
@@ -29,20 +29,27 @@ function run(mapKey, { seed = 5, seconds = 240, avoid = null } = {}) {
   return { life, events, map, seenFight };
 }
 
-test("groupes équilibrés : un solo, un duo et un trio sur chaque carte (dans un ordre qui change)", () => {
+test("groupes équilibrés : solo, duo et trio en alternance (6 groupes au plus), et leur nombre suit celui des simulés du bon niveau", () => {
   assert.deepEqual([...partySizes(3, Math.random)].sort(), [1, 2, 3]);
   assert.deepEqual([...partySizes(6, Math.random)].sort(), [1, 1, 2, 2, 3, 3]);
-  assert.equal(MAP_PARTIES, 3);
-  const orders = new Set();
-  for (let seed = 1; seed <= 12; seed++) {
-    const map = MAPS.prairies_sauvages;
-    const life = createMapLife({ map, population: pop, seed, blocked: blockedOf(map) });
-    const sizes = life.parties.map((p) => p.members.length);
-    if (sizes.length === MAP_PARTIES) assert.ok(sizes.every((s) => s <= 3), `tailles ${sizes}`);
-    const wanted = sizes.length === MAP_PARTIES && sizes.slice().sort().join() === "1,2,3";
-    if (wanted) orders.add(sizes.join());
+  assert.equal(MAP_PARTIES, 6);
+  assert.deepEqual([1, 8, 16, 24, 48, 200].map(partiesFor), [1, 1, 2, 3, 6, 6]);
+  assert.equal(partiesFor(0), 0); assert.equal(partiesFor(1), 1); assert.equal(partiesFor(200), 6);
+  // lancement : 200 simulés niveau 1 → les Prairies sont pleines (6 groupes = 12 aventuriers)
+  const fresh = pop.map((b) => ({ ...b, level: 1 }));
+  const map = MAPS.prairies_sauvages;
+  for (let seed = 1; seed <= 6; seed++) {
+    const life = createMapLife({ map, population: fresh, seed, blocked: blockedOf(map) });
+    const sizes = life.parties.map((p) => p.members.length).sort().join("");
+    assert.equal(sizes, "112233", `tailles ${sizes}`);
+    assert.equal(life.agents.length, 12);
+    for (const p of life.parties) { const lv = p.members.map((a) => a.bot.level); assert.ok(Math.max(...lv) - Math.min(...lv) <= 3); }
   }
-  assert.ok(orders.size >= 1, "au moins une carte a le mélange solo/duo/trio");
+  // peu de simulés dans la région : moins de groupes, jamais de doublon
+  const few = pop.map((b, i) => ({ ...b, level: i < 10 ? 3 : 40 }));
+  const life = createMapLife({ map, population: few, seed: 2, blocked: blockedOf(map) });
+  assert.equal(life.parties.length, partiesFor(10));
+  assert.equal(new Set(life.agents.map((a) => a.id)).size, life.agents.length);
 });
 
 test("régions : niveaux lus dans les données, groupes de 1 à 3 aventuriers de niveau adapté", () => {

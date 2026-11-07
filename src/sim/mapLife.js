@@ -13,7 +13,10 @@ import { ENCOUNTERS } from "../data/encounters.js";
 import { ZONES } from "../data/zones.js";
 import { makeRng } from "./rng.js";
 
-export const MAP_PARTIES = 3;                 // groupes d'aventuriers présents sur une carte
+export const MAP_PARTIES = 6;                 // groupes d'aventuriers présents sur une carte, au plus (6 groupes = 12 aventuriers : 2 solos, 2 duos, 2 trios)
+export const PARTY_PER_ELIGIBLE = 8;          // un groupe pour 8 simulés du bon niveau : la carte est pleine quand ils sont nombreux (lancement), plus calme quand peu de simulés y sont encore
+// Nombre de groupes sur une carte, selon le nombre de simulés dont le niveau correspond à la région
+export const partiesFor = (eligible) => (eligible <= 0 ? 0 : Math.min(MAP_PARTIES, Math.max(1, Math.round(eligible / PARTY_PER_ELIGIBLE))));
 export const FIGHT_COOLDOWN = [14, 30];       // secondes minimum entre deux victoires sur une même carte
 const NONE = new Set();
 
@@ -79,7 +82,9 @@ function formParties(life, population, count) {
   return parties;
 }
 
-export function createMapLife({ map, population, seed = 1, parties = MAP_PARTIES, blocked = NONE }) {
+export function createMapLife({ map, population, seed = 1, parties = null, blocked = NONE }) {
+  const [lo, hi] = regionLevels(map);
+  if (parties == null) parties = partiesFor(population.filter((b) => b.level >= lo && b.level <= hi).length);
   const rng = makeRng(seed);
   const life = { map, rng, population: [], agents: [], parties: [], clock: 0, nextFight: 8 + rng() * 10, blocked, activeGroups: map.groups || [], avoid: new Set(), engaged: new Map() };
   formParties(life, population, parties).forEach((bots, i) => {
