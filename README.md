@@ -123,6 +123,14 @@ Avantage du métier : jusqu'à **40 %** de chance de distiller une potion de plu
 
 **Équilibrage du Manoir** (`node scripts/simulate-dungeon.js niveau palier essais potions`, groupe de trois bots naïfs, équipement du palier) : sans potion, le donjon est très dur (≈ 8 % de victoires au palier 3, ≈ 62 % au palier 4 au niveau 24). Avec un petit sac (2 potions de soin + 1 grande, à peu près 230 or) : ≈ 65 % au palier 3 (niveau 22–24) et ≈ 96 % au palier 4 ; avec un sac plein presque 100 %. Les morts se jouent surtout contre la Dame en Deuil. J'ai donc **laissé les ennemis tels quels** : les potions sont désormais la condition d'entrée, et l'équipement du palier 4 récompense la préparation.
 
+## Taxe de fabrication des villes
+
+Fabriquer, raffiner et distiller n'ont plus de coût fixe : on paie une **taxe de la ville** (`utils/cityTax.js`), un pourcentage du **prix de ce qu'on obtient** (pour un objet : ses ingrédients plus sa main-d'œuvre, `itemValue` ; pour une matière raffinée ou une potion : sa valeur ; au moins 1 or). **1 % par défaut**, réglable plus tard de **0 % à 5 %** par la guilde qui contrôlera la ville. L'or des recettes (`gold`) reste dans les données comme main-d'œuvre : il compte dans le prix de l'objet et donne l'xp du métier, mais n'est plus dépensé.
+
+Chaque grande région dépend d'une ville (`data/cities.js` ; aujourd'hui une seule : Aldenmoor, qui couvre la ville, les Prairies Sauvages, les Champs Calcinés et la Lisière). Où que tu sois dans la grande région, le raccourci « Atelier » ouvre l'atelier de **ta** ville, avec sa taxe (affichée en haut de l'atelier, et sur chaque recette). La guilde viendra écrire le taux dans `world.cities[ville].taxRate` (toujours borné à 0–5 %, `cityTaxRate`) ; en attendant, `player.taxPaid[ville]` tient le registre de ce que tu as payé, c'est ce que la guilde percevra. Les simulés paient la taxe par défaut mais leur registre n'est pas tenu.
+
+À savoir : à 1 %, l'or dépensé en fabrication tombe à quelques pièces (une clé de donjon passe de 500 or à 16) : l'or n'est presque plus un puits à l'atelier. Sur 30 jours simulés, l'or médian des simulés passe d'environ 1 200 à 2 900. C'est la taxe réglable (jusqu'à 5 %) qui rééquilibrera cela.
+
 ## Raffinage
 
 Entre la récolte et la fabrication, il y a le raffinage, à l'atelier : quatre métiers (fondeur, scieur, tanneur, tisserand), chacun avec son niveau. Deux matières brutes donnent une matière raffinée (lingot, planche, cuir, étoffe, fil), qui vaut un peu plus que les deux brutes, en échange d'un peu d'or et de temps. Les recettes d'équipement demandent maintenant ces matières raffinées. Les ressources raffinées se vendent à l'hôtel des ventes (les joueurs simulés en proposent) et certaines quêtes de livraison les demandent. Données dans `src/data/refining.js` ; `node scripts/simulate-economy.js` affiche le bénéfice de chaque transformation.

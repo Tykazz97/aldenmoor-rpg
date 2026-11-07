@@ -21,7 +21,7 @@ assert.equal(canCraft(p, "plastron_veteran").lacksLevel, true);
 const before = p.resources.cuir_de_sanglier;
 p = applyCraft(p, "gants_veteran", "u1");
 assert.equal(p.resources.cuir_de_sanglier, before - 2);
-assert.equal(p.gold, 475);
+assert.equal(p.gold, 500 - craftFee("gants_veteran"));
 assert.equal(p.inventory.length, 1);
 assert.equal(p.inventory[0].uid, "u1");
 assert.deepEqual(p.professions.forgeron, { level: 1, xp: 25 });
@@ -50,6 +50,7 @@ assert.equal(canCraft(r, "plastron_veteran").ok, true);
 // 9. niveau maximum des métiers : 100 (courbe de 30 xp × niveau)
 import { gainProfessionXp } from "../src/utils/crafting.js";
 import { MAX_PROFESSION_LEVEL, xpForLevel } from "../src/data/professions.js";
+import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
 assert.equal(MAX_PROFESSION_LEVEL, 100);
 assert.equal(xpForLevel(1), 30);
 assert.equal(xpForLevel(99), 2970);

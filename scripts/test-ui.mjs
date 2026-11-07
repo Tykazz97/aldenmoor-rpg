@@ -63,6 +63,9 @@ try {
     await tab("Atelier").click(); await page.waitForTimeout(250);
     const txt = (await page.locator("body").innerText()).toLowerCase();
     for (const w of ["Fabrication", "Récolte", "Raffinage"]) assert.ok(txt.includes(w.toLowerCase()), w);
+    assert.match(await page.locator("[data-city-tax]").innerText(), /Atelier de Aldenmoor.*taxe de fabrication.*1 %/s, "la taxe de la ville est affichée");
+    await page.locator("button", { hasText: "Forgeron" }).first().click(); await page.waitForTimeout(200);
+    assert.ok((await page.locator("body").innerText()).includes("or de taxe"), "chaque recette indique sa taxe, plus de coût fixe");
   });
 
   await step("Atelier : le Bijoutier, le Bricoleur et les sets des nouvelles régions sont fabricables", async () => {

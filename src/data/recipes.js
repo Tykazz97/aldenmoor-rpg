@@ -2,7 +2,7 @@
 // RECETTES — ce qu'il faut pour crafter un objet.
 // Clé = id de l'objet (voir items.js).
 // ingredients : { idRessource: quantité }  (voir resources.js)
-// gold        : coût en or du craft (puits d'or de l'économie)
+// gold        : main-d'œuvre, en or : elle compte dans le prix de l'objet et donne l'xp du métier, mais n'est plus dépensée (on paie la taxe de la ville, voir utils/cityTax.js)
 //
 // Règle de conception : la ressource rare n'est demandée que pour
 // UNE pièce par set (le plastron), les autres pièces se font avec

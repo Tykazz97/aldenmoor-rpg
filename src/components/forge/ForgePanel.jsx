@@ -128,7 +128,7 @@ function RecipeCard({ itemId, check, onCraft }) {
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between", gap: 6, flexShrink: 0 }}>
         <div style={{ fontSize: 11, fontFamily: font.data, color: check.lacksGold ? "#d98a8a" : color.goldBright }}>
-          {recipe.gold} or
+          <span title="Taxe de la ville, en pourcentage du prix de l'objet">{check.fee > 0 ? `${check.fee} or de taxe` : "sans taxe"}</span>
         </div>
         <button
           disabled={!check.ok}
@@ -150,9 +150,9 @@ function RecipeCard({ itemId, check, onCraft }) {
 
 // Raffinage : on transforme des matières brutes en matière raffinée, par 1, par 5 ou au maximum
 // (la même carte sert à l'Alchimiste : `brew` choisit la table des potions)
-function RefineCard({ id, player, onRefine, brew = false }) {
+function RefineCard({ id, player, onRefine, brew = false, fx = {} }) {
   const rec = (brew ? ALCHEMY : REFINING)[id], out = RESOURCES[id];
-  const max = brew ? maxBrew(player, id) : maxRefine(player, id), check = brew ? canBrew(player, id, 1) : canRefine(player, id, 1);
+  const max = brew ? maxBrew(player, id, fx) : maxRefine(player, id, fx), check = brew ? canBrew(player, id, 1, fx) : canRefine(player, id, 1, fx);
   const effect = !brew ? "" : rec.heal ? ` · rend ${Math.round(rec.heal * 100)} % des PV` : rec.revive ? ` · relève un héros tombé à ${Math.round(rec.revive * 100)} % des PV` : "";
   const rc = RESOURCE_RARITIES[out.rarity]?.color || color.mist;
   const btn = (n, label) => {
@@ -186,7 +186,7 @@ function RefineCard({ id, player, onRefine, brew = false }) {
               </div>
             );
           })}
-          <span style={{ fontSize: 11, fontFamily: font.data, color: color.goldBright, alignSelf: "center" }}>→ 1 pour {rec.gold} or</span>
+          <span style={{ fontSize: 11, fontFamily: font.data, color: color.goldBright, alignSelf: "center" }}>→ 1 pour {check.fee > 0 ? `${check.fee} or de taxe` : "sans taxe"}</span>
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center", gap: 6, flexShrink: 0 }}>
@@ -215,7 +215,8 @@ function NodeCard({ node, level }) {
   );
 }
 
-export default function ForgePanel({ player, onCraft, onRefine, onBrew, onTestResources, onTestGold }) {
+export default function ForgePanel({ player, city = { key: "aldenmoor", name: "Aldenmoor", rate: 0.01 }, onCraft, onRefine, onBrew, onTestResources, onTestGold }) {
+  const fx = { rate: city.rate, city: city.key };                    // la taxe de la ville où l'on fabrique
   const [selected, setSelected] = useState(PROFESSION_ORDER[0]);
   const [flash, setFlash] = useState(null);
   const timer = useRef(null);
@@ -240,15 +241,15 @@ export default function ForgePanel({ player, onCraft, onRefine, onBrew, onTestRe
 
   const handleCraft = (itemId) => {
     pending.current = { type: "craft", invLen: player.inventory.length };
-    onCraft(itemId);
+    onCraft(itemId, fx);
   };
   const handleBrew = (id, n) => {
     pending.current = { type: "refine", id, n, have: player.resources[id] || 0 };
-    onBrew(id, n);
+    onBrew(id, n, fx);
   };
   const handleRefine = (id, n) => {
     pending.current = { type: "refine", id, n, have: player.resources[id] || 0 };
-    onRefine(id, n);
+    onRefine(id, n, fx);
   };
 
   const kind = PROFESSIONS[selected].kind;
@@ -280,6 +281,10 @@ export default function ForgePanel({ player, onCraft, onRefine, onBrew, onTestRe
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
         <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : refineIds ? `${refineIds.length} transformation${refineIds.length > 1 ? "s" : ""}` : brewIds ? `${brewIds.length} potion${brewIds.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
         <div style={{ padding: "8px 12px 0", fontSize: 12, color: color.mist }}>{PROFESSIONS[selected].desc}</div>
+        <div data-city-tax style={{ margin: "8px 12px 0", padding: "6px 10px", fontSize: 12, color: color.parchmentDim, background: color.void, border, borderRadius: radius.sm }}>
+          Atelier de {city.name}{city.place ? ` (tu es en ${city.place})` : ""} · taxe de fabrication <span style={{ fontFamily: font.data, color: color.goldBright }}>{String(Math.round(city.rate * 1000) / 10).replace(".", ",")} %</span> du prix de ce que tu obtiens
+          {!city.guild && <span style={{ color: color.mist }}> · aucune guilde ne contrôle encore la ville : taux par défaut</span>}
+        </div>
         <div data-perks style={{ margin: "8px 12px 0", padding: "8px 10px", background: color.void, border, borderRadius: radius.sm, display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em" }}>Avantages du niveau {professionOf(player, selected).level}</div>
           {perkLines(selected, professionOf(player, selected).level, MAX_PROFESSION_LEVEL).map((l) => (
@@ -297,10 +302,10 @@ export default function ForgePanel({ player, onCraft, onRefine, onBrew, onTestRe
         )}
         <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
           {gatherNodes && gatherNodes.map((n) => <NodeCard key={n.id} node={n} level={professionOf(player, selected).level} />)}
-          {refineIds && refineIds.map((id) => <RefineCard key={id} id={id} player={player} onRefine={handleRefine} />)}
-          {brewIds && brewIds.map((id) => <RefineCard key={id} id={id} brew player={player} onRefine={handleBrew} />)}
+          {refineIds && refineIds.map((id) => <RefineCard key={id} id={id} player={player} fx={fx} onRefine={handleRefine} />)}
+          {brewIds && brewIds.map((id) => <RefineCard key={id} id={id} brew player={player} fx={fx} onRefine={handleBrew} />)}
           {!gatherNodes && !refineIds && recipes.map(({ itemId }) => (
-            <RecipeCard key={itemId} itemId={itemId} check={canCraft(player, itemId)} onCraft={handleCraft} />
+            <RecipeCard key={itemId} itemId={itemId} check={canCraft(player, itemId, fx)} onCraft={handleCraft} />
           ))}
         </div>
       </div>

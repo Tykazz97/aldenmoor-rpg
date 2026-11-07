@@ -7,6 +7,7 @@
 // entre 25 % et 55 %. Ni un combat qui ne donne que des ressources, ni un combat qui noie le joueur
 // sous l'or : l'or sert à fabriquer et à agrandir le coffre, les ressources à fabriquer et à vendre.
 // ============================================================
+import { craftFee } from "./cityTax.js";
 import { ENEMIES } from "../data/zones.js";
 import { ENCOUNTERS } from "../data/encounters.js";
 import { NODES, NODE_ORDER } from "../data/gathering.js";
@@ -39,13 +40,13 @@ export const allEncounterIncomes = () => ENCOUNTERS.map((enc) => ({ enc, ...enco
 export const nodeIncome = (node) => avg(node.yield[0], node.yield[1]) * RESOURCES[node.resource].value * RESALE;
 export const allNodeIncomes = () => NODE_ORDER.map((id) => ({ node: NODES[id], income: nodeIncome(NODES[id]) }));
 
-// Coût de fabrication d'un ensemble (pièces d'un même set) : or de fabrication + valeur des ingrédients
+// Coût de fabrication d'un ensemble (pièces d'un même set) : taxe de la ville (1 %) + valeur des ingrédients
 export function setCosts() {
   const sets = {};
   for (const [id, rc] of Object.entries(RECIPES)) {
     const key = ITEMS[id].set || "armes";
     const s = (sets[key] ||= { pieces: 0, craftGold: 0, resources: 0 });
-    s.pieces++; s.craftGold += rc.gold;
+    s.pieces++; s.craftGold += craftFee(id);
     s.resources += Object.entries(rc.ingredients).reduce((t, [r, q]) => t + RESOURCES[r].value * q, 0);
   }
   for (const s of Object.values(sets)) s.total = s.craftGold + s.resources;

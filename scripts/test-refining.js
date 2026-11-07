@@ -7,6 +7,7 @@ import { PROFESSIONS, PROFESSION_ORDER } from "../src/data/professions.js";
 import { canRefine, applyRefine, maxRefine, applyCraft, canCraft, professionOf, emptyProfessions } from "../src/utils/crafting.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { newMarket, listingsFor } from "../src/utils/market.js";
+import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -31,7 +32,7 @@ test("raffiner : 2 matières brutes + de l'or donnent 1 matière raffinée et de
   assert.equal(r.made, 1);
   assert.equal(r.player.resources.minerai_de_fer, 8);
   assert.equal(r.player.resources.lingot_de_fer, 1);
-  assert.equal(r.player.gold, 200 - REFINING.lingot_de_fer.gold);
+  assert.equal(r.player.gold, 200 - unitFee("lingot_de_fer"));
   assert.deepEqual(r.player.professions.fondeur, { level: 1, xp: REFINING.lingot_de_fer.xp });
   assert.equal(r.player.professions.forgeron.level, 1);
 });
@@ -43,7 +44,7 @@ test("par lots : ×5 et maximum, coût et xp proportionnels", () => {
   assert.equal(r.made, 5);
   assert.equal(r.player.resources.minerai_de_fer, undefined);                             // tout consommé : l'entrée disparaît
   assert.equal(r.player.resources.lingot_de_fer, 5);
-  assert.equal(r.player.gold, 200 - 5 * REFINING.lingot_de_fer.gold);
+  assert.equal(r.player.gold, 200 - 5 * unitFee("lingot_de_fer"));
   assert.deepEqual(r.player.professions.fondeur, { level: 1, xp: 25 });                    // 5 × 5 xp, il en faut 30 pour le niveau 2
   assert.equal(applyRefine({ ...p, resources: { minerai_de_fer: 12 }, gold: 100 }, "lingot_de_fer", 6).player.professions.fondeur.level, 2);
 });
@@ -51,9 +52,9 @@ test("par lots : ×5 et maximum, coût et xp proportionnels", () => {
 test("refus : pas assez de matières, d'or ou de niveau (le joueur ne change pas)", () => {
   const p = base();
   assert.equal(applyRefine(p, "lingot_de_fer", 6).player, p);
-  const poor = { ...p, gold: 1 };
+  const poor = { ...p, gold: 0 };
   assert.equal(applyRefine(poor, "lingot_de_fer", 1).player, poor);
-  assert.equal(canRefine({ ...p, gold: 1 }, "lingot_de_fer").lacksGold, true);
+  assert.equal(canRefine({ ...p, gold: 0 }, "lingot_de_fer").lacksGold, true);
   const copper = { ...p, resources: { minerai_de_cuivre: 10 } };
   assert.equal(canRefine(copper, "lingot_de_cuivre").lacksLevel, true);
   assert.equal(maxRefine(copper, "lingot_de_cuivre"), 0);

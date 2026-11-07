@@ -9,6 +9,7 @@ import { dungeonOdds } from "../src/sim/botFight.js";
 import { SETS, ITEMS } from "../src/data/items.js";
 import { BUILDS } from "../src/sim/partyBots.js";
 import { RECIPES } from "../src/data/recipes.js";
+import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -34,7 +35,7 @@ test("clé : fabriquée seulement avec l'essence du Veilleur qu'il a gagnée lui
   const gold = ok.gold;
   assert.equal(keyCraftStep(ok, rng, { merchant: false }), true);
   assert.equal(djOf(ok).keys, 1);
-  assert.equal(ok.gold, gold - RECIPES.cle_du_manoir.gold, "500 or de fabrication");
+  assert.equal(ok.gold, gold - craftFee("cle_du_manoir"), "la taxe de la ville (1 % du prix de la clé)");
   assert.ok(!ok.bag.res.essence_du_veilleur, "l'essence est consommée");
   assert.equal(ok.bag.items.length, 0, "la clé n'encombre pas le sac");
   assert.equal(keyCraftStep(ok, rng), false, "une seule clé à la fois");

@@ -90,17 +90,18 @@ export function usePlayer(initial) {
 
   // Craft : la validation est refaite sur l'état le plus récent, donc un
   // double-clic rapide ne peut pas consommer deux fois les mêmes ressources.
-  const craft = useCallback((itemId) => {
-    setPlayer((prev) => applyCraft(prev, itemId, `craft-${Date.now()}-${craftCounter++}`));
+  // `opts` : { rate, city } = la taxe de la ville où l'on fabrique (voir utils/cityTax.js)
+  const craft = useCallback((itemId, opts = {}) => {
+    setPlayer((prev) => applyCraft(prev, itemId, `craft-${Date.now()}-${craftCounter++}`, Math.random, opts));
   }, []);
 
   // Raffinage : `times` unités d'une ressource raffinée (la validation est refaite sur l'état le plus récent)
-  const refine = useCallback((id, times = 1) => {
-    setPlayer((prev) => applyRefine(prev, id, times).player);
+  const refine = useCallback((id, times = 1, opts = {}) => {
+    setPlayer((prev) => applyRefine(prev, id, times, Math.random, opts).player);
   }, []);
 
-  const brew = useCallback((id, times = 1) => {
-    setPlayer((prev) => applyBrew(prev, id, times).player);
+  const brew = useCallback((id, times = 1, opts = {}) => {
+    setPlayer((prev) => applyBrew(prev, id, times, Math.random, opts).player);
   }, []);
 
   // Récompenses d'un combat gagné (xp, or, ressources, objets)

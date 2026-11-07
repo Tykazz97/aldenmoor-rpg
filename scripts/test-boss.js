@@ -16,6 +16,7 @@ import { RESOURCES } from "../src/data/resources.js";
 import { perkLines } from "../src/utils/perks.js";
 import { CLASSES } from "../src/data/classes.js";
 import { CHAIN_QUESTS } from "../src/data/quests.js";
+import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -267,14 +268,14 @@ test("Bricoleur : fabrique la Clé du Manoir (ingrédients dont l'Essence du Vei
   assert.equal(made.inventory.filter((i) => i.id === "cle_du_manoir").length, 1);
   assert.equal(made.inventory[0].quality, undefined, "pas de chef-d'œuvre pour une clé");
   assert.equal(made.resources.essence_du_veilleur, undefined);
-  assert.equal(made.gold, 5000 - RECIPES.cle_du_manoir.gold);
+  assert.equal(made.gold, 5000 - craftFee("cle_du_manoir"));
   assert.ok(made.professions.bricoleur.xp > 0);
   // à haut niveau, les ressources peuvent être épargnées (l'or, lui, est toujours dépensé)
   const master = { ...lvl, professions: { ...lvl.professions, bricoleur: { level: 100, xp: 0 } } };
   const kept = applyCraft(master, "cle_du_manoir", "k2", () => 0);
   assert.equal(kept.inventory.filter((i) => i.id === "cle_du_manoir").length, 1);
   assert.deepEqual(kept.resources, master.resources, "ressources intactes");
-  assert.equal(kept.gold, master.gold - RECIPES.cle_du_manoir.gold);
+  assert.equal(kept.gold, master.gold - craftFee("cle_du_manoir"));
   assert.equal(applyCraft(master, "cle_du_manoir", "k3", () => 0.99).resources.essence_du_veilleur, undefined, "sinon elles sont consommées");
   assert.ok(Math.abs(perkLines("bricoleur", 100, 100)[0].now.replace(",", ".").replace(" %", "") - 50) < 0.01, "50 % au niveau 100");
   assert.equal(perkLines("bricoleur", 1, 100)[0].now, "0 %");

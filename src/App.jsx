@@ -5,6 +5,7 @@ import ForgePanel from "./components/forge/ForgePanel.jsx";
 import CombatScreen from "./components/combat/CombatScreen.jsx";
 import MapScreen from "./components/map/MapScreen.jsx";
 import { initialWorld } from "./data/maps.js";
+import { workshopOf } from "./data/cities.js";
 import BankPanel from "./components/city/BankPanel.jsx";
 import MarketPanel from "./components/city/MarketPanel.jsx";
 import QuestPanel from "./components/city/QuestPanel.jsx";
@@ -91,7 +92,7 @@ function Game({ initial, onNewCharacter }) {
   };
   // Contenu des lieux de la ville
   const renderBuilding = (kind) => {
-    if (kind === "atelier") return <ForgePanel player={player} onCraft={craft} onRefine={refine} onBrew={brew} onTestResources={testAddResources} onTestGold={testAddGold} />;
+    if (kind === "atelier") return <ForgePanel city={workshopOf(world)} player={player} onCraft={craft} onRefine={refine} onBrew={brew} onTestResources={testAddResources} onTestGold={testAddGold} />;
     if (kind === "coffre") return <BankPanel player={player} bank={bank} />;
     if (kind === "marche") return <MarketPanel player={player} onPlayerChange={setPlayer} />;
     if (kind === "panneau") return <QuestPanel player={player} onPlayerChange={setPlayer} atBoard />;
@@ -127,6 +128,7 @@ function Game({ initial, onNewCharacter }) {
       )}
       {activeTab === "forge" && (
         <ForgePanel
+          city={workshopOf(world)}
           player={player}
           onCraft={craft}
           onRefine={refine}

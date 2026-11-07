@@ -14,6 +14,7 @@ import { itemWorth, itemValue } from "../src/utils/market.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { makeRng } from "../src/sim/rng.js";
 import { HARVEST_MS } from "../src/components/map/mapConstants.js";
+import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -115,7 +116,7 @@ test("raffinage : une unité de plus avec le niveau, sans consommer plus", () =>
   assert.equal(r.made, 10);
   assert.equal(r.player.resources.lingot_de_fer, 10);
   assert.equal(r.player.resources.minerai_de_fer, undefined);                                    // on n'a consommé que pour 5
-  assert.equal(r.player.gold, p.gold - 5 * 2);
+  assert.equal(r.player.gold, p.gold - 5 * unitFee("lingot_de_fer"));
   const none = applyRefine(p, "lingot_de_fer", 5, NEVER);
   assert.deepEqual([none.made, none.bonus, none.player.resources.lingot_de_fer], [5, 0, 5]);
 });

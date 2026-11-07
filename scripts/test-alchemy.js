@@ -8,6 +8,7 @@ import { perksFor, perkLines } from "../src/utils/perks.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { newMarket } from "../src/utils/market.js";
 import { makeRng } from "../src/sim/rng.js";
+import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -35,7 +36,7 @@ test("distiller : consomme herbes et or, ajoute les potions et l'xp du métier",
   assert.equal(r.made, 2);
   assert.equal(r.player.resources.potion_mineure, 2);
   assert.equal(r.player.resources.ortie, 12 - 6);
-  assert.equal(r.player.gold, 500 - 2 * ALCHEMY.potion_mineure.gold);
+  assert.equal(r.player.gold, 500 - 2 * unitFee("potion_mineure"), "taxe de 1 % sur la valeur, 1 or au minimum");
   assert.deepEqual(professionOf(r.player, "alchimiste"), gainProfessionXp({ level: 1, xp: 0 }, 2 * ALCHEMY.potion_mineure.xp));
   assert.equal(p.resources.ortie, 12, "le joueur d'origine n'est pas modifié");
 });
@@ -45,13 +46,13 @@ test("niveau, matières et or sont exigés", () => {
   assert.equal(applyBrew(base(), "potion_de_soin").made, 0);
   assert.ok(canBrew(base(at(8)), "potion_de_soin").ok);
   assert.ok(canBrew(base({ resources: {} }), "potion_mineure").lacksResources);
-  assert.ok(canBrew(base({ gold: 1 }), "potion_mineure").lacksGold);
+  assert.ok(canBrew(base({ gold: 0 }), "potion_mineure").lacksGold);
   assert.equal(canBrew(base(), "nimporte_quoi").ok, false);
 });
 
 test("maxBrew : limité par le niveau, les herbes et l'or", () => {
   assert.equal(maxBrew(base(), "potion_mineure"), 4);                       // 12 orties / 3
-  assert.equal(maxBrew(base({ gold: 13 }), "potion_mineure"), 2);           // 13 or / 6
+  assert.equal(maxBrew(base({ gold: 1 }), "potion_mineure"), 1);            // 1 or de taxe par potion
   assert.equal(maxBrew(base(), "potion_de_soin"), 0);                       // niveau 8 requis
   assert.equal(maxBrew(base(at(24)), "elixir_de_rappel"), 2);               // 2 pelages maudits
 });

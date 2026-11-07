@@ -21,6 +21,7 @@ import { bankStep, drawFromBank, bankFreeSlots, emptyBank, sellableOf, takeForSa
 import { bankCapacity, bankUsed, BANK_START } from "../src/utils/bank.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { MAX_PROFESSION_LEVEL } from "../src/data/professions.js";
+import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = async (name, fn) => { await fn(); n++; console.log("  ✓", name); };
@@ -201,7 +202,7 @@ await test("fabrication : avec les ressources et l'or, il fabrique une pièce ma
   assert.ok(made && missing.includes(made), `fabriqué ${made}`);
   assert.equal(life.gear[ITEMS[made].type], made, "il la porte");
   assert.equal(life.crafted, 1);
-  assert.ok(life.gold <= 500 - RECIPES[made].gold, "le coût en or est payé");
+  assert.ok(life.gold <= 500 - craftFee(made), "la taxe de la ville est payée");
   assert.ok(Object.values(life.pro).some((p) => p.xp > 0 || p.level > 1), "xp de métier gagnée");
   for (const [r, q] of Object.entries(life.bag.res)) assert.ok(q >= 0, r);
 });
