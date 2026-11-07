@@ -6,7 +6,7 @@
 // Métiers de craft (forgeron, tailleur, maroquinier, menuisier), de
 // récolte (bûcheron, mineur, herboriste : voir gathering.js) et de raffinage
 // (fondeur, scieur, tanneur, tisserand : voir refining.js). Le
-// Bijoutier fait les anneaux et les amulettes ; l'Alchimiste viendra avec les consommables.
+// Bijoutier fait les anneaux et les amulettes, le Bricoleur les clés des donjons ; l'Alchimiste viendra avec les consommables.
 // ============================================================
 
 import { ITEMS } from "./items.js";
@@ -34,6 +34,10 @@ export const PROFESSIONS = {
   bijoutier: {
     key: "bijoutier", name: "Bijoutier", icon: "💍",
     desc: "Anneaux et amulettes, forgés avec les trophées des boss.",
+  },
+  bricoleur: {
+    key: "bricoleur", name: "Bricoleur", icon: "🗝️",
+    desc: "Fabrique les clés des donjons.",
   },
   // --- Récolte : se pratique sur la carte ---
   bucheron: {
@@ -107,6 +111,7 @@ export function getCraftInfo(itemId) {
   else if (item.type === "bouclier") profession = "forgeron";
   else if (item.type === "cape") profession = "tailleur";
   else if (item.type === "amulette" || item.type === "anneau") profession = "bijoutier";
+  else if (item.type === "cle") profession = "bricoleur";
   else if (item.type === "arme") profession = WEAPON_PROFESSION[item.weaponType];
   if (!profession) return null;
 

@@ -78,9 +78,13 @@ Tout au bout de la carte de la Lisière des Ombres, dans le coin est. Il met **1
 - **Appel**, sous 66 % de vie : il fait venir **2 esprits errants** (nouvelle mécanique `summon` des phases, dans `engine.js`). Ils entrent dans l'ordre de jeu juste après lui, ne rapportent ni xp, ni or, ni butin, et on ne dépasse jamais 3 ennemis.
 - **Rage**, sous 33 % : +40 % d'attaque, et il débloque Feu noir et Souffle putride (actions avec `needsPhase`).
 
-Butin : la **Clé du Manoir Englouti** tombe à coup sûr (elle ouvrira le donjon de la Dame en Deuil), et la **Lanterne du Veilleur** tombe à **5 %** seulement. C'est la première relique : emplacement `relique1`, non fabricable, stats très au-dessus des accessoires de boss, et le passif **Dernier souffle** (une fois par combat, un coup mortel laisse 35 % des PV ; passifs d'objets via `passive` → `calcStats().passives` → drapeaux du moteur). Les trois autres emplacements de reliques attendent les prochains boss.
+Butin : l'**Essence du Veilleur** (60 %, 1 à 2) et la **Lanterne du Veilleur**, à **5 %** seulement. Le boss ne lâche pas la clé du donjon : elle se fabrique (voir « Le Bricoleur »). C'est la première relique : emplacement `relique1`, non fabricable, stats très au-dessus des accessoires de boss, et le passif **Dernier souffle** (une fois par combat, un coup mortel laisse 35 % des PV ; passifs d'objets via `passive` → `calcStats().passives` → drapeaux du moteur). Les trois autres emplacements de reliques attendent les prochains boss.
 
 **Chaîne de quêtes** au tableau d'Aldenmoor (`CHAIN_QUESTS` dans `quests.js`, à partir du niveau 14, dans l'ordre, une seule fois) : faire taire 8 esprits errants, mettre 6 chevaliers déchus au repos, puis vaincre le Veilleur. Elles paient or, xp et réputation, jamais la relique. `test-boss.js` vérifie le boss, l'appel, la rage, la relique et la chaîne.
+
+## Le Bricoleur (clés des donjons)
+
+Nouveau métier de fabrication : il ne fait que les **clés de donjon**. Pour l'instant une seule, la **Clé du Manoir Englouti** (métier niveau 3) : 3 Essences du Veilleur, 6 lingots de fer, 3 lingots de cuivre, 5 ectoplasmes et 500 or. La clé est un objet de type `cle` : elle reste dans le sac et ne s'équipe pas (`equipItem` ignore tout objet sans emplacement). Avantage du métier : jusqu'à 25 % de chance de fabriquer une clé en plus sans rien consommer de plus (pas de chef-d'œuvre pour les clés). Les clés des prochains donjons s'ajouteront à `recipes.js`, avec un objet `type: "cle"`.
 
 ## Raffinage
 

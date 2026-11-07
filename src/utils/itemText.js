@@ -8,6 +8,7 @@ export function itemStatLines(item) {
   if (item.hp) lines.push(`+${item.hp} HP`);
   if (item.esquive) lines.push(`+${item.esquive}% Esquive`);
   if (item.critique) lines.push(`+${item.critique}% Crit`);
+  if (item.desc) lines.push(item.desc);
   if (item.passiveDesc) lines.push(item.passiveDesc);
   return lines;
 }

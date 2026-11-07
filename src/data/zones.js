@@ -267,7 +267,7 @@ export const ENEMIES = {
     ],
     gold: [200, 300],
     drops: [
-      { type: "resource", id: "cle_du_manoir", chance: 1, min: 1, max: 1 },
+      { type: "resource", id: "essence_du_veilleur", chance: 0.6, min: 1, max: 2 },
       { type: "item", id: "lanterne_du_veilleur", chance: 0.05, min: 1, max: 1 },
     ],
   },

@@ -172,9 +172,9 @@ export const RESOURCES = {
   },
 
   // --- Le Veilleur Corrompu (boss de la Lisière) ---
-  // Clé du Manoir Englouti : tombe à coup sûr, ouvre le donjon de la Dame en Deuil (à venir).
-  cle_du_manoir: {
-    id: "cle_du_manoir", name: "Clé du Manoir Englouti", rarity: "rare", value: 300,
+  // Essence du Veilleur : ingrédient de la Clé du Manoir Englouti (fabriquée par le Bricoleur).
+  essence_du_veilleur: {
+    id: "essence_du_veilleur", name: "Essence du Veilleur", rarity: "rare", value: 260,
     source: "veilleur_corrompu",
   },
 

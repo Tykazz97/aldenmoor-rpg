@@ -10,6 +10,10 @@ import { createCombat, advance, castSpell, endTurn } from "../src/combat/engine.
 import { activeGroups } from "../src/utils/mapPath.js";
 import { boardFor, acceptQuest, completeQuest, progressOf, questsOf } from "../src/utils/quests.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
+import { applyCraft, canCraft } from "../src/utils/crafting.js";
+import { getCraftInfo, PROFESSIONS, recipesOfProfession } from "../src/data/professions.js";
+import { RESOURCES } from "../src/data/resources.js";
+import { perkLines } from "../src/utils/perks.js";
 import { CHAIN_QUESTS } from "../src/data/quests.js";
 
 let n = 0;
@@ -44,9 +48,10 @@ test("le boss est complet : stats, 3 phases de jeu, rencontre, groupe sur la car
   assert.ok(activeGroups(MAPS.lisiere_des_ombres, world, 1000 + g.respawnMs).includes(g), "de retour après le délai");
 });
 
-test("butin : clé du Manoir garantie, UNE relique très rare, non fabricable", () => {
-  const key = boss.drops.find((d) => d.id === "cle_du_manoir"), rel = boss.drops.find((d) => d.id === "lanterne_du_veilleur");
-  assert.equal(key.chance, 1);
+test("butin : plus de clé sur le boss (elle se fabrique), une essence, et UNE relique très rare non fabricable", () => {
+  const rel = boss.drops.find((d) => d.id === "lanterne_du_veilleur");
+  assert.ok(!boss.drops.some((d) => d.id === "cle_du_manoir"), "la clé ne tombe plus sur le boss");
+  assert.ok(boss.drops.some((d) => d.id === "essence_du_veilleur" && d.chance >= 0.5));
   assert.ok(rel.chance > 0 && rel.chance <= 0.08, "relique : 8 % au plus");
   assert.equal(boss.drops.filter((d) => ITEMS[d.id]?.type?.startsWith("relique")).length, 1);
   assert.equal(relic.type, "relique1"); assert.equal(relic.rarity, "legendaire");
@@ -109,7 +114,7 @@ test("les esprits appelés jouent leur tour, mais ne rapportent ni xp, ni or, ni
   assert.equal(end.rewards.kills.esprit_errant, undefined);
   assert.equal(end.rewards.xp, boss.xp);
   assert.ok(end.rewards.gold >= boss.gold[0] && end.rewards.gold <= boss.gold[1]);
-  assert.equal(end.rewards.resources.cle_du_manoir, 1, "la clé tombe à coup sûr");
+  assert.ok(!("cle_du_manoir" in end.rewards.resources) && !end.rewards.items.includes("cle_du_manoir"));
 });
 
 test("sous 33 % de vie, le Veilleur se déchaîne (+40 % d'attaque) et débloque feu noir et poison — pas avant", () => {
@@ -198,6 +203,34 @@ test("chaîne de quêtes : 3 étapes dans l'ordre, à partir du niveau 14, rendu
   assert.deepEqual(chainIn(p), [], "chaîne terminée : elle ne revient pas");
   assert.equal(questsOf(p).chain.length, 3);
   assert.ok(!CHAIN_QUESTS.some((c) => c.rewards?.item), "la relique n'est jamais une récompense de quête");
+});
+
+test("Bricoleur : fabrique la Clé du Manoir (ingrédients dont l'Essence du Veilleur), qui ne s'équipe pas", () => {
+  assert.ok(PROFESSIONS.bricoleur);
+  const info = getCraftInfo("cle_du_manoir");
+  assert.equal(info.profession, "bricoleur");
+  assert.deepEqual(recipesOfProfession("bricoleur").map((r) => r.itemId), ["cle_du_manoir"]);
+  for (const r of Object.keys(RECIPES.cle_du_manoir.ingredients)) assert.ok(RESOURCES[r], r);
+  assert.ok(RECIPES.cle_du_manoir.ingredients.essence_du_veilleur >= 1, "elle demande le butin du boss");
+  assert.equal(ITEMS.cle_du_manoir.type, "cle");
+  const rich = (extra = {}) => ({ ...createPlayer({ classKey: "guerrier" }), gold: 5000, resources: { ...RECIPES.cle_du_manoir.ingredients }, ...extra });
+  const low = rich();
+  assert.ok(canCraft(low, "cle_du_manoir").lacksLevel, "niveau de métier requis");
+  const lvl = { ...low, professions: { ...low.professions, bricoleur: { level: info.minLevel, xp: 0 } } };
+  assert.ok(canCraft(lvl, "cle_du_manoir").ok);
+  assert.ok(!canCraft({ ...lvl, resources: { ...lvl.resources, essence_du_veilleur: 2 } }, "cle_du_manoir").ok, "sans assez d'essence : impossible");
+  const made = applyCraft(lvl, "cle_du_manoir", "k1", () => 0.99);
+  assert.equal(made.inventory.filter((i) => i.id === "cle_du_manoir").length, 1);
+  assert.equal(made.inventory[0].quality, undefined, "pas de chef-d'œuvre pour une clé");
+  assert.equal(made.resources.essence_du_veilleur, undefined);
+  assert.equal(made.gold, 5000 - RECIPES.cle_du_manoir.gold);
+  assert.ok(made.professions.bricoleur.xp > 0);
+  // à haut niveau, une clé de plus peut sortir (sans rien consommer de plus)
+  const master = { ...lvl, professions: { ...lvl.professions, bricoleur: { level: 100, xp: 0 } } };
+  assert.equal(applyCraft(master, "cle_du_manoir", "k2", () => 0).inventory.filter((i) => i.id === "cle_du_manoir").length, 2);
+  assert.equal(applyCraft(master, "cle_du_manoir", "k3", () => 0.99).inventory.filter((i) => i.id === "cle_du_manoir").length, 1);
+  const lines = perkLines("bricoleur", 5, 100);
+  assert.match(lines[0].label, /clé/);
 });
 
 console.log(`\n${n} tests passent.`);

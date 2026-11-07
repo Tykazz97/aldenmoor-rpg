@@ -63,10 +63,12 @@ try {
     for (const w of ["Fabrication", "Récolte", "Raffinage"]) assert.ok(txt.includes(w.toLowerCase()), w);
   });
 
-  await step("Atelier : le Bijoutier et les sets des nouvelles régions sont fabricables", async () => {
+  await step("Atelier : le Bijoutier, le Bricoleur et les sets des nouvelles régions sont fabricables", async () => {
     await tab("Atelier").click(); await page.waitForTimeout(250);
     await page.locator("button", { hasText: "Bijoutier" }).first().click(); await page.waitForTimeout(250);
     assert.match(await page.locator("body").innerText(), /Anneau du Cavalier Déchu/);
+    await page.locator("button", { hasText: "Bricoleur" }).first().click(); await page.waitForTimeout(250);
+    assert.match(await page.locator("body").innerText(), /Clé du Manoir Englouti/);
     await page.locator("button", { hasText: "Forgeron" }).first().click(); await page.waitForTimeout(250);
     const forge = await page.locator("body").innerText();
     for (const w of ["Heaume du Fossoyeur", "Cuirasse du Chevalier Déchu", "Lame du Chevalier Déchu"]) assert.ok(forge.includes(w), w);

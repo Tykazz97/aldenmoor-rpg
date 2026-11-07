@@ -260,6 +260,20 @@ export const ITEMS = {
 Object.assign(ITEMS, TIER_ITEMS);
 
 // ---------------------------------------------------------
+// CLÉS DE DONJON — fabriquées par le Bricoleur, jamais équipées (type "cle" : aucun emplacement).
+// ---------------------------------------------------------
+ITEMS.cle_du_manoir = {
+  id: "cle_du_manoir",
+  name: "Clé du Manoir Englouti",
+  type: "cle",
+  rarity: "epique",
+  dungeon: "manoir_englouti",
+  craftLevel: 3,
+  img: `${ICON_BASE}/keys/cle_du_manoir.png`,
+  desc: "Ouvre le Manoir Englouti",
+};
+
+// ---------------------------------------------------------
 // RELIQUES — butin de boss, non fabricables, très rares. Chaque boss a la sienne (un seul emplacement rempli
 // pour l'instant : relique1 ; les trois autres viendront avec les prochains boss).
 // `passive` : effet spécial lu par le moteur de combat (voir calcStats.passives).

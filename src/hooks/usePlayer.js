@@ -19,6 +19,7 @@ export function usePlayer(initial) {
   const equipItem = useCallback((item) => {
     setPlayer((prev) => {
       const slot = item.type; // ex: "chapeau", "arme", "bouclier"
+      if (!(slot in prev.equipped)) return prev;   // clés et autres objets sans emplacement : ne s'équipent pas
       const previousItem = prev.equipped[slot];
       const newEquipped = { ...prev.equipped, [slot]: item };
       let newInventory = prev.inventory.filter((i) => i.uid !== item.uid);
