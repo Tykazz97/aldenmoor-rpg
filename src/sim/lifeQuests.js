@@ -5,7 +5,7 @@
 //   - chasse : ils chassent en priorité l'ennemi demandé (la progression vient de leurs victoires, voir lives.js) ;
 //   - récolte : la progression vient de leurs récoltes ;
 //   - livraison : ils ne l'acceptent que s'ils ont déjà les ressources dans leur sac ;
-//   - ni fabrication (pas encore), ni boss (pas encore).
+//   - chasse d'un mini-boss (y compris la fin de la chaîne) quand il a le niveau pour l'affronter ; pas de fabrication (pas encore).
 // Sans React, testable.
 // ============================================================
 import { boardFor, acceptQuest, completeQuest, abandonQuest, progressOf, dayKey } from "../utils/quests.js";
@@ -40,8 +40,8 @@ export function bump(life, kind, id, n = 1) {
   k[id] = (k[id] || 0) + n;
 }
 
-// Ennemis que le simulé peut chasser dans sa région (jamais un mini-boss)
-export const feasibleKill = (quest, pool) => !ENEMIES[quest.target]?.miniBoss && pool.has(quest.target);
+// Ennemis que le simulé peut chasser : ceux de sa région, et les mini-boss qu'il peut affronter (lifeBoss.js)
+export const feasibleKill = (quest, pool) => pool.has(quest.target);
 
 // Un tour de quêtes : rend ce qui est terminé, abandonne ce qui traîne, puis en accepte une au besoin.
 // `pool` : ensemble des ennemis de sa région ; renvoie le nombre de quêtes rendues.

@@ -25,6 +25,7 @@ import { BAG_ITEMS_MAX, starterGear, tierGear, acquireItem, craftStep, sellSurpl
 import { makeRng, hashString } from "./rng.js";
 import { bankStep, drawFromBank } from "./lifeBank.js";
 import { shoppingList } from "./lifeCraft.js";
+import { bossStep, reachableBosses } from "./lifeBoss.js";
 import { emptyQuests, bump, questStep, huntTarget } from "./lifeQuests.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
@@ -33,6 +34,7 @@ export const FIGHTS_PER_STEP = 0.6;                    // combats par pas de 10 
 export const GATHERS_PER_STEP = 2;                     // récoltes par pas de 10 min
 export { BAG_ITEMS_MAX };
 export const OVERLEVEL_HALF = 2;                       // au-delà du niveau max de la région : l'xp est divisée par 2 tous les 2 niveaux
+const BOSS_CHANCE = 0.04;                              // chance de tenter un boss plutôt que des combats ordinaires (quand l'un est disponible)
 const QUEST_CHANCE = 0.5;                              // chance de passer au tableau des quêtes pendant un pas actif
 const PROFESSIONS_OF_GATHER = ["bucheron", "mineur", "herboriste"];
 
@@ -133,6 +135,9 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
   const roll = rng();
   if (roll < share.fight) {
     const region = regionFor(life.level);
+    const hunt0 = huntTarget(life);
+    const bossTry = rng() < (hunt0 && ENEMIES[hunt0]?.miniBoss ? 0.9 : BOSS_CHANCE);
+    if (bossTry && bossStep(life, bot, step, rng, { hunt: hunt0, acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
     const n = Math.floor(FIGHTS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());   // arrondi au hasard : 0,4 combat = 4 chances sur 10 d'en faire un
     const mult = overlevelMult(life.level);
     let xp = 0, gold = 0;
@@ -155,7 +160,7 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
     if (life.bank && Object.keys(life.bank.resources).length) drawFromBank(life, shoppingList(life, bot));   // il sort du coffre ce dont l'atelier a besoin
     craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : raffiner, fabriquer, s'équiper
   }
-  if (rng() < QUEST_CHANCE) questStep(life, bot, step * STEP_MS, rng, regionFor(life.level).enemyKeys);   // tableau des quêtes
+  if (rng() < QUEST_CHANCE) questStep(life, bot, step * STEP_MS, rng, new Set([...regionFor(life.level).enemyKeys, ...reachableBosses(life).map((b) => b.key)]));   // tableau des quêtes
   bankStep(life);                                                // il range le surplus au coffre
   sellSurplus(life, opts.keep);
   return life;

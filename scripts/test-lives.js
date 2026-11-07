@@ -15,6 +15,8 @@ import { calcStats } from "../src/utils/calcStats.js";
 import { emptyQuests, questStep, bump, huntTarget } from "../src/sim/lifeQuests.js";
 import { boardFor, progressOf, dayKey, standingOf } from "../src/utils/quests.js";
 import { ENEMIES } from "../src/data/zones.js";
+import { bossStep, BOSSES, bossOf, BOSS_COOLDOWN_STEPS, reachableBosses } from "../src/sim/lifeBoss.js";
+import { winChance } from "../src/sim/botFight.js";
 import { bankStep, drawFromBank, bankFreeSlots, emptyBank, sellableOf, takeForSale, BANK_SELL_KEEP, BANK_MAX_PER_RES, BAG_RES_DEPOSIT, BAG_RES_KEEP, BAG_ITEMS_KEEP } from "../src/sim/lifeBank.js";
 import { bankCapacity, bankUsed, BANK_START } from "../src/utils/bank.js";
 import { RECIPES } from "../src/data/recipes.js";
@@ -252,7 +254,7 @@ await test("les compagnons combattent avec leur vrai équipement : un simulé ma
   assert.equal(dflt.stats.maxHp, strong.stats.maxHp, "sans équipement connu : celui du palier, comme avant");
 });
 
-await test("quêtes : après un mois, les simulés ont rendu des quêtes du vrai tableau (réputation, chaîne, compteurs) sans jamais s'attaquer à un boss", () => {
+await test("quêtes : après un mois, les simulés ont rendu des quêtes du vrai tableau (réputation, chaîne, compteurs), sans fabrication", () => {
   const w = run(fresh(), 30);
   let withRep = 0, chain = 0, counters = 0, boss = 0;
   for (const b of pop) {
@@ -261,12 +263,11 @@ await test("quêtes : après un mois, les simulés ont rendu des quêtes du vrai
     if (Object.values(q.rep).some((v) => v > 0)) withRep++;
     if (q.chain.length) chain++;
     if (Object.values(q.counters.kills).some((v) => v > 0)) counters++;
-    if (q.chain.includes("chain_veilleur") || q.counters.kills.veilleur_corrompu) boss++;
-    for (const a of q.active) assert.ok(a.type !== "craft" && !ENEMIES[a.target]?.miniBoss, `quête interdite ${a.id}`);
+    if (q.chain.includes("chain_veilleur")) { boss++; assert.ok(w.lives[b.id].level >= 18 && (w.lives[b.id].boss?.kills.veilleur_corrompu || 0) >= 1, "fin de chaîne = Veilleur vaincu"); }
+    for (const a of q.active) assert.ok(a.type !== "craft", `quête interdite ${a.id}`);
   }
   assert.ok(withRep > 150, `${withRep} simulés ont de la réputation`);
   assert.ok(counters > 150 && chain > 20, `${counters} compteurs, ${chain} chaînes`);
-  assert.equal(boss, 0);
 });
 
 await test("quêtes : questStep utilise les vraies règles (acceptation, progression par compteurs, récompenses) et rend l'or et l'xp", () => {
@@ -394,6 +395,46 @@ await test("coffre : seul le trop-plein est vendu (d'abord celui du coffre), et 
   bankStep(life);
   assert.equal(life.bank.resources.bois_de_frene, BANK_MAX_PER_RES);
   assert.ok(life.gold > g, "le surplus est bradé contre de l'or");
+});
+
+await test("boss : un simulé trop faible n'en tente aucun ; un boss ne se retente pas avant un jour ; la chance de victoire vient du vrai moteur de combat", () => {
+  const bot = pop.find((b) => b.classKey === "assassin"), rng = makeRng(5);
+  const low = initialLife(bot, "fresh");
+  assert.deepEqual(reachableBosses(low), []);
+  assert.equal(bossStep(low, bot, 1000, rng, { acquire: acquireItem, addXp: () => {} }), null);
+  // niveau 22 bien équipé : le Cavalier est une formalité, le Veilleur en solo est incertain
+  const high = { ...initialLife(bot, "fresh"), level: 22, gear: tierGear("assassin", 22) };
+  assert.equal(winChance(bot, high, ["cavalier_dechu"]), 1);
+  const pv = winChance(bot, high, ["veilleur_corrompu"]);
+  assert.ok(pv > 0 && pv <= 1);
+  assert.ok(winChance(bot, high, ["veilleur_corrompu"], ["guerrier", "magicien"]) >= pv, "à trois c'est plus facile");
+  const weak = { ...high, level: 8, gear: starterGear("assassin") };
+  assert.ok(winChance(bot, weak, ["epouvantail_ancestral"]) < 0.5, "trop faible pour l'Épouvantail");
+  // une victoire : xp, or, kills et compteurs de quête ; puis cooldown d'un jour
+  let res = null, step = 5000;
+  for (let i = 0; i < 20 && res !== "win"; i++, step += BOSS_COOLDOWN_STEPS) { high.xp = 0; res = bossStep(high, bot, step, makeRng(100 + i), { hunt: "cavalier_dechu", acquire: acquireItem, addXp: (l, x) => { l.xp += x; } }); }
+  assert.equal(res, "win");
+  assert.ok(high.quests.counters.kills.cavalier_dechu >= 1 && bossOf(high).kills.cavalier_dechu >= 1 && high.kills >= 1 && high.xp > 0);
+  assert.equal(bossStep(high, bot, step - BOSS_COOLDOWN_STEPS + 10, makeRng(1), { acquire: acquireItem, addXp: () => {} }), null, "un jour de repos");
+});
+
+await test("boss : après un mois, beaucoup ont vaincu des boss (jamais sous le niveau conseillé, au plus un par jour), les armes uniques sont rares et de leur classe", () => {
+  const w = run(fresh(), 30);
+  let withBoss = 0, total = 0, relics = 0;
+  const rec = Object.fromEntries(BOSSES.map((x) => [x.key, x.rec]));
+  for (const b of pop) {
+    const l = w.lives[b.id], st = l.boss;
+    if (!st) continue;
+    const kills = Object.entries(st.kills);
+    if (kills.length) withBoss++;
+    let n = 0;
+    for (const [k, v] of kills) { n += v; assert.ok(l.level >= rec[k], `${b.id} niveau ${l.level} a vaincu ${k}`); assert.ok(l.quests.counters.kills[k] >= v); }
+    total += n;
+    assert.ok(n <= 31, `${b.id} : ${n} boss en 30 jours`);
+    for (const id of [...Object.values(l.gear), ...l.bag.items, ...(l.bank?.items || [])]) if (ITEMS[id]?.rarity === "legendaire") { relics++; assert.equal(ITEMS[id].classKey, b.classKey, `${id} sur un ${b.classKey}`); }
+  }
+  assert.ok(withBoss > 100 && total > 300, `${withBoss} simulés, ${total} victoires`);
+  assert.ok(relics <= 40, `${relics} armes uniques`);
 });
 
 console.log(`\n${n} tests passent.`);
