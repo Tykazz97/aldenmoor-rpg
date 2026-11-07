@@ -27,7 +27,8 @@ import { ITEM_SELL_RATE, itemValue, itemSellPrice } from "./itemValue.js";
 import { getPopulation } from "../sim/population.js";
 import { SIM_START } from "../sim/config.js";
 import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
-import { shoppingList, stash } from "../sim/lifeCraft.js";
+import { shoppingList, stash, acquireItem, gearScore, targetPieces } from "../sim/lifeCraft.js";
+import { BUILDS } from "../sim/partyBots.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
 import { potionShopping, POTION_KEEP } from "../sim/lifePotions.js";
@@ -127,15 +128,48 @@ function returnToSim(s, l) {
 
 // Les simulés présents achètent ce qu'il leur manque pour leur prochaine fabrication (annonces les moins chères d'abord,
 // jamais au-delà de 1,6 fois le cours, jamais les leurs), puis fabriquent au pas suivant
+// Les simulés riches s'équipent à l'hôtel des ventes : ils achètent à d'autres joueurs (toi compris) les pièces de LEUR équipement
+// (les paliers de leur classe, voir BUILDS) qui valent mieux que ce qu'ils portent. L'or passe au vendeur (sauf le colporteur : perdu).
+export const GEAR_RICH = 4000;              // en dessous, un simulé ne s'équipe pas ici
+export const GEAR_RESERVE = 1500;           // il garde toujours cet or de côté
+export const RICH_CAP = 10000;              // au-delà, il accepte aussi de payer les ingrédients plus cher (2,2 fois le cours au lieu de 1,6)
+const PIECES = new Map();
+const piecesOf = (classKey) => {
+  let set = PIECES.get(classKey);
+  if (!set) { set = new Set(BUILDS[classKey].tiers.flatMap((_, i) => targetPieces(classKey, i))); PIECES.set(classKey, set); }
+  return set;
+};
+export function simBuysGear(s, life, b, bucket) {
+  if (life.gold < GEAR_RICH) return false;
+  const mine = piecesOf(b.classKey);
+  let best = null, bestGain = 0;
+  for (const l of s.listings) {
+    if (l.kind !== "item" || l.qty < 1 || l.seller === b.id || !mine.has(l.rid) || l.unit > life.gold - GEAR_RESERVE) continue;
+    const it = ITEMS[l.rid], cur = life.gear[it.type];
+    if ((it.type === "bouclier" && ITEMS[life.gear.arme]?.twoHanded) || (it.type === "arme" && it.twoHanded && life.gear.bouclier)) continue;
+    const gain = gearScore(l.rid) - (cur ? gearScore(cur) : 0);
+    if (gain > bestGain) { best = l; bestGain = gain; }
+  }
+  if (!best) return false;
+  best.qty = 0;
+  life.gold -= best.unit;
+  creditSeller(s, best, 1, bucket);
+  acquireItem(life, best.rid);
+  life.gearBought = (life.gearBought || 0) + 1;
+  tally(s, bucket, "items");
+  return true;
+}
+
 const mergeWant = (a, b) => { const m = { ...a }; for (const [k, v] of Object.entries(b)) m[k] = (m[k] || 0) + v; return m; };
 function simsShop(s, bucket, rng) {
   for (const b of getPopulation()) {
     const life = s.sims.lives[b.id];
     if (!life || life.gold < 1 || !isActive(b, bucket) || rng() > 0.4) continue;
+    simBuysGear(s, life, b, bucket);
     const want = drawFromBank(life, mergeWant(mergeWant(shoppingList(life, b), keyShopping(life)), potionShopping(life)));          // d'abord son coffre
     for (const [rid, qty] of Object.entries(want)) {
       if (!RESOURCES[rid]) continue;
-      const cap = refPrice(s, rid) * 1.6;
+      const cap = refPrice(s, rid) * (life.gold >= RICH_CAP ? 2.2 : 1.6);
       let left = qty;
       for (const l of sorted(s.listings.filter((x) => x.kind === "res" && x.rid === rid && x.seller !== b.id && x.unit <= cap))) {
         if (left < 1) break;

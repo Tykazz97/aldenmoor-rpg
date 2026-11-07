@@ -116,7 +116,7 @@ for (const [name, label] of [["occasionnel", "occasionnels"], ["regulier", "rég
   const g = L.filter((l) => { const t = traitsOf(byId.get(l.id)); return t.profile === pf && (!fc || t.focus === fc); });
   if (!g.length) continue;
   const pro = (l) => Math.max(l.prof.level, ...Object.values(l.pro || {}).map((p) => p.level));
-  console.log(`  ${label.padEnd(20)} ${String(g.length).padStart(3)} simulés : niveau médian ${med(g.map((l) => l.level))} (max ${Math.max(...g.map((l) => l.level))}), meilleur métier médian ${med(g.map(pro))}, or médian ${med(g.map((l) => l.gold))}, donjons ${g.reduce((a, l) => a + (l.dj?.runs || 0), 0)}`);
+  console.log(`  ${label.padEnd(20)} ${String(g.length).padStart(3)} simulés : niveau médian ${med(g.map((l) => l.level))} (max ${Math.max(...g.map((l) => l.level))}), meilleur métier médian ${med(g.map(pro))}, or médian ${med(g.map((l) => l.gold))}, donjons ${g.reduce((a, l) => a + (l.dj?.runs || 0), 0)}, pièces achetées au marché ${g.reduce((a, l) => a + (l.gearBought || 0), 0)}`);
 }
 console.log(`  annonces : ${m.listings.length} (dont ${m.listings.filter((x) => x.seller === "npc").length} du colporteur)`);
 if (problems.length) { console.log(`\n${problems.length} anomalie(s) :`); problems.forEach((p) => console.log("  ✖", p)); process.exitCode = 1; }

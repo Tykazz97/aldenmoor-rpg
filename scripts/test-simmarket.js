@@ -2,11 +2,13 @@
 import assert from "node:assert/strict";
 import {
   newMarket, tickMarket, marketOf, enableSimMarket, simMarketEnabled, buyFromListing, buyCheapest, postListing, settleMarket,
-  listingsFor, sellerName, STEP_MS, supplyOf, targetStock, marketBehind, CATCHUP_SLICE,
+  listingsFor, sellerName, STEP_MS, supplyOf, targetStock, marketBehind, CATCHUP_SLICE, simBuysGear, GEAR_RICH, GEAR_RESERVE,
 } from "../src/utils/market.js";
 import { getPopulation } from "../src/sim/population.js";
 import { RESOURCES, RESOURCE_ORDER } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";
+import { initialLife } from "../src/sim/lives.js";
+import { tierGear, gearScore, targetPieces } from "../src/sim/lifeCraft.js";
 
 let n = 0;
 const test = async (name, fn) => { await fn(); n++; console.log("  ✓", name); };
@@ -151,5 +153,33 @@ await test("rattrapage par tranches : le même marché et les mêmes simulés qu
   assert.equal(tickMarket(m, target, { maxSteps: CATCHUP_SLICE }), m, "à jour : rien ne change");
   assert.equal(marketBehind(null, target), false);
 }));
+
+await test("un simulé riche s'équipe à l'hôtel des ventes : une pièce de sa classe meilleure que la sienne, payée au vendeur ; jamais s'il est pauvre", () => {
+  const bot = pop.find((b) => b.classKey === "guerrier");
+  const better = targetPieces("guerrier", 2).find((id) => ITEMS[id].type === "plastron");
+  const mk = (gold, seller = "player") => {
+    const life = initialLife(bot, "fresh", 1); life.gold = gold; life.gear = { ...tierGear("guerrier", 5) };   // palier 1
+    const lives = { [bot.id]: life, sim_other: { gold: 0, bag: { res: {}, items: [] } } };
+    const s = { listings: [{ id: 1, seller, kind: "item", rid: better, item: { ...ITEMS[better], uid: "u" }, qty: 1, unit: 900, exp: 1e9 }], proceeds: 0, sales: [], sims: { lives }, volume: [] };
+    return { s, life, bot };
+  };
+  assert.ok(gearScore(better) > gearScore(tierGear("guerrier", 5).plastron), "la pièce du palier 3 vaut mieux");
+  let { s, life } = mk(GEAR_RICH - 1);
+  assert.equal(simBuysGear(s, life, bot, 5), false, "pauvre : rien"); assert.equal(s.listings[0].qty, 1);
+  ({ s, life } = mk(GEAR_RICH + 500));
+  const before = life.gold;
+  assert.equal(simBuysGear(s, life, bot, 5), true);
+  assert.equal(life.gear.plastron, better, "il la porte"); assert.equal(life.gold, before - 900);
+  assert.equal(s.listings[0].qty, 0, "l'annonce est vendue"); assert.equal(s.proceeds, 900, "le vendeur (toi) touche l'or"); assert.equal(life.gearBought, 1);
+  ({ s, life } = mk(2000));
+  life.gold = GEAR_RICH; s.listings[0].unit = GEAR_RICH - GEAR_RESERVE + 1;
+  assert.equal(simBuysGear(s, life, bot, 5), false, "il garde toujours sa réserve");
+  ({ s, life } = mk(9000, "sim_other"));
+  assert.equal(simBuysGear(s, life, bot, 5), true); assert.equal(s.sims.lives.sim_other.gold, 900, "un simulé vendeur est payé directement");
+  ({ s, life } = mk(9000)); life.gear.plastron = better;
+  assert.equal(simBuysGear(s, life, bot, 5), false, "pas d'amélioration : il n'achète pas");
+  ({ s, life } = mk(9000)); s.listings[0].rid = targetPieces("magicien", 2).find((id) => ITEMS[id].type === "plastron");
+  assert.equal(simBuysGear(s, life, bot, 5), false, "pas une pièce de sa classe");
+});
 
 console.log(`\n${n} tests passent.`);
