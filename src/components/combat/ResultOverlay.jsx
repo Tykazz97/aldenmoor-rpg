@@ -6,7 +6,8 @@ import { applyRewards, xpToNext } from "../../utils/progression.js";
 import { color } from "../../styles/theme.js";
 
 // Écran de fin de combat : butin en cas de victoire, relance en cas de défaite
-export default function ResultOverlay({ ended, cs, encounter, player, backLabel, onClaim, onRestart, onExit }) {
+// `dungeon` : { index, total } quand c'est une salle de donjon (on enchaîne la suite, et une défaite met fin à l'expédition)
+export default function ResultOverlay({ ended, cs, encounter, player, backLabel, dungeon = null, onClaim, onRestart, onExit }) {
   if (ended === "victory" && cs.rewards) {
     const preview = applyRewards(player, cs.rewards);
     const newSpells = classSpellsAt(player.classKey, preview.player.level).filter((sp) => sp.level > player.level);
@@ -40,7 +41,20 @@ export default function ResultOverlay({ ended, cs, encounter, player, backLabel,
             Expérience : {preview.player.xp} / {xpToNext(preview.player.level)}
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            <button className="cb-btn primary" onClick={onClaim}>Récupérer le butin</button>
+            <button className="cb-btn primary" onClick={onClaim}>{dungeon ? (dungeon.index + 1 < dungeon.total ? "Récupérer le butin et avancer" : "Récupérer le butin et sortir") : "Récupérer le butin"}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (ended === "defeat" && dungeon) {
+    return (
+      <div className="cb-overlay">
+        <div className="cb-card lose">
+          <h2>Expédition perdue</h2>
+          <div className="sub">Le groupe est repoussé hors du manoir. Le butin des salles déjà gagnées est à toi, mais la clé est perdue.</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button className="cb-btn primary" onClick={() => onExit(false)}>Sortir du manoir</button>
           </div>
         </div>
       </div>

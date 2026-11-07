@@ -192,6 +192,34 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("donjon : clé fabriquée chez le Bricoleur, entrée du Manoir Englouti sur la Lisière, salle 1 en groupe, clé consommée", async () => {
+    await tab("Atelier").click(); await page.waitForTimeout(250);
+    for (let i = 0; i < 3; i++) await page.locator("button", { hasText: "+ Ressources" }).click();
+    await page.locator("button", { hasText: "+ 500 or" }).click();
+    await page.locator("button", { hasText: "Bricoleur" }).first().click(); await page.waitForTimeout(300);
+    await page.locator("div", { hasText: /^Clé du Manoir Englouti/ }).last().locator("xpath=ancestor::div[contains(@style,'border')][1]").locator("button:not([disabled])", { hasText: "Crafter" }).first().click();
+    await page.waitForTimeout(400);
+    const keys = (s) => s.player.inventory.filter((i) => i.id === "cle_du_manoir").length;
+    const k0 = keys(await save());
+    assert.ok(k0 >= 1, "la clé est dans le sac");
+    await tab("Carte").click(); await page.waitForTimeout(500);
+    const bld = page.locator(".mp-building", { hasText: "Manoir Englouti" });
+    assert.equal(await bld.count(), 1, "l'entrée du donjon est sur la carte de la Lisière");
+    await bld.evaluate((e) => e.click());   // hors de la vue : on déclenche le clic, le héros marche jusqu'à l'entrée
+    await page.locator(".mp-popup").waitFor({ timeout: 40000 });
+    const pop = (await page.locator(".mp-popup").innerText()).toLowerCase();
+    for (const w of ["Hall inondé", "Chapelle ardente", "Niveaux 20 à 26"]) assert.ok(pop.includes(w.toLowerCase()), w);
+    assert.equal(await page.locator("button", { hasText: "Combattre seul" }).count(), 0, "pas de solo dans un donjon");
+    await page.locator("button", { hasText: "Entrer avec mon groupe" }).click();
+    await page.locator(".cb-tl.ally").first().waitFor({ timeout: 30000 });
+    assert.equal(await page.locator(".cb-tl.ally").count(), 2, "trois héros dans le donjon");
+    await page.waitForTimeout(1500);
+    assert.equal(keys(await save()), k0 - 1, "une clé est consommée dès l'entrée");
+    await page.locator(".cb-btn", { hasText: "Quitter" }).click();
+    await page.locator(".mp-map").waitFor({ timeout: 10000 });
+    assert.deepEqual(errors, []);
+  });
+
   console.log(`\n${passed} étapes réussies, aucune erreur dans la console.`);
 } catch (e) {
   console.error("\nÉchec du test d'interface.");

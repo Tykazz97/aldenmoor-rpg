@@ -14,6 +14,9 @@ import { SIM_PLAYERS, SIM_ON_MAPS } from "../../sim/config.js";
 import { createMapLife, stepMapLife, whoFights } from "../../sim/mapLife.js";
 import { getLivePopulation } from "../../sim/simWorld.js";
 import { EncounterFight } from "../combat/CombatScreen.jsx";
+import DungeonRun from "../combat/DungeonRun.jsx";
+import { DUNGEONS } from "../../data/dungeons.js";
+import { consumeKey } from "../../utils/dungeon.js";
 import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
 import { RESOURCES } from "../../data/resources.js";
@@ -29,6 +32,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const map = MAPS[world.mapKey];
   const W = mapWidth(map), H = mapHeight(map);
   const [fight, setFight] = useState(null);       // { group, enc }
+  const [run, setRun] = useState(null);           // expédition en cours : { dungeon }
   const [popup, setPopup] = useState(null);       // groupe sur lequel on s'apprête à engager
   const [harvest, setHarvest] = useState(null);   // { node } pendant une récolte
   const [facing, setFacing] = useState(1);
@@ -66,7 +70,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   blockedRef.current = blocked;
   const objsRef = useRef({ groups, nodes, buildings });
   objsRef.current = { groups, nodes, buildings };
-  pausedRef.current = !!(fight || harvest || building);
+  pausedRef.current = !!(fight || run || harvest || building);
 
   const outfit = heroLook(player, stats);
   const outfitRef = useRef(outfit);
@@ -138,7 +142,9 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
 
   const openBuilding = useCallback((b) => {
     facingRef.current = b.cx >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
-    if (b.kind === "portail") setView("world"); else setBuilding(b);
+    if (b.kind === "portail") setView("world");
+    else if (b.kind === "donjon") setPopup({ id: b.id, x: b.x, y: b.y, dungeon: DUNGEONS[b.dungeon] });
+    else setBuilding(b);
   }, []);
 
   // voyage vers une autre carte (région ou ville) depuis la carte du monde
@@ -182,6 +188,23 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
     map, W, H, fight, syncPos, openPopup, openBuilding, startHarvest, setPopup, setFacing, setWalking,
     refs: { viewRef, worldElRef, heroRef, heroAnimRef, dotRef, harvestAct, animKey, posRef, camRef, pathRef, keysRef, touchRef, harvestRef, pausedRef, facingRef, walkingRef, outfitRef, blockedRef, objsRef },
   });
+
+  // ---------- donjon ----------
+  if (run) {
+    return (
+      <DungeonRun
+        dungeon={run.dungeon}
+        player={player}
+        stats={stats}
+        onRewards={onRewards}
+        onDone={(cleared) => {
+          setWorld((w) => ({ ...w, pos: { ...posRef.current } }));
+          showToast(cleared ? `${run.dungeon.name} : expédition réussie !` : `${run.dungeon.name} : expédition perdue.`);
+          setRun(null);
+        }}
+      />
+    );
+  }
 
   // ---------- combat ----------
   if (fight) {
@@ -318,7 +341,12 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
 
           {life && <CityChat feed={feed} online={life.agents.length + 1} onSend={sendChat} playerName={player.name} />}
 
-          {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} classKey={player.classKey} player={player} onCompanions={(ids) => onPlayerChange?.((p) => ({ ...p, companions: ids }))} onFight={(party) => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter), party }); setPopup(null); }} onBack={() => setPopup(null)} />}
+          {popup && <EngagePopup group={popup} dungeon={popup.dungeon} hasWeapon={!!player.equipped.arme} classKey={player.classKey} player={player} onCompanions={(ids) => onPlayerChange?.((p) => ({ ...p, companions: ids }))} onFight={(party) => {
+            syncPos();
+            if (popup.dungeon) { onPlayerChange?.((p) => consumeKey(p, popup.dungeon)); setRun({ dungeon: popup.dungeon }); }
+            else setFight({ group: popup, enc: encounterOf(popup.encounter), party });
+            setPopup(null);
+          }} onBack={() => setPopup(null)} />}
         </div>
       </div>
       )}

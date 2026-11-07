@@ -239,7 +239,7 @@ export const MAPS = {
       { id: "esprits_1", encounter: "esprits", x: 23, y: 26 },
       { id: "esprits_2", encounter: "esprits", x: 14, y: 13 },
       { id: "esprits_3", encounter: "esprits", x: 14, y: 19 },
-      { id: "chevaliers_1", encounter: "chevaliers", x: 44, y: 13 },
+      { id: "chevaliers_1", encounter: "chevaliers", x: 46, y: 7 },
       { id: "chevaliers_2", encounter: "chevaliers", x: 37, y: 27 },
       { id: "chevaliers_3", encounter: "chevaliers", x: 46, y: 5 },
       { id: "lisiere_1", encounter: "lisiere", x: 39, y: 7 },
@@ -247,6 +247,10 @@ export const MAPS = {
       { id: "lisiere_3", encounter: "lisiere", x: 36, y: 17 },
       // Le Veilleur Corrompu : au bout de la lisière, même délai de retour que les autres groupes
       { id: "veilleur_boss", encounter: "veilleur_boss", x: 46, y: 16 },
+    ],
+    // L'entrée du donjon, derrière le Veilleur : un bâtiment (une seule tuile bloquée) qui ouvre la fiche du donjon
+    buildings: [
+      { id: "manoir_englouti", kind: "donjon", dungeon: "manoir_englouti", name: "Le Manoir Englouti", hint: "Donjon · groupe de 3 · clé requise", img: "/assets/map/manoir.png", a: 43, y: 15, fw: 1, fh: 1, w: 5.6 },
     ],
     nodes: [
       { id: "frene_1", node: "frene", x: 16, y: 8 },

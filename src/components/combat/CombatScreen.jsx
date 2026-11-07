@@ -60,11 +60,12 @@ export function EncounterFight({ encounter, player, stats, party = false, onRewa
 // Un combat : règles (état du moteur, actions du joueur) ici,
 // mise en scène dans useFightPlayback, affichage dans les composants.
 // ------------------------------------------------------------
-function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire" }) {
+// `carry` / `dungeon` : salle d'un donjon (PV reportés de la salle précédente, pas de relance en cas de défaite)
+export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null }) {
   // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
   const allySpecs = useMemo(() => (party ? buildAllies(player, player.companions, getLivePopulation(player)) : []), []); // eslint-disable-line
   const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, heroSpriteUrl(a.look)])), [allySpecs]);
-  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs }), []); // eslint-disable-line
+  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
   const [speed, setSpeed] = useState(1);
@@ -91,7 +92,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, o
 
   // Introduction puis démarrage
   useEffect(() => {
-    showBanner(encounter.boss ? encounter.name : "Combat !", "", 1300);
+    showBanner(encounter.banner || (encounter.boss ? encounter.name : "Combat !"), "", 1300);
     const t = setTimeout(() => step(), 1100);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line
@@ -133,7 +134,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, o
     if (claimed) return;
     setClaimed(true);
     onRewards(cs.rewards);
-    onExit(true);
+    onExit(true, { player: cs.player.hp, allies: cs.allies.map((a) => a.hp), rewards: cs.rewards });
   };
 
   const p = cs.player;
@@ -218,7 +219,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, o
           <div className="cb-vignette" />
         </div>
 
-        <ResultOverlay ended={ended} cs={cs} encounter={encounter} player={player} backLabel={backLabel} onClaim={claim} onRestart={onRestart} onExit={onExit} />
+        <ResultOverlay ended={ended} cs={cs} encounter={encounter} player={player} backLabel={backLabel} dungeon={dungeon} onClaim={claim} onRestart={onRestart} onExit={onExit} />
       </div>
 
       {/* ---------- INTERFACE ---------- */}

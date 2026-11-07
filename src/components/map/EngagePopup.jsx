@@ -7,11 +7,13 @@ import { encounterOf } from "./mapConstants.js";
 import { CLASSES } from "../../data/classes.js";
 import { PARTY_SIZE, buildAllies, companionCandidates } from "../../sim/partyBots.js";
 import { getLivePopulation } from "../../sim/simWorld.js";
+import { keyCount, dungeonDrops } from "../../utils/dungeon.js";
 
 // ------------------------------------------------------------
 // Fenêtre d'engagement : aperçu du groupe et du butin possible
 // ------------------------------------------------------------
-export default function EngagePopup({ group, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
+// `dungeon` : fiche d'entrée d'un donjon (data/dungeons.js) au lieu d'un groupe d'ennemis ; on y entre toujours en groupe, avec une clé
+export default function EngagePopup({ group, dungeon = null, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
   const [picking, setPicking] = useState(false);
   const population = getLivePopulation(player);
   const companions = player?.companions || [];
@@ -21,16 +23,20 @@ export default function EngagePopup({ group, hasWeapon, classKey, player, onComp
     const next = companions.includes(id) ? companions.filter((c) => c !== id) : [...companions, id].slice(-(PARTY_SIZE - 1));
     onCompanions?.(next);
   };
-  const enc = encounterOf(group.encounter);
+  const enc = dungeon
+    ? { name: dungeon.name, level: dungeon.levels, desc: dungeon.desc, boss: true, enemies: [...new Set(dungeon.rooms.flatMap((r) => r.enemies))] }
+    : encounterOf(group.encounter);
   const drops = [];
   const seen = new Set();
-  for (const k of enc.enemies) {
+  if (dungeon) drops.push(...dungeonDrops(dungeon, classKey));
+  else for (const k of enc.enemies) {
     for (const d of ENEMIES[k].drops || []) {
       if (d.forClass && d.forClass !== classKey) continue;
       const id = `${d.type}:${d.id}`;
       if (!seen.has(id)) { seen.add(id); drops.push(d); }
     }
   }
+  const keys = dungeon && player ? keyCount(player, dungeon) : 0;
   const order = { commune: 0, peu_commune: 1, rare: 2 };
   drops.sort((a, b) => (a.type === "item") - (b.type === "item") || (order[RESOURCES[a.id]?.rarity] ?? 9) - (order[RESOURCES[b.id]?.rarity] ?? 9));
   const enemyCount = {};
@@ -46,9 +52,11 @@ export default function EngagePopup({ group, hasWeapon, classKey, player, onComp
           <div className="mp-pop-name">{enc.name}<span className={`mp-tag ${enc.boss ? "boss" : ""}`}>{enc.level}</span></div>
           <div className="mp-pop-desc">{enc.desc}</div>
           <div className="mp-pop-list">
-            {Object.entries(enemyCount).map(([k, n]) => (
-              <span key={k}>{n > 1 ? `${n}× ` : ""}{ENEMIES[k].name} · {ENEMIES[k].stats.hp} PV</span>
-            ))}
+            {dungeon
+              ? dungeon.rooms.map((r, i) => <span key={r.id}>{i + 1}. {r.name}{r.boss ? " · boss" : ""}</span>)
+              : Object.entries(enemyCount).map(([k, n]) => (
+                <span key={k}>{n > 1 ? `${n}× ` : ""}{ENEMIES[k].name} · {ENEMIES[k].stats.hp} PV</span>
+              ))}
           </div>
         </div>
       </div>
@@ -80,10 +88,18 @@ export default function EngagePopup({ group, hasWeapon, classKey, player, onComp
         </div>
       )}
       {!hasWeapon && <div className="mp-pop-warn">Aucune arme équipée : tu te battras à mains nues.</div>}
+      {dungeon && keys === 0 && <div className="mp-pop-warn">Il te faut une {ITEMS[dungeon.keyItem].name} : le Bricoleur la fabrique à l'atelier.</div>}
+      {dungeon && keys > 0 && <div className="mp-pop-warn">Les PV ne sont pas rendus entre les salles. La clé est consommée à l'entrée, même si l'expédition échoue. Niveau conseillé : {dungeon.minLevel} et plus.</div>}
       <div className="mp-pop-btns">
         <button className="cb-btn" onClick={onBack}>Reculer</button>
-        <button className="cb-btn" onClick={() => onFight(true)} title="Deux compagnons combattent à tes côtés : butin meilleur (jusqu'à ×1,5), mais moins d'xp qu'en solo">👥 En groupe</button>
-        <button className="cb-btn primary" onClick={() => onFight(false)}>⚔ Combattre seul</button>
+        {dungeon ? (
+          <button className="cb-btn primary" disabled={keys === 0} onClick={() => onFight(true)} title="Trois héros : toi et deux compagnons">🗝 Entrer avec mon groupe{keys > 0 ? ` (${keys} clé${keys > 1 ? "s" : ""})` : ""}</button>
+        ) : (
+          <>
+            <button className="cb-btn" onClick={() => onFight(true)} title="Deux compagnons combattent à tes côtés : butin meilleur (jusqu'à ×1,5), mais moins d'xp qu'en solo">👥 En groupe</button>
+            <button className="cb-btn primary" onClick={() => onFight(false)}>⚔ Combattre seul</button>
+          </>
+        )}
       </div>
     </div>
   );

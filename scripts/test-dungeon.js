@@ -10,6 +10,8 @@ import { calcStats } from "../src/utils/calcStats.js";
 import { createCombat, advance, castSpell, endTurn, DUNGEON_REVIVE } from "../src/combat/engine.js";
 import { autoDungeon, autoFight } from "../src/sim/botFight.js";
 import { makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
+import { keyCount, consumeKey, roomEncounter, dungeonDrops, addRewards, emptyRewards } from "../src/utils/dungeon.js";
+import { MAPS, buildingObjects } from "../src/data/maps.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -160,6 +162,38 @@ test("un groupe de trois niveau 24 en palier 4 passe le donjon plus souvent qu'e
   const t4 = run(true), t3 = run(false);
   assert.ok(t4.clears > t3.clears, `palier 4 : ${t4.clears}/12, palier 3 : ${t3.clears}/12`);
   assert.ok(t4.loot > 0);
+});
+
+test("clé : comptée, consommée une par une, même sans clé (rien ne change)", () => {
+  const key = (uid) => ({ ...ITEMS.cle_du_manoir, uid });
+  const p = { inventory: [key("a"), ITEMS.epee_milicien, key("b")] };
+  assert.equal(keyCount(p, dj), 2);
+  const q = consumeKey(p, dj);
+  assert.equal(keyCount(q, dj), 1);
+  assert.equal(q.inventory.length, 2);
+  assert.equal(keyCount(consumeKey(q, dj), dj), 0);
+  const none = { inventory: [ITEMS.epee_milicien] };
+  assert.equal(consumeKey(none, dj), none);
+});
+
+test("salles jouables comme des rencontres ; butin de la fiche d'entrée ; cumul du butin", () => {
+  const enc = roomEncounter(dj, 3);
+  assert.ok(enc.boss && enc.enemies[0] === "dame_en_deuil" && enc.banner.includes("Chapelle"));
+  assert.ok(!roomEncounter(dj, 0).boss);
+  const ids = dungeonDrops(dj, "guerrier").map((d) => d.id);
+  for (const id of ["soie_funeraire", "cuir_de_molosse", "plaque_noyee", "larme_de_deuil", "essence_de_deuil", "medaillon_dame_en_deuil"]) assert.ok(ids.includes(id), id);
+  const t = addRewards(addRewards(emptyRewards(), { xp: 10, gold: 5, resources: { plaque_noyee: 2 }, items: [] }), { xp: 1, gold: 1, resources: { plaque_noyee: 1, soie_funeraire: 1 }, items: ["medaillon_dame_en_deuil"] });
+  assert.deepEqual(t, { xp: 11, gold: 6, resources: { plaque_noyee: 3, soie_funeraire: 1 }, items: ["medaillon_dame_en_deuil"] });
+});
+
+test("l'entrée du donjon est sur la carte de la Lisière, sur une case libre et atteignable", () => {
+  const map = MAPS.lisiere_des_ombres;
+  const b = buildingObjects(map).find((x) => x.kind === "donjon");
+  assert.equal(b.dungeon, "manoir_englouti");
+  assert.ok(DUNGEONS[b.dungeon]);
+  const occupied = [...map.groups, ...map.nodes].some((o) => o.x === b.x && o.y === b.y);
+  assert.ok(!occupied, "case déjà prise");
+  assert.ok(".:".includes(map.rows[b.y][b.x]), "case non praticable");
 });
 
 console.log(`\n${n} tests OK`);
