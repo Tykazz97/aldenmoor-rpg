@@ -127,21 +127,17 @@ await test("sauvegarde : une sauvegarde valide est reconnue, une autre version, 
   assert.deepEqual(reloaded.lives, w.lives);
 });
 
-await test("navigateur : la liste vivante vient du localStorage, se rattrape à l'heure et survit à une sauvegarde abîmée", async () => {
-  const store = {};
-  globalThis.localStorage = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } };
-  store["aldenmoor:sims"] = "{ pas du json";
-  const { getLivePopulation, getLiveWorld, LIVES_KEY } = await import("../src/sim/simWorld.js");
-  const list = getLivePopulation();
+await test("vue du jeu : la liste vivante vient du monde rangé dans le marché du joueur ; sans simulés, la population de départ", async () => {
+  const { getLivePopulation } = await import("../src/sim/simWorld.js");
+  assert.equal(getLivePopulation(null), pop);
+  assert.equal(getLivePopulation({}), pop);
+  const sims = run(fresh(), 5);
+  const player = { market: { sims } };
+  const list = getLivePopulation(player);
   assert.equal(list.length, pop.length);
   assert.ok(list.every((b) => b.level >= 1 && b.life));
-  const saved = JSON.parse(store[LIVES_KEY]);
-  assert.equal(saved.v, 1); assert.equal(Object.keys(saved.lives).length, pop.length);
-  assert.equal(getLivePopulation(), list, "même tableau tant que rien ne change");
-  const later = getLivePopulation(Date.now() + 3 * DAY);
-  assert.notEqual(later, list);
-  assert.ok(JSON.parse(store[LIVES_KEY]).step > saved.step, "la sauvegarde avance avec l'heure");
-  assert.ok(getLiveWorld());
+  assert.equal(getLivePopulation(player), list, "même tableau tant que rien ne change");
+  assert.ok(list.some((b) => b.level > 1), "les niveaux du moment");
 });
 
 await test("sac : ils gardent les drops et la récolte, équipement de leur classe seulement, sac d'équipement plafonné", () => {

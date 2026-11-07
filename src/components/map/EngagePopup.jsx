@@ -13,7 +13,7 @@ import { getLivePopulation } from "../../sim/simWorld.js";
 // ------------------------------------------------------------
 export default function EngagePopup({ group, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
   const [picking, setPicking] = useState(false);
-  const population = getLivePopulation();
+  const population = getLivePopulation(player);
   const companions = player?.companions || [];
   const allies = useMemo(() => (player ? buildAllies(player, companions, population) : []), [player?.level, player?.classKey, companions.join()]); // eslint-disable-line
   const candidates = useMemo(() => (player && picking ? companionCandidates(player, population) : []), [picking, player?.level]); // eslint-disable-line

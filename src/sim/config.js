@@ -13,3 +13,8 @@ export const SIM_ON_MAPS = true;
 // Changer `epoch` (ou le mode) efface les sauvegardes des simulés dans le navigateur et recommence à zéro.
 // Pour le lancement : mode "fresh" et epoch = Date.now() du jour J (un nombre fixe, en millisecondes).
 export const SIM_START = { mode: "generated", epoch: 1 };
+
+// Marché relié aux simulés : leurs annonces viennent de leurs vrais sacs, ils achètent leurs ingrédients à l'hôtel des ventes
+// et touchent l'or de leurs ventes (le monde des simulés est alors rangé dans la sauvegarde du joueur, avec son marché).
+// À false : l'ancien marché abstrait.
+export const SIM_MARKET = true;

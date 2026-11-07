@@ -52,15 +52,20 @@ export const overlevelMult = (level) => { const hi = regionFor(level).hi; return
 
 // --- Traits de caractère qui ne changent pas (déduits de l'id, rien à sauvegarder) -----------------------------------
 const START_HOURS = [[17, 3], [18, 4], [19, 4], [20, 4], [21, 3], [22, 2], [13, 2], [14, 1], [9, 2], [10, 2], [15, 1]];
+const TRAITS_CACHE = new Map();
 export function traitsOf(bot) {
+  const hit = TRAITS_CACHE.get(bot.id);
+  if (hit) return hit;
   const r = makeRng(hashString(`life:${bot.id}`));
-  return {
+  const traits = {
     diligence: Math.round((0.45 + r() * 0.85) * 100) / 100,        // zèle : 0,45 à 1,3
     start: r.weighted(START_HOURS),                              // heure de début de séance (heure de Suisse)
     hours: r.int(2, 6),                                          // durée d'une séance
     playDay: Math.round((0.55 + r() * 0.4) * 100) / 100,         // probabilité de jouer un jour donné
     primary: r.pick(PROFESSIONS_OF_GATHER),                      // métier de récolte
   };
+  TRAITS_CACHE.set(bot.id, traits);
+  return traits;
 }
 
 // Joue-t-il pendant ce pas ?
@@ -116,7 +121,7 @@ export function rollDrops(life, bot, enemy, rng) {
 }
 
 // Un pas de 10 minutes (modifie `life`)
-export function stepLife(life, bot, step, traits = traitsOf(bot)) {
+export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
   if (!isActive(bot, step, traits)) return life;
   const rng = makeRng(hashString(`${bot.id}:${step}`));
   const share = SHARES[bot.activity] || SHARES.flaneur;
@@ -141,9 +146,9 @@ export function stepLife(life, bot, step, traits = traitsOf(bot)) {
       for (let i = 0; i < n; i++) life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + rng.int(node.yield[0], node.yield[1]);
     }
   } else {
-    craftStep(life, bot, rng);                          // atelier : raffiner, fabriquer, s'équiper
+    craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : raffiner, fabriquer, s'équiper
   }
-  sellSurplus(life);
+  sellSurplus(life, opts.keep);
   return life;
 }
 
@@ -158,20 +163,23 @@ export function createLives({ population, mode = "generated", epoch = 1, now = D
   return { v: 1, mode, epoch, step: start, lives };
 }
 
+// Un seul pas de simulation (utilisé aussi par le marché, qui fait avancer les simulés en même temps que lui)
+export function stepLivesOne(world, population, step, opts = {}, traits = null) {
+  for (const b of population) {
+    const life = world.lives[b.id];
+    if (life) stepLife(life, b, step, traits?.get(b.id) ?? traitsOf(b), opts);
+  }
+  world.step = step + 1;
+}
+
 // Rejoue tous les pas jusqu'à `now` (au plus MAX_CATCHUP_STEPS). Renvoie le nombre de pas joués.
-export function advanceLives(world, population, now = Date.now()) {
+export function advanceLives(world, population, now = Date.now(), opts = {}) {
   const target = stepOf(now);
   if (target <= world.step) return 0;
   if (target - world.step > MAX_CATCHUP_STEPS) world.step = target - MAX_CATCHUP_STEPS;
   const traits = new Map(population.map((b) => [b.id, traitsOf(b)]));
   let played = 0;
-  for (; world.step < target; world.step++) {
-    for (const b of population) {
-      const life = world.lives[b.id];
-      if (life) stepLife(life, b, world.step, traits.get(b.id));
-    }
-    played++;
-  }
+  while (world.step < target) { stepLivesOne(world, population, world.step, opts, traits); played++; }
   return played;
 }
 

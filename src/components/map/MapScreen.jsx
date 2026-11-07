@@ -75,7 +75,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const isCity = map.kind === "city";
   const { life, feed, heroBubble, sendChat, onCityEvents } = useCityChat({ map, isCity, playerRef, posRef });
   // Aventuriers simulés des régions : leurs victoires éliminent vraiment le groupe (réapparition habituelle)
-  const mapLife = useMemo(() => (!isCity && SIM_ON_MAPS ? createMapLife({ map, population: getLivePopulation(), seed: (Date.now() & 0xfffff) + 7 }) : null), [isCity, map]);
+  const mapLife = useMemo(() => (!isCity && SIM_ON_MAPS ? createMapLife({ map, population: getLivePopulation(playerRef.current), seed: (Date.now() & 0xfffff) + 7 }) : null), [isCity, map]);
   if (mapLife) {
     mapLife.blocked = blocked;
     mapLife.activeGroups = groups;

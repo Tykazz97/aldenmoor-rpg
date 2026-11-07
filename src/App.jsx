@@ -12,6 +12,8 @@ import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
 import { createPlayer } from "./utils/newPlayer.js";
+import { SIM_MARKET } from "./sim/config.js";
+import { enableSimMarket, marketOf } from "./utils/market.js";
 import { loadSave, writeSave, clearSave, exportSave, parseSave } from "./utils/save.js";
 import { color, font } from "./styles/theme.js";
 
@@ -26,6 +28,8 @@ const TAB_TITLES = {
 };
 
 // Sans sauvegarde : création du personnage. Avec : le jeu, sauvegardé automatiquement.
+enableSimMarket(SIM_MARKET);   // les simulés vivent dans le marché du joueur
+
 export default function App() {
   const [save, setSave] = useState(loadSave);
   const [gameKey, setGameKey] = useState(0);
@@ -47,6 +51,14 @@ function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
   const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook } = usePlayer(initial.player);
+
+  // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
+  useEffect(() => {
+    const tick = () => setPlayer((p) => { const m = marketOf(p, Date.now()); return m === p.market ? p : { ...p, market: m }; });
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, [setPlayer]);
 
   // Sauvegarde automatique (un peu différée pour ne pas écrire à chaque changement)
   const latest = useRef({ player, world });

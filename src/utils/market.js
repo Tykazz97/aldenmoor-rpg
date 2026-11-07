@@ -23,13 +23,30 @@ import { RECIPES } from "../data/recipes.js";
 import { makeRng, hashString } from "../sim/rng.js";
 import { generatePopulation } from "../sim/population.js";
 import { MASTERWORK_VALUE_RATE, isMasterwork } from "./perks.js";
+import { ITEM_SELL_RATE, itemValue, itemSellPrice } from "./itemValue.js";
+import { getPopulation } from "../sim/population.js";
+import { SIM_START } from "../sim/config.js";
+import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
+import { shoppingList, stash } from "../sim/lifeCraft.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
+
+// ---- marché relié aux joueurs simulés ----
+// Quand il est activé (enableSimMarket), l'état du marché contient AUSSI le monde des simulés (`m.sims`, voir sim/lives.js) et
+// les deux avancent ensemble, pas par pas : les annonces des « bots » sont celles de vrais simulés qui vendent ce qu'ils ont
+// dans leur sac (et touchent l'or de la vente), ils achètent ici les ingrédients qui leur manquent pour fabriquer, et un
+// Colporteur d'Aldenmoor comble les pénuries. Désactivé : l'ancien marché abstrait, inchangé (c'est le cas des tests).
+let JOINT = false;
+export const enableSimMarket = (on = true) => { JOINT = !!on; };
+export const simMarketEnabled = () => JOINT;
+const NPC = "npc";
+const SIM_SELL_KEEP = 8;                       // un simulé garde au moins 8 unités de chaque ressource pour ses fabrications
+const MAX_CATCHUP_JOINT = 1008;                // 7 jours de rattrapage quand les simulés vivent ici
 const HOUR_STEPS = 6, HIST_LEN = 24, MAX_CATCHUP = 288;   // 48 h de rattrapage au plus
 const REVERT = 0.02, NOISE = 0.07, EVENT_P = 0.004, EVENT = 0.5;
 const EXPONENT = 0.6, MULT_MIN = 0.45, MULT_MAX = 2.3;
 export const TAX_RATE = 0.10;                  // taxe de mise en vente : 10 % du montant, payée par le vendeur
-export const ITEM_SELL_RATE = 0.6;             // utilisé par l'économie : valeur de revente d'un équipement
+export { ITEM_SELL_RATE, itemValue, itemSellPrice };
 export const LISTING_STEPS = 288;              // une annonce du joueur dure 48 h
 export const MAX_PLAYER_LISTINGS = 12;
 export const MAX_UNIT_PRICE = 1_000_000;
@@ -54,7 +71,7 @@ function bots() {
   }
   return BOTS;
 }
-export const sellerName = (id) => (id === "player" ? "Toi" : bots().byId[id]?.name || "Inconnu");
+export const sellerName = (id) => (id === "player" ? "Toi" : id === NPC ? "Colporteur d'Aldenmoor" : bots().byId[id]?.name || "Inconnu");
 export const isMine = (l) => l.seller === "player";
 
 // ---- prix de référence (cours « mondial » caché) ----
@@ -68,14 +85,6 @@ function stepStock(id, stock, bucket) {
   return clamp(s, 0.2 * T, 3 * T);
 }
 
-// ---- valeur de l'équipement ----
-export function itemValue(id) {
-  const rec = RECIPES[id];
-  if (!rec) return 60;                                              // armes qui tombent directement
-  return Object.entries(rec.ingredients).reduce((s, [r, q]) => s + RESOURCES[r].value * q, 0) + rec.gold;
-}
-export const itemSellPrice = (id) => Math.max(1, Math.floor(itemValue(id) * ITEM_SELL_RATE));   // ordre de grandeur pour l'économie
-
 // Taxe de mise en vente sur un montant : TAX_RATE (10 %), au moins 1 or, sans jamais manger tout le montant
 export const saleTax = (gross) => (gross <= 1 ? 0 : Math.min(gross - 1, Math.max(1, Math.ceil(gross * TAX_RATE))));
 
@@ -84,16 +93,87 @@ export const saleTax = (gross) => (gross <= 1 ? 0 : Math.min(gross - 1, Math.max
 // ============================================================
 const sorted = (arr) => arr.slice().sort((a, b) => a.unit - b.unit || a.id - b.id);
 
+// L'or d'une vente va au vendeur : toi (en attente d'encaissement), un simulé (directement dans son personnage) ou le colporteur (perdu)
+function creditSeller(s, l, take, bucket) {
+  if (l.seller === "player") {
+    s.proceeds += take * l.unit;
+    s.sales.push({ b: bucket, kind: l.kind, rid: l.rid, qty: take, unit: l.unit, ...(l.kind === "item" ? { name: l.item?.name } : {}) });
+  } else if (s.sims && s.sims.lives[l.seller]) s.sims.lives[l.seller].gold += take * l.unit;
+}
+
+// Une annonce de simulé qui expire : la marchandise retourne dans son sac
+function returnToSim(s, l) {
+  const life = s.sims?.lives[l.seller];
+  if (!life) return;
+  if (l.kind === "res") life.bag.res[l.rid] = (life.bag.res[l.rid] || 0) + l.qty;
+  else stash(life, l.rid);
+}
+
+// Les simulés présents achètent ce qu'il leur manque pour leur prochaine fabrication (annonces les moins chères d'abord,
+// jamais au-delà de 1,6 fois le cours, jamais les leurs), puis fabriquent au pas suivant
+function simsShop(s, bucket, rng) {
+  for (const b of getPopulation()) {
+    const life = s.sims.lives[b.id];
+    if (!life || life.gold < 1 || !isActive(b, bucket) || rng() > 0.4) continue;
+    const want = shoppingList(life, b);
+    for (const [rid, qty] of Object.entries(want)) {
+      if (!RESOURCES[rid]) continue;
+      const cap = refPrice(s, rid) * 1.6;
+      let left = qty;
+      for (const l of sorted(s.listings.filter((x) => x.kind === "res" && x.rid === rid && x.seller !== b.id && x.unit <= cap))) {
+        if (left < 1) break;
+        const take = Math.min(l.qty, left, Math.floor(life.gold / l.unit));
+        if (take < 1) break;
+        l.qty -= take; left -= take;
+        life.gold -= take * l.unit;
+        life.bag.res[rid] = (life.bag.res[rid] || 0) + take;
+        life.bought = (life.bought || 0) + take;
+        creditSeller(s, l, take, bucket);
+      }
+    }
+  }
+  s.listings = s.listings.filter((l) => l.qty > 0);
+}
+
+// Qui met en vente cette ressource ? Un simulé qui en a de trop (il paie la taxe et la sort de son sac) ; sinon, si le marché
+// est presque vide, le colporteur. Renvoie { seller, greed, qty } ou null.
+function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
+  const [lo, hi] = lot;
+  const cands = [];
+  for (const b of getPopulation()) {
+    const life = s.sims.lives[b.id];
+    const spare = life ? (life.bag.res[id] || 0) - SIM_SELL_KEEP : 0;
+    if (spare >= lo) cands.push([b, spare]);
+  }
+  if (cands.length) {
+    const b = rng.weighted(cands), life = s.sims.lives[b.id];
+    const qty = Math.min((life.bag.res[id] || 0) - SIM_SELL_KEEP, rng.int(lo, hi));
+    return { seller: b.id, greed: b.greed, qty, life, bot: b };
+  }
+  if (supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
+  return null;
+}
+
 function stepListings(s, bucket) {
   const rng = makeRng(hashString(`mk:${bucket}`));
   const { weighted } = bots();
+  const sims = s.sims && JOINT ? s.sims : null;
+  if (!sims) s.sims = undefined;
+  const live = sims && !(sims.mode === "fresh" && bucket < stepOf(sims.epoch));     // avant le fresh start, personne ne joue
+  // l'or des ventes que tu as faites aux simulés depuis la dernière fois (achats à leurs annonces)
+  if (sims) { for (const [id, gold] of Object.entries(s.credits || {})) if (sims.lives[id]) sims.lives[id].gold += gold; }
+  s.credits = {};
 
   // 1. expiration
   s.listings = s.listings.filter((l) => {
     if (l.exp > bucket) return true;
+    if (sims && l.seller !== "player") returnToSim(s, l);
     if (l.seller === "player") s.returns.push(l.kind === "res" ? { kind: "res", rid: l.rid, qty: l.qty } : { kind: "item", rid: l.rid, item: l.item });
     return false;
   });
+
+  // 1b. les simulés vivent : ils achètent leurs ingrédients, puis jouent leur pas (combat, récolte, fabrication)
+  if (live) { simsShop(s, bucket, rng); stepLivesOne(sims, getPopulation(), bucket, { merchant: false, keep: 120 }); }
 
   // 2. cours caché
   for (const id of RESOURCE_ORDER) s.stock[id] = stepStock(id, s.stock[id], bucket);
@@ -110,7 +190,7 @@ function stepListings(s, bucket) {
       const take = Math.min(l.qty, Math.floor(left * accept(l.unit / ref) + rng()));
       if (take < 1) continue;
       l.qty -= take; left -= take;
-      if (l.seller === "player") { s.proceeds += take * l.unit; s.sales.push({ b: bucket, kind: "res", rid: id, qty: take, unit: l.unit }); }
+      creditSeller(s, l, take, bucket);
     }
     s.listings = s.listings.filter((l) => l.qty > 0);
     mine = s.listings.filter((l) => l.kind === "res" && l.rid === id);
@@ -120,14 +200,27 @@ function stepListings(s, bucket) {
     const botCount = mine.filter((l) => l.seller !== "player").length;
     const pPost = clamp((T - total) / T, 0, 1) * 0.35 + 0.03;
     if (rng() < pPost && botCount < MAX_BOT_LISTINGS_PER_RESOURCE) {
-      const bot = rng.weighted(weighted), [lo, hi] = LOT[res.rarity];
-      const supplyAdj = clamp(Math.pow(T / Math.max(total, 0.25 * T), 0.25), 0.88, 1.25);
-      let price = ref * supplyAdj * (1 + bot.greed + (rng() - 0.5) * 0.12);
-      if (rng() < 0.4 && mine.length) {                                  // certains cassent le prix de la moins chère
-        const cheapest = sorted(mine)[0].unit;
-        if (cheapest - 1 >= 0.6 * ref) price = Math.min(price, cheapest - 1);
+      const lot = LOT[res.rarity];
+      const pick = sims ? pickSeller(s, id, lot, total, T, ref, rng) : { seller: null, greed: null };
+      const bot = sims ? null : rng.weighted(weighted);
+      if (!sims || pick) {
+        const greed = sims ? pick.greed : bot.greed;
+        const supplyAdj = clamp(Math.pow(T / Math.max(total, 0.25 * T), 0.25), 0.88, 1.25);
+        let price = ref * supplyAdj * (1 + greed + (rng() - 0.5) * 0.12);
+        if (rng() < 0.4 && mine.length) {                                  // certains cassent le prix de la moins chère
+          const cheapest = sorted(mine)[0].unit;
+          if (cheapest - 1 >= 0.6 * ref) price = Math.min(price, cheapest - 1);
+        }
+        const unit = Math.max(1, Math.round(price));
+        let qty = sims ? pick.qty : rng.int(lot[0], lot[1]);
+        let ok = true;
+        if (sims && pick.life) {                                           // le simulé paie la taxe de mise en vente et sort la marchandise de son sac
+          const tax = saleTax(qty * unit);
+          if (pick.life.gold < tax) ok = false;
+          else { pick.life.gold -= tax; pick.life.bag.res[id] -= qty; if (pick.life.bag.res[id] <= 0) delete pick.life.bag.res[id]; }
+        }
+        if (ok) s.listings.push({ id: s.nextId++, seller: sims ? pick.seller : bot.id, kind: "res", rid: id, qty, unit, exp: bucket + 144 + rng.int(0, 144) });
       }
-      s.listings.push({ id: s.nextId++, seller: bot.id, kind: "res", rid: id, qty: rng.int(lo, hi), unit: Math.max(1, Math.round(price)), exp: bucket + 144 + rng.int(0, 144) });
     }
   }
 
@@ -137,15 +230,29 @@ function stepListings(s, bucket) {
     const ratio = l.unit / ((l.item ? itemWorth(l.item) : itemValue(l.rid)) * 1.15);
     if (rng() < 0.025 * accept(ratio)) {
       l.qty = 0;
-      if (l.seller === "player") { s.proceeds += l.unit; s.sales.push({ b: bucket, kind: "item", rid: l.rid, qty: 1, unit: l.unit, name: l.item?.name }); }
+      creditSeller(s, l, 1, bucket);
     }
   }
   s.listings = s.listings.filter((l) => l.qty > 0);
   const itemsNow = s.listings.filter((l) => l.kind === "item" && l.seller !== "player").length;
   if (itemsNow < ITEM_LISTINGS_TARGET && rng() < 0.3) {
-    const bot = rng.weighted(weighted), rid = rng.pick(ITEM_ORDER);
-    const unit = Math.max(1, Math.round(itemValue(rid) * (1.15 + bot.greed + (rng() - 0.5) * 0.16)));
-    s.listings.push({ id: s.nextId++, seller: bot.id, kind: "item", rid, qty: 1, unit, exp: bucket + 144 + rng.int(0, 144) });
+    if (sims) {
+      // un simulé met en vente un équipement de son sac (ses fabrications d'entraînement, ses drops en trop) ; à défaut, le colporteur
+      const holders = getPopulation().filter((b) => (sims.lives[b.id]?.bag.items.length || 0) > 0);
+      if (holders.length) {
+        const b = rng.pick(holders), life = sims.lives[b.id], rid = life.bag.items[life.bag.items.length - 1];
+        const unit = Math.max(1, Math.round(itemValue(rid) * (1.15 + b.greed + (rng() - 0.5) * 0.16)));
+        const tax = saleTax(unit);
+        if (life.gold >= tax) { life.gold -= tax; life.bag.items.pop(); s.listings.push({ id: s.nextId++, seller: b.id, kind: "item", rid, qty: 1, unit, exp: bucket + 144 + rng.int(0, 144) }); }
+      } else if (rng() < 0.2) {
+        const rid = rng.pick(ITEM_ORDER);
+        s.listings.push({ id: s.nextId++, seller: NPC, kind: "item", rid, qty: 1, unit: Math.max(1, Math.round(itemValue(rid) * 1.5)), exp: bucket + 144 + rng.int(0, 144) });
+      }
+    } else {
+      const bot = rng.weighted(weighted), rid = rng.pick(ITEM_ORDER);
+      const unit = Math.max(1, Math.round(itemValue(rid) * (1.15 + bot.greed + (rng() - 0.5) * 0.16)));
+      s.listings.push({ id: s.nextId++, seller: bot.id, kind: "item", rid, qty: 1, unit, exp: bucket + 144 + rng.int(0, 144) });
+    }
   }
 
   // 5. historique : toutes les heures, le prix du marché (annonce la moins chère) en coefficient de la valeur de base
@@ -160,19 +267,24 @@ function coefficient(m, id) {
   return (p ?? refPrice(m, id) * 1.25) / RESOURCES[id].value;
 }
 
+const simsValid = (m) => !!m.sims && validWorld(m.sims, SIM_START, getPopulation());
+
 export function tickMarket(m, now = Date.now()) {
   const target = bucketOf(now);
-  let b = Math.max(m.bucket, target - MAX_CATCHUP);
-  if (b >= target) return m;
+  let b = Math.max(m.bucket, target - (JOINT ? MAX_CATCHUP_JOINT : MAX_CATCHUP));
+  const needSims = JOINT && !simsValid(m);              // pas encore de simulés (ou un autre fresh start) : on les crée
+  if (b >= target && !needSims) return m;
   const s = {
     ...m,
     stock: { ...m.stock },
     hist: Object.fromEntries(Object.entries(m.hist).map(([k, v]) => [k, [...v]])),
     listings: m.listings.map((l) => ({ ...l })),
     proceeds: m.proceeds, returns: [...m.returns], sales: [...m.sales], nextId: m.nextId,
+    credits: { ...(m.credits || {}) },
   };
+  if (JOINT) s.sims = needSims ? createLives({ population: getPopulation(), mode: SIM_START.mode, epoch: SIM_START.epoch, now }) : structuredClone(m.sims);
   for (; b < target; b++) stepListings(s, b + 1);
-  s.bucket = target;
+  s.bucket = Math.max(target, m.bucket);
   return s;
 }
 
@@ -234,6 +346,13 @@ export function quotePost(qty, unit) {
 // ============================================================
 // Transactions (renvoient un nouveau joueur, jamais de modification en place)
 // ============================================================
+// Tes achats aux annonces de simulés : l'or leur sera versé au prochain pas du marché (`credits`)
+const withCredits = (m, sales) => {
+  const credits = { ...(m.credits || {}) };
+  for (const [seller, gold] of sales) if (seller !== "player" && seller !== NPC) credits[seller] = (credits[seller] || 0) + gold;
+  return { ...m, credits };
+};
+
 const fail = (player, reason) => ({ ok: false, reason, player, qty: 0, total: 0, gross: 0, tax: 0 });
 
 const addResource = (res, id, q) => ({ ...res, [id]: (res[id] || 0) + q });
@@ -265,7 +384,7 @@ export function buyFromListing(player, listingId, qty = 1, now = Date.now()) {
   if (n < 1) return fail(p, p.gold < l.unit ? "or" : "aucun");
   const total = n * l.unit;                                          // aucune taxe à l'achat
   const listings = m.listings.map((x) => (x.id === l.id ? { ...x, qty: x.qty - n } : x)).filter((x) => x.qty > 0);
-  const next = { ...p, gold: p.gold - total, market: { ...m, listings } };
+  const next = { ...p, gold: p.gold - total, market: withCredits({ ...m, listings }, [[l.seller, total]]) };
   if (l.kind === "res") next.resources = addResource(p.resources, l.rid, n);
   else next.inventory = [...p.inventory, { ...(l.item || ITEMS[l.rid]), uid: l.item?.uid || `mk-${l.id}-${m.bucket}` }];
   return { ok: true, qty: n, gross: total, tax: 0, total, listing: l, player: next };
@@ -279,7 +398,8 @@ export function buyCheapest(player, id, qty, now = Date.now()) {
   if (q.qty < 1) return fail(p, supplyOf(m, id) - supplyOf({ listings: m.listings.filter(isMine) }, id) < 1 ? "rupture" : "or");
   const take = Object.fromEntries(q.lines.map((x) => [x.id, x.qty]));
   const listings = m.listings.map((x) => (take[x.id] ? { ...x, qty: x.qty - take[x.id] } : x)).filter((x) => x.qty > 0);
-  return { ok: true, qty: q.qty, gross: q.total, tax: 0, total: q.total, player: { ...p, gold: p.gold - q.total, resources: addResource(p.resources, id, q.qty), market: { ...m, listings } } };
+  const sold = q.lines.map((x) => [m.listings.find((y) => y.id === x.id).seller, x.qty * x.unit]);
+  return { ok: true, qty: q.qty, gross: q.total, tax: 0, total: q.total, player: { ...p, gold: p.gold - q.total, resources: addResource(p.resources, id, q.qty), market: withCredits({ ...m, listings }, sold) } };
 }
 
 // Met une annonce en vente à ton prix. spec : { kind:"res", rid, qty, unit } ou { kind:"item", uid, unit }

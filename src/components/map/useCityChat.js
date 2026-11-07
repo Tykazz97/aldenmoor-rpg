@@ -12,7 +12,7 @@ export function useCityChat({ map, isCity, playerRef, posRef }) {
   const [heroBubble, setHeroBubble] = useState(null);
   const feedKey = useRef(0);
   const bubbleTimer = useRef(null);
-  const life = useMemo(() => (isCity && SIM_PLAYERS ? createCityLife({ map, population: getLivePopulation(), seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
+  const life = useMemo(() => (isCity && SIM_PLAYERS ? createCityLife({ map, population: getLivePopulation(playerRef.current), seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
   const addFeed = useCallback((m) => setFeed((f) => [...f, { ...m, key: ++feedKey.current }].slice(-40)), []);
   useEffect(() => {
     setFeed(life ? life.history.map((h) => ({ ...h, key: ++feedKey.current })) : []);
