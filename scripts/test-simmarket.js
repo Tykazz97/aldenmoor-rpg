@@ -73,8 +73,9 @@ await test("le marché n'est jamais vide : le colporteur comble les pénuries (a
   const npc = m.listings.filter((l) => l.seller === "npc");
   assert.ok(npc.length >= 1, "des annonces du colporteur existent");
   let withSupply = 0;
-  for (const id of RESOURCE_ORDER) if (supplyOf(m, id) > 0) withSupply++;
-  assert.ok(withSupply >= RESOURCE_ORDER.length * 0.6, `${withSupply}/${RESOURCE_ORDER.length} ressources en vente`);
+  const sellable = RESOURCE_ORDER.filter((id) => RESOURCES[id].rarity !== "rare" && !RESOURCES[id].dungeon && !RESOURCES[id].crafted);   // ce que le colporteur peut vendre
+  for (const id of sellable) if (supplyOf(m, id) > 0) withSupply++;
+  assert.ok(withSupply >= sellable.length * 0.6, `${withSupply}/${sellable.length} ressources en vente`);
 }));
 
 await test("tes achats à une annonce de simulé lui rapportent l'or (crédité au pas suivant) ; le joueur est bien débité", () => run(() => {

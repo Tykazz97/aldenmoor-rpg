@@ -1,3 +1,4 @@
+import { itemLabel } from "../../utils/upgrade.js";
 import React from "react";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius } from "../../styles/theme.js";
@@ -40,7 +41,7 @@ function ItemCard({ item, onEquip }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: rarityColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {item.name}
+          {itemLabel(item)}
         </div>
         <div style={{ fontSize: 10, color: color.mist }}>{statLines.join(" · ")}</div>
       </div>

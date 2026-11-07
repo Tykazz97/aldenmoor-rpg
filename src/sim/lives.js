@@ -29,6 +29,8 @@ import { bossStep, reachableBosses } from "./lifeBoss.js";
 import { dungeonStep, keyCraftStep } from "./lifeDungeon.js";
 import { wantsPotions, brewStep, BREW_CHANCE } from "./lifePotions.js";
 import { emptyQuests, bump, questStep, huntTarget } from "./lifeQuests.js";
+import { upgradeStep } from "./lifeUpgrade.js";
+import { rollRareFind } from "../utils/perks.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
 export const MAX_CATCHUP_STEPS = 7 * 144;              // au plus 7 jours rejoués à la fois
@@ -175,9 +177,14 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
     const node = bestNode(life.prof.key, life.prof.level);
     if (node) {
       life.gathers += n; addProfXp(life.prof, n * node.xp);
-      for (let i = 0; i < n; i++) { const q = rng.int(node.yield[0], node.yield[1]); life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + q; bump(life, "gathered", node.resource, q); }
+      for (let i = 0; i < n; i++) {
+        const q = rng.int(node.yield[0], node.yield[1]); life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + q; bump(life, "gathered", node.resource, q);
+        const rare = rollRareFind(life.prof.level, life.prof.key, rng);          // ressource rare d'une classe, trouvée en récoltant (data/upgrade.js)
+        if (rare) life.bag.res[rare] = (life.bag.res[rare] || 0) + 1;
+      }
     }
   } else {
+    upgradeStep(life, bot);                                    // à l'atelier : il améliore une pièce s'il a l'or et les ressources
     if (life.bank && Object.keys(life.bank.resources).length) drawFromBank(life, shoppingList(life, bot));   // il sort du coffre ce dont l'atelier a besoin
     if (!keyCraftStep(life, rng, { merchant: opts.merchant !== false }) && !(wantsPotions(life) && rng() < BREW_CHANCE && brewStep(life, rng, { merchant: opts.merchant !== false }))) craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : la clé du donjon d'abord, sinon raffiner, fabriquer, s'équiper
   }

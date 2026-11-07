@@ -95,6 +95,25 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("Atelier : on améliore une pièce portée (+1) avec éclat brut, ressource de classe et or ; la taxe est inscrite", async () => {
+    await tab("Atelier").click(); await page.waitForTimeout(250);
+    assert.ok(await page.locator("[data-upgrade]").isVisible(), "panneau d'amélioration");
+    const btn = page.locator("[data-upgrade-row]:not([data-upgrade-row=bag]) [data-upgrade-btn]:not([disabled])").first();
+    assert.equal(await btn.count(), 1, "une amélioration est possible avec les ressources de test");
+    const row = btn.locator("xpath=ancestor::*[@data-upgrade-row][1]");
+    const slot = await row.getAttribute("data-upgrade-row");
+    const goldBefore = (await save()).player.gold;
+    await btn.click(); await page.waitForTimeout(400);
+    const p = (await save()).player;
+    assert.equal(p.equipped[slot].plus, 1, "la pièce porte +1");
+    assert.ok(p.gold < goldBefore, "l'or est dépensé");
+    assert.ok(Object.values(p.taxPaid || {}).some((t) => t > 0), "la taxe de la ville est inscrite");
+    assert.match(await page.locator(`[data-upgrade-row="${slot}"]`).innerText(), /\+1/);
+    await tab("Personnage").click(); await page.waitForTimeout(300);
+    assert.ok(await page.locator(`[data-plus="1"]`).first().isVisible(), "le badge +1 est visible sur l'équipement");
+    assert.deepEqual(errors, []);
+  });
+
   await step("Marché : les trois onglets Acheter / Vendre / Mes annonces", async () => {
     await tab("Marché").click(); await page.waitForTimeout(400);
     for (const t of ["Acheter", "Vendre", "Mes annonces"]) { await page.locator("button", { hasText: t }).first().click(); await page.waitForTimeout(150); }

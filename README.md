@@ -135,6 +135,15 @@ Avantage du métier : jusqu'à **40 %** de chance de distiller une potion de plu
 
 **Équilibrage du Manoir** (`node scripts/simulate-dungeon.js niveau palier essais potions`, groupe de trois bots naïfs, équipement du palier) : sans potion, le donjon est très dur (≈ 8 % de victoires au palier 3, ≈ 62 % au palier 4 au niveau 24). Avec un petit sac (2 potions de soin + 1 grande, à peu près 230 or) : ≈ 65 % au palier 3 (niveau 22–24) et ≈ 96 % au palier 4 ; avec un sac plein presque 100 %. Les morts se jouent surtout contre la Dame en Deuil. J'ai donc **laissé les ennemis tels quels** : les potions sont désormais la condition d'entrée, et l'équipement du palier 4 récompense la préparation.
 
+## Amélioration de l'équipement
+Chaque pièce portée (ni relique, ni clé) peut passer **+1, +2, +3** à l'atelier de n'importe quelle ville : **+10 % de stats par niveau** (sauf la chance de butin et la vitesse), sans risque d'échec, et le niveau reste écrit sur la pièce (`plus`). Un niveau coûte (`data/upgrade.js`, logique dans `utils/upgrade.js`) :
+- des **éclats** : *brut* (monstres de zone) pour +1 (×3), *dense* (mini-boss) pour +2 (×1), *pur* (donjon) pour +3 (×2) ;
+- la **ressource rare de la classe**, trouvée en plus en récoltant (6 % au niveau 1 du métier, 20 % au niveau 100) : guerrier = Veine d'acier (mineur), magicien = Pétale d'âme (herboriste), assassin = Sève d'ambre (bûcheron) ; 1, 2 puis 3 unités ;
+- de l'**or** : valeur de la pièce × 3, × 8 puis × 20, plus la taxe de la ville (1 % ici, inscrite dans `taxPaid`).
+Une pièce améliorée se revend plus cher (+50 % de sa valeur par niveau). C'est le grand puits d'or : un +3 sur tout l'équipement coûte bien plus que la fabrication du set.
+
+**Simulés** (`sim/lifeUpgrade.js`) : ils récoltent la ressource rare si leur métier est le bon, ramassent les éclats en combat, et achètent ce qui manque à l'hôtel des ventes (seulement s'ils ont l'or). À l'atelier ils montent d'abord toutes leurs pièces à +1 (arme, plastron…), puis +2, puis +3 ; une pièce remplacée perd son niveau. Leurs chances de victoire en tiennent compte (`plusBucket`). `node scripts/audit-global.js` affiche le nombre d'améliorations et l'or dépensé par profil.
+
 ## Taxe de fabrication des villes
 
 Fabriquer, raffiner et distiller n'ont plus de coût fixe : on paie une **taxe de la ville** (`utils/cityTax.js`), un pourcentage du **prix de ce qu'on obtient** (pour un objet : ses ingrédients plus sa main-d'œuvre, `itemValue` ; pour une matière raffinée ou une potion : sa valeur ; au moins 1 or). **1 % par défaut**, réglable plus tard de **0 % à 5 %** par la guilde qui contrôlera la ville. L'or des recettes (`gold`) reste dans les données comme main-d'œuvre : il compte dans le prix de l'objet et donne l'xp du métier, mais n'est plus dépensé.

@@ -380,3 +380,11 @@ for (const enemy of Object.values(ENEMIES)) {
     enemy.spriteHeight = SPRITE_HEIGHT[enemy.key] || 200;
   }
 }
+
+// Éclats d'amélioration (voir data/upgrade.js) : les monstres de zone lâchent des éclats bruts, les mini-boss des éclats denses,
+// le donjon des éclats purs.
+for (const e of Object.values(ENEMIES)) {
+  if (e.dungeon) e.drops = [...(e.drops || []), { type: "resource", id: "eclat_pur", chance: e.boss ? 0.9 : 0.1, min: 1, max: e.boss ? 3 : 1 }];
+  else if (e.miniBoss) e.drops = [...(e.drops || []), { type: "resource", id: "eclat_dense", chance: 0.3, min: 1, max: 1 }];
+  else e.drops = [...(e.drops || []), { type: "resource", id: "eclat_brut", chance: 0.1, min: 1, max: 1 }];
+}

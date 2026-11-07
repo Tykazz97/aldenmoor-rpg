@@ -66,6 +66,7 @@ export function acquireItem(life, id) {
   const blocked = (slot === "bouclier" && ITEMS[life.gear.arme]?.twoHanded) || (slot === "arme" && it.twoHanded && life.gear.bouclier);
   if (slot in { chapeau: 1, cape: 1, plastron: 1, amulette: 1, gants: 1, ceinture: 1, anneau: 1, jambieres: 1, arme: 1, bouclier: 1, relique1: 1 } && !blocked && (!cur || gearScore(id) > gearScore(cur))) {
     life.gear[slot] = id;
+    if (life.upg) delete life.upg[slot];            // l'amélioration restait sur l'ancienne pièce
     if (cur) stash(life, cur);
   } else stash(life, id);
 }

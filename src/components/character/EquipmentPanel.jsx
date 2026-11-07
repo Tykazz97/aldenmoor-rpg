@@ -1,3 +1,4 @@
+import { itemLabel, plusOf } from "../../utils/upgrade.js";
 import React from "react";
 import SLOT_ICONS from "../icons/SlotIcons.jsx";
 import SLOT_LUDO_ICONS from "../icons/SlotLudoIcons.jsx";
@@ -35,7 +36,7 @@ function SlotButton({ slotKey, item, disabled, onEquipSlotClick, onUnequip }) {
   return (
     <button
       onClick={() => !disabled && (filled ? onUnequip(slotKey) : onEquipSlotClick(slotKey))}
-      title={disabled ? "Indisponible avec une arme à deux mains" : filled ? `${item.name} — clic pour retirer` : SLOT_LABELS[slotKey] || slotKey}
+      title={disabled ? "Indisponible avec une arme à deux mains" : filled ? `${itemLabel(item)} — clic pour retirer` : SLOT_LABELS[slotKey] || slotKey}
       disabled={disabled}
       style={{
         width: 64,
@@ -68,6 +69,7 @@ function SlotButton({ slotKey, item, disabled, onEquipSlotClick, onUnequip }) {
       ) : (
         svgIcon || <span style={{ fontSize: 10 }}>{SLOT_LABELS[slotKey]}</span>
       )}
+      {filled && plusOf(item) > 0 && <span data-plus={plusOf(item)} style={{ position: "absolute", top: 3, right: 4, fontSize: 11, fontWeight: 700, lineHeight: 1, color: color.goldBright, textShadow: "0 0 3px #000, 0 0 3px #000" }}>+{plusOf(item)}</span>}
     </button>
   );
 }

@@ -1,5 +1,6 @@
 import { applyCaracEffects } from "../data/caracs.js";
 import { calcSetBonuses } from "../data/items.js";
+import { plusFactor } from "./upgrade.js";
 
 // ============================================================
 // Calcule les stats finales d'un joueur = base + caracs + équipement
@@ -27,8 +28,9 @@ export function calcStats(player) {
   const equipped = player.equipped || {};
   for (const item of Object.values(equipped)) {
     if (!item) continue;
+    const f = plusFactor(item);          // amélioration +1 à +3 : +10 % par niveau (utils/upgrade.js), sans toucher à la chance ni à la vitesse
     for (const key of EQUIP_STAT_KEYS) {
-      if (item[key]) equip[key] += item[key];
+      if (item[key]) equip[key] += f > 1 && key !== "dropBonus" && key !== "vitesse" ? Math.round(item[key] * f) : item[key];
     }
     for (const [k, v] of Object.entries(item.passive || {})) passives[k] = Math.max(passives[k] || 0, v);
   }

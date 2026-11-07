@@ -68,9 +68,9 @@ test("chaque métier a ses avantages, affichables, avec la valeur du niveau suiv
 });
 
 test("récolte : double et trouvaille sont tirées avec le niveau ; une trouvaille est un autre type de ressource du métier", () => {
-  assert.deepEqual(rollGather(1, "mineur", 2, ALWAYS), { qty: 2, doubled: false, find: null });
+  assert.deepEqual(rollGather(1, "mineur", 2, ALWAYS), { qty: 2, doubled: false, find: { veine_d_acier: 1 } }, "niveau 1 : pas de trouvaille de métier, mais la ressource rare de classe se trouve déjà");
   const lucky = rollGather(100, "mineur", 2, ALWAYS);
-  assert.deepEqual(lucky, { qty: 4, doubled: true, find: { minerai_de_cuivre: 1 } });
+  assert.deepEqual(lucky, { qty: 4, doubled: true, find: { minerai_de_cuivre: 1, veine_d_acier: 1 } });
   const unlucky = rollGather(100, "mineur", 2, NEVER);
   assert.deepEqual(unlucky, { qty: 2, doubled: false, find: null });
   for (const [prof, res] of Object.entries(FIND_RESOURCE)) { assert.equal(PROFESSIONS[prof].kind, "gather"); assert.ok(RESOURCES[res]); assert.equal(RESOURCES[res].rarity, "peu_commune"); }
@@ -79,7 +79,7 @@ test("récolte : double et trouvaille sont tirées avec le niveau ; une trouvail
 test("récolte : fréquences sur de nombreux tirages proches des pourcentages annoncés", () => {
   const rng = makeRng(42), p = perksFor("herboriste", 60);
   let d = 0, f = 0; const N = 20000;
-  for (let i = 0; i < N; i++) { const r = rollGather(60, "herboriste", 1, rng); if (r.doubled) d++; if (r.find) f++; }
+  for (let i = 0; i < N; i++) { const r = rollGather(60, "herboriste", 1, rng); if (r.doubled) d++; if (r.find?.sauge) f++; }
   assert.ok(Math.abs(d / N - p.double) < 0.02, `double ${d / N} au lieu de ${p.double}`);
   assert.ok(Math.abs(f / N - p.find) < 0.02, `trouvaille ${f / N} au lieu de ${p.find}`);
 });

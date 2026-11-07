@@ -7,6 +7,7 @@
 
 import { existsSync } from "node:fs";
 import { ITEMS, SETS } from "../src/data/items.js";
+import { RARE_OF_PROFESSION } from "../src/data/upgrade.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { NODES } from "../src/data/gathering.js";
 import { RECIPES } from "../src/data/recipes.js";
@@ -60,6 +61,10 @@ for (const [resId, res] of Object.entries(RESOURCES)) {
     if (!Object.values(NODES).some((nd) => nd.resource === resId)) err(`Ressource ${resId} : aucun nœud de récolte ne la donne`);
   } else if (res.source === "raffinage") {
     if (!REFINING[resId]) err(`Ressource ${resId} : aucune recette de raffinage ne la produit`);
+  } else if (res.source === "amelioration") {
+    if (!dropped.has(`resource:${resId}`)) err(`Ressource ${resId} : aucun ennemi ne lâche cet éclat`);
+  } else if (res.source === "trouvaille") {
+    if (!Object.values(RARE_OF_PROFESSION).includes(resId)) err(`Ressource ${resId} : aucun métier de récolte ne la fait trouver`);
   } else if (res.source === "alchimie") {
     if (!ALCHEMY[resId]) err(`Ressource ${resId} : aucune recette d'alchimie ne la produit`);
   } else if (!ENEMIES[res.source]) err(`Ressource ${resId} : source inconnue ${res.source}`);

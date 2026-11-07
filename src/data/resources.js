@@ -185,6 +185,14 @@ export const RESOURCES = {
   larme_de_deuil: { id: "larme_de_deuil", name: "Larme de deuil", rarity: "peu_commune", value: 110, source: "pleureuse", dungeon: true },
   essence_de_deuil: { id: "essence_de_deuil", name: "Essence de deuil", rarity: "rare", value: 700, source: "dame_en_deuil", dungeon: true },
 
+  // --- Amélioration de l'équipement (voir upgrade.js) : éclats lâchés par les monstres, ressources rares trouvées en récoltant ---
+  eclat_brut: { id: "eclat_brut", name: "Éclat brut", rarity: "peu_commune", value: 30, source: "amelioration" },
+  eclat_dense: { id: "eclat_dense", name: "Éclat dense", rarity: "rare", value: 120, source: "amelioration" },
+  eclat_pur: { id: "eclat_pur", name: "Éclat pur", rarity: "rare", value: 500, source: "amelioration", dungeon: true },
+  veine_d_acier: { id: "veine_d_acier", name: "Veine d'acier", rarity: "rare", value: 150, source: "trouvaille" },
+  petale_d_ame: { id: "petale_d_ame", name: "Pétale d'âme", rarity: "rare", value: 150, source: "trouvaille" },
+  seve_d_ambre: { id: "seve_d_ambre", name: "Sève d'ambre", rarity: "rare", value: 150, source: "trouvaille" },
+
   // --- Ressources RAFFINÉES : on ne les trouve pas, on les fabrique à l'atelier (voir refining.js) ---
   lingot_de_fer: { id: "lingot_de_fer", name: "Lingot de fer", rarity: "commune", value: 16, source: "raffinage" },
   lingot_de_cuivre: { id: "lingot_de_cuivre", name: "Lingot de cuivre", rarity: "peu_commune", value: 62, source: "raffinage" },

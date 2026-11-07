@@ -23,6 +23,8 @@ import { RECIPES } from "../data/recipes.js";
 import { makeRng, hashString } from "../sim/rng.js";
 import { generatePopulation } from "../sim/population.js";
 import { MASTERWORK_VALUE_RATE, isMasterwork } from "./perks.js";
+import { plusValueFactor } from "./upgrade.js";
+import { SHARD_IDS, CLASS_RARE, RARE_PROFESSION } from "../data/upgrade.js";
 import { ITEM_SELL_RATE, itemValue, itemSellPrice } from "./itemValue.js";
 import { getPopulation } from "../sim/population.js";
 import { SIM_START } from "../sim/config.js";
@@ -32,6 +34,7 @@ import { BUILDS } from "../sim/partyBots.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
 import { potionShopping, POTION_KEEP } from "../sim/lifePotions.js";
+import { upgradeShopping } from "../sim/lifeUpgrade.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 
@@ -46,8 +49,10 @@ export const simMarketEnabled = () => JOINT;
 const NPC = "npc";
 // Le colporteur ne vend ni ressources rares, ni ressources de donjon, ni équipement au-dessus du commun (pièces fabriquées, épiques, reliques) : cela ne vient que des joueurs
 const NPC_ITEMS = ITEM_ORDER.filter((id) => ITEMS[id].rarity === "commune");
+const SHARD_KEEP = 6;                          // éclats et ressource rare de sa classe qu'un simulé garde pour améliorer son équipement
 const SIM_SELL_KEEP = 8;                       // un simulé garde au moins 8 unités de chaque ressource pour ses fabrications
-const keepOf = (id) => (RESOURCES[id].crafted ? POTION_KEEP[id] ?? 0 : SIM_SELL_KEEP);   // les potions : sa trousse seulement
+// Ce qu'un simulé garde de chaque ressource : les potions, sa trousse seulement ; les éclats et sa ressource rare de classe, de quoi améliorer ; la ressource rare des autres classes ne lui sert à rien (il la vend)
+const keepOf = (id, bot = null) => (RESOURCES[id].crafted ? POTION_KEEP[id] ?? 0 : SHARD_IDS.includes(id) ? SHARD_KEEP : RARE_PROFESSION[id] ? (bot && CLASS_RARE[bot.classKey] === id ? SHARD_KEEP : 0) : SIM_SELL_KEEP);
 const MAX_CATCHUP_JOINT = 1008;                // 7 jours de rattrapage quand les simulés vivent ici
 const HOUR_STEPS = 6, HIST_LEN = 24, MAX_CATCHUP = 288;   // 48 h de rattrapage au plus
 const REVERT = 0.02, NOISE = 0.07, EVENT_P = 0.004, EVENT = 0.5;
@@ -166,7 +171,7 @@ function simsShop(s, bucket, rng) {
     const life = s.sims.lives[b.id];
     if (!life || life.gold < 1 || !isActive(b, bucket) || rng() > 0.4) continue;
     simBuysGear(s, life, b, bucket);
-    const want = drawFromBank(life, mergeWant(mergeWant(shoppingList(life, b), keyShopping(life)), potionShopping(life)));          // d'abord son coffre
+    const want = drawFromBank(life, mergeWant(mergeWant(mergeWant(shoppingList(life, b), keyShopping(life)), potionShopping(life)), upgradeShopping(life, b)));          // d'abord son coffre
     for (const [rid, qty] of Object.entries(want)) {
       if (!RESOURCES[rid]) continue;
       const cap = refPrice(s, rid) * (life.gold >= RICH_CAP ? 2.2 : 1.6);
@@ -194,12 +199,12 @@ function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
   const cands = [];
   for (const b of getPopulation()) {
     const life = s.sims.lives[b.id];
-    const spare = life ? sellableOf(life, id, keepOf(id)) : 0;
+    const spare = life ? sellableOf(life, id, keepOf(id, b)) : 0;
     if (spare >= lo) cands.push([b, spare]);
   }
   if (cands.length) {
     const b = rng.weighted(cands), life = s.sims.lives[b.id];
-    const qty = Math.min(sellableOf(life, id, keepOf(id)), rng.int(lo, hi));
+    const qty = Math.min(sellableOf(life, id, keepOf(id, b)), rng.int(lo, hi));
     return { seller: b.id, greed: b.greed, qty, life, bot: b };
   }
   if (RESOURCES[id].rarity !== "rare" && !RESOURCES[id].dungeon && !RESOURCES[id].crafted && supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
@@ -373,7 +378,7 @@ export const myListings = (m) => m.listings.filter(isMine).sort((a, b) => a.exp 
 export const equipmentListings = (m) => sorted(m.listings.filter((l) => l.kind === "item"));
 export const suggestedPrice = (m, id) => Math.max(1, Math.round(marketPrice(m, id) ?? refPrice(m, id)));
 // Valeur d'un objet précis : un chef-d'œuvre vaut un peu plus que le même objet ordinaire
-export const itemWorth = (item) => itemValue(item.id) * (isMasterwork(item) ? MASTERWORK_VALUE_RATE : 1);
+export const itemWorth = (item) => itemValue(item.id) * (isMasterwork(item) ? MASTERWORK_VALUE_RATE : 1) * plusValueFactor(item);
 export const suggestedItemPrice = (item) => Math.max(1, Math.round(itemWorth(item) * 1.15));
 export const minutesLeft = (m, l) => Math.max(0, (l.exp - m.bucket) * (STEP_MS / 60000));
 

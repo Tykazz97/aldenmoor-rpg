@@ -1,3 +1,4 @@
+import { applyUpgrade } from "../utils/upgrade.js";
 import { useState, useMemo, useCallback } from "react";
 import { calcStats } from "../utils/calcStats.js";
 import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
@@ -105,6 +106,9 @@ export function usePlayer(initial) {
   }, []);
 
   // Récompenses d'un combat gagné (xp, or, ressources, objets)
+  // Amélioration d'une pièce (utils/upgrade.js) : `ref` = emplacement porté ou uid d'une pièce du sac
+  const upgrade = useCallback((ref, opts) => { setPlayer((prev) => applyUpgrade(prev, ref, opts).player); }, []);
+
   const applyCombatRewards = useCallback((rewards) => {
     setPlayer((prev) => applyRewards(prev, rewards, `loot-${Date.now()}-${craftCounter++}`).player);
   }, []);
@@ -130,7 +134,7 @@ export function usePlayer(initial) {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, refine, brew, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
+    craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
   };
 }
 

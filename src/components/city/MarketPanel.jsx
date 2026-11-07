@@ -1,3 +1,4 @@
+import { itemLabel } from "../../utils/upgrade.js";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_RARITIES } from "../../data/resources.js";
@@ -94,7 +95,7 @@ function ItemListingRow({ l, m, player, onBuy }) {
     <div data-listing={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 10px", background: color.panel, border: `1px solid ${c}33`, borderRadius: radius.md }}>
       <Icon src={item.img} name={item.name} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: c, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: c, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{itemLabel(item)}</div>
         <div style={{ fontSize: 10, color: color.mist }}>{itemStatLines(item).join(" · ")}</div>
       </div>
       <div style={{ fontSize: 11, color: isMine(l) ? color.goldBright : color.mist, width: 110, textAlign: "right" }}>{sellerName(l.seller)}</div>
@@ -152,7 +153,7 @@ function SellItemRow({ item, player, onPost }) {
     <div data-sell-item={item.uid} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", background: color.panel, border: `1px solid ${c}33`, borderRadius: radius.md, flexWrap: "wrap" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, width: 230 }}>
         <Icon src={item.img} name={item.name} />
-        <div style={{ minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 600, color: c }}>{item.name}</div><div style={{ fontSize: 10, color: color.mist }}>{itemStatLines(item).join(" · ")}</div></div>
+        <div style={{ minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 600, color: c }}>{itemLabel(item)}</div><div style={{ fontSize: 10, color: color.mist }}>{itemStatLines(item).join(" · ")}</div></div>
       </div>
       <PriceBox qty={1} unit={u} setUnit={setUnit} market={null} hint={sug} gold={player.gold} />
       <button data-act="postitem" style={{ ...mini(u >= 1), marginLeft: "auto" }} onClick={() => u >= 1 && onPost({ kind: "item", uid: item.uid, unit: u })}>Mettre en vente</button>

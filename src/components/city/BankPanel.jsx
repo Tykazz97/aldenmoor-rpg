@@ -1,3 +1,4 @@
+import { itemLabel } from "../../utils/upgrade.js";
 import React from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_RARITIES } from "../../data/resources.js";
@@ -22,7 +23,7 @@ function ItemRow({ item, label, onClick, disabled }) {
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, background: color.panel, border: `1px solid ${c}44`, borderRadius: radius.md }}>
       <Icon src={item.img} name={item.name} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: c, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: c, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{itemLabel(item)}</div>
         <div style={{ fontSize: 10, color: color.mist }}>{itemStatLines(item).join(" · ")}</div>
       </div>
       <button style={{ ...mini, ...(disabled ? { opacity: 0.4, cursor: "not-allowed" } : null) }} onClick={disabled ? undefined : onClick} title={disabled ? "Coffre plein" : undefined}>{label}</button>

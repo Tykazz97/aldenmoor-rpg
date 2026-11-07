@@ -9,6 +9,7 @@
 // Tous les tirages prennent un `rng` (0..1) pour pouvoir être testés.
 // ============================================================
 import { PROFESSIONS, MAX_PROFESSION_LEVEL } from "../data/professions.js";
+import { RARE_OF_PROFESSION, RARE_FIND_BASE, RARE_FIND_PER_FIND } from "../data/upgrade.js";
 
 // Valeur maximale de chaque avantage, atteinte au niveau maximum du métier (100)
 export const PERK_MAX = {
@@ -58,12 +59,21 @@ export function perkLines(professionKey, level, maxLevel = MAX_PROFESSION_LEVEL)
   return [row("Chance de chef-d'œuvre (+10 % de stats)", now.masterwork, nxt?.masterwork)];
 }
 
+// Ressource rare d'amélioration, trouvée en plus à la récolte : chance de 6 % au niveau 1, jusqu'à 20 % au niveau 100
+export const rareFindChance = (level, professionKey) => (RARE_OF_PROFESSION[professionKey] ? RARE_FIND_BASE + RARE_FIND_PER_FIND * perksFor(professionKey, level).find : 0);
+export function rollRareFind(level, professionKey, rng = Math.random) {
+  const id = RARE_OF_PROFESSION[professionKey];
+  return id && rng() < rareFindChance(level, professionKey) ? id : null;
+}
+
 // ---- tirages ----
 // Récolte : quantité (éventuellement doublée) et trouvaille éventuelle { idRessource: 1 }
 export function rollGather(level, professionKey, baseQty, rng = Math.random) {
   const p = perksFor(professionKey, level);
   const doubled = rng() < p.double;
-  const find = FIND_RESOURCE[professionKey] && rng() < p.find ? { [FIND_RESOURCE[professionKey]]: 1 } : null;
+  let find = FIND_RESOURCE[professionKey] && rng() < p.find ? { [FIND_RESOURCE[professionKey]]: 1 } : null;
+  const rare = rollRareFind(level, professionKey, rng);        // ressource rare d'une classe (voir data/upgrade.js)
+  if (rare) find = { ...(find || {}), [rare]: 1 };
   return { qty: doubled ? baseQty * 2 : baseQty, doubled, find };
 }
 export const harvestDuration = (level, professionKey, baseMs) => Math.round(baseMs * perksFor(professionKey, level).speed);

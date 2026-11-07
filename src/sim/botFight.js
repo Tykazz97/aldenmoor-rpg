@@ -9,6 +9,7 @@ import { calcStats } from "../utils/calcStats.js";
 import { buildSpellBar } from "../utils/spellbook.js";
 import { BUILDS, makeBotPlayer, botSpec, buildOf } from "./partyBots.js";
 import { gearScore } from "./lifeCraft.js";
+import { plusBucket } from "./lifeUpgrade.js";
 import { autoDrink, POTION_IDS } from "../utils/potions.js";
 
 function pickSpell(state) {
@@ -71,10 +72,10 @@ const sig = (gear) => Math.round(Object.values(gear || {}).reduce((n, id) => n +
 // Chance de victoire d'un simulé (seul, ou avec `allies` = [classKey, classKey]) contre `enemyKeys`
 export function winChance(bot, life, enemyKeys, allyClasses = []) {
   const style = buildOf(bot);
-  const key = `${bot.classKey}|${life.level >> 1}|${sig(life.gear)}|${Math.round(style.main * 10)}|${style.extra}|${style.rankCap}|${enemyKeys.join("+")}|${allyClasses.join("+")}`;
+  const key = `${bot.classKey}|${life.level >> 1}|${sig(life.gear)}|u${plusBucket(life)}|${Math.round(style.main * 10)}|${style.extra}|${style.rankCap}|${enemyKeys.join("+")}|${allyClasses.join("+")}`;
   const hit = CACHE.get(key);
   if (hit !== undefined) return hit;
-  const player = makeBotPlayer(bot.classKey, life.level, life.gear, style);
+  const player = makeBotPlayer(bot.classKey, life.level, life.gear, style, plusBucket(life));
   const allies = allyClasses.map((c) => botSpec(c, life.level));
   let wins = 0;
   for (let seed = 1; seed <= FIGHT_SAMPLES; seed++) if (autoFight(player, enemyKeys, seed, allies).phase === "victory") wins++;
@@ -92,10 +93,10 @@ const DJ_CACHE = new Map();
 // `kit` : les potions qu'il emporte (voir kitOfBag). Le résultat porte aussi `.used` : potions bues en moyenne par expédition.
 export function dungeonOdds(bot, life, dungeon, allyClasses, kit = {}) {
   const style = buildOf(bot);
-  const key = `${dungeon.key}|${bot.classKey}|${life.level >> 1}|${sig(life.gear)}${life.gear?.relique1 ? "R" : ""}|${Math.round(style.main * 10)}|${style.extra}|${style.rankCap}|${allyClasses.join("+")}|${POTION_IDS.map((id) => kit[id] || 0).join(",")}`;
+  const key = `${dungeon.key}|${bot.classKey}|${life.level >> 1}|${sig(life.gear)}${life.gear?.relique1 ? "R" : ""}|u${plusBucket(life)}|${Math.round(style.main * 10)}|${style.extra}|${style.rankCap}|${allyClasses.join("+")}|${POTION_IDS.map((id) => kit[id] || 0).join(",")}`;
   const hit = DJ_CACHE.get(key);
   if (hit) return hit;
-  const player = makeBotPlayer(bot.classKey, life.level, life.gear, style);
+  const player = makeBotPlayer(bot.classKey, life.level, life.gear, style, plusBucket(life));
   const allies = allyClasses.map((c) => botSpec(c, life.level));
   const reached = Array(dungeon.rooms.length + 1).fill(0);
   const usedSum = {};

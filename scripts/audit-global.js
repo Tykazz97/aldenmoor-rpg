@@ -72,6 +72,7 @@ const audit = (day) => {
       if (dj.runs > 0 && l.level < 20) bad(`${where} ${who} : a fait le donjon à ${l.level}`);
     }
     for (const id of ALCHEMY_ORDER) if ((l.bag.res[id] || 0) > 0 && !(l.pro?.alchimiste || (l.dj && l.dj.runs >= 0))) bad(`${where} ${who} : des potions sans jamais avoir distillé`);
+    for (const [slot, n] of Object.entries(l.upg || {})) if (!l.gear[slot] || !Number.isInteger(n) || n < 1 || n > 3) bad(`${where} ${who} : amélioration invalide ${slot}=${n}`);
     if (l.taxPaid) bad(`${where} ${who} : registre de taxe inattendu`);
   }
   // marché
@@ -116,7 +117,7 @@ for (const [name, label] of [["occasionnel", "occasionnels"], ["regulier", "rég
   const g = L.filter((l) => { const t = traitsOf(byId.get(l.id)); return t.profile === pf && (!fc || t.focus === fc); });
   if (!g.length) continue;
   const pro = (l) => Math.max(l.prof.level, ...Object.values(l.pro || {}).map((p) => p.level));
-  console.log(`  ${label.padEnd(20)} ${String(g.length).padStart(3)} simulés : niveau médian ${med(g.map((l) => l.level))} (max ${Math.max(...g.map((l) => l.level))}), meilleur métier médian ${med(g.map(pro))}, or médian ${med(g.map((l) => l.gold))}, donjons ${g.reduce((a, l) => a + (l.dj?.runs || 0), 0)}, pièces achetées au marché ${g.reduce((a, l) => a + (l.gearBought || 0), 0)}`);
+  console.log(`  ${label.padEnd(20)} ${String(g.length).padStart(3)} simulés : niveau médian ${med(g.map((l) => l.level))} (max ${Math.max(...g.map((l) => l.level))}), meilleur métier médian ${med(g.map(pro))}, or médian ${med(g.map((l) => l.gold))}, donjons ${g.reduce((a, l) => a + (l.dj?.runs || 0), 0)}, pièces achetées au marché ${g.reduce((a, l) => a + (l.gearBought || 0), 0)}, améliorations ${g.reduce((a, l) => a + (l.upgraded || 0), 0)} (${Math.round(g.reduce((a, l) => a + (l.upgradeGold || 0), 0) / g.length)} or par simulé), éclats/rares en poche ${g.reduce((a, l) => a + ["eclat_brut", "eclat_dense", "eclat_pur", "veine_d_acier", "petale_d_ame", "seve_d_ambre"].reduce((s, r) => s + (l.bag.res[r] || 0) + (l.bank?.resources?.[r] || 0), 0), 0)}`);
 }
 console.log(`  annonces : ${m.listings.length} (dont ${m.listings.filter((x) => x.seller === "npc").length} du colporteur)`);
 if (problems.length) { console.log(`\n${problems.length} anomalie(s) :`); problems.forEach((p) => console.log("  ✖", p)); process.exitCode = 1; }

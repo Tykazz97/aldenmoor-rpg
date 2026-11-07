@@ -11,7 +11,7 @@ import { perksOf } from "./quests.js";
 
 export const BANK_START = 20;                                           // emplacements au départ
 export const BANK_STEP = 10;                                            // emplacements gagnés par agrandissement
-export const BANK_UPGRADES = [100, 250, 500, 1000, 1800, 3000, 5000, 8000];   // prix de chaque agrandissement, dans l'ordre
+export const BANK_UPGRADES = [100, 250, 500, 1000, 1800, 3000, 5000, 9000];   // prix de chaque agrandissement, dans l'ordre
 
 export const emptyBank = () => ({ items: [], resources: {} });
 export const bankOf = (player) => player.bank || emptyBank();
