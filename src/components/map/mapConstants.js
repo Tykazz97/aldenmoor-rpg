@@ -4,7 +4,8 @@ import { ENCOUNTERS } from "../../data/encounters.js";
 export const VIEW_W = 14;        // largeur visible : 14 tuiles
 export const SPEED = 4.4;        // vitesse du héros, en tuiles par seconde
 export const TOUCH = 0.95;       // distance à laquelle on "touche" un objet en marchant au clavier
-export const HARVEST_MS = 2000;  // durée d'une récolte (un cycle complet de l'animation de métier)
+export const HARVEST_MS = 5000;        // durée d'une récolte au niveau 1 (les niveaux de métier la raccourcissent, voir utils/perks.js)
+export const HARVEST_CYCLE_MS = 2000;  // durée d'un cycle de l'animation de métier : elle se répète pendant la récolte
 export const WALK_CYCLE = 0.72;  // durée d'un cycle de marche, en secondes
 export const cq = (n) => `calc(var(--cq) * ${n})`;
 export const key = (x, y) => `${x},${y}`;

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { heroAnimMeta, heroSheetUrl, frameBackground } from "../../data/heroAnims.js";
 import { stepMove, canStand } from "../../utils/mapPath.js";
-import { VIEW_W, SPEED, TOUCH, HARVEST_MS, WALK_CYCLE, MOVE_KEYS } from "./mapConstants.js";
+import { VIEW_W, SPEED, TOUCH, HARVEST_CYCLE_MS, WALK_CYCLE, MOVE_KEYS } from "./mapConstants.js";
 
 // Le héros sur la carte : clavier, déplacement le long du chemin cliqué, collisions, animation de marche
 // ou de récolte, caméra qui suit, point sur la minicarte. Tout se fait dans une boucle d'animation
@@ -115,7 +115,7 @@ export function useHeroLoop({ map, W, H, fight, syncPos, openPopup, openBuilding
         const of = outfitRef.current, meta = heroAnimMeta(of);
         let act = "walk", fi = 0;                         // à l'arrêt : première image de la marche
         const h = harvestAct.current;
-        if (h) { act = h.action; fi = Math.min(meta.actions[act].frames - 1, Math.floor(((t - h.t0) / (h.ms || HARVEST_MS)) * meta.actions[act].frames)); }
+        if (h) { act = h.action; fi = Math.min(meta.actions[act].frames - 1, Math.floor((((t - h.t0) % HARVEST_CYCLE_MS) / HARVEST_CYCLE_MS) * meta.actions[act].frames)); }
         else if (moving) { const n = meta.actions.walk.frames; fi = Math.floor((((t / 1000) / WALK_CYCLE) % 1) * n); }
         const key = `${of}/${act}/${fi}`;
         if (key !== animKey.current) {
