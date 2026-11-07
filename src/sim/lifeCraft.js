@@ -17,6 +17,8 @@ import { getCraftInfo, recipesOfProfession } from "../data/professions.js";
 import { applyCraft, applyRefine, professionOf } from "../utils/crafting.js";
 import { itemSellPrice } from "../utils/itemValue.js";
 import { BUILDS, tierOf } from "./partyBots.js";
+import { UPGRADE_BONUS } from "../data/upgrade.js";
+import { plusValueFactor } from "../utils/upgrade.js";
 
 export const BAG_ITEMS_MAX = 24;                 // équipements gardés dans le sac (au-delà : revente du plus ancien)
 export const BUY_RATE = 1.3;                     // le marchand vend à 130 % de la valeur de base
@@ -58,17 +60,31 @@ export function stash(life, id) {
   while (life.bag.items.length > BAG_ITEMS_MAX) life.gold += itemSellPrice(life.bag.items.shift());
 }
 // Reçoit un équipement : il le porte s'il est meilleur que ce qu'il a (l'ancienne pièce va dans le sac), sinon il le garde
-export function acquireItem(life, id) {
+// Pièces améliorées à vendre (`life.plusStock`, au plus PLUS_STOCK_MAX) : elles gardent leur +N, à l'inverse du sac qui ne garde que des identifiants.
+// Au-delà, la plus ancienne est cédée tout de suite au prix du marché (avec le supplément d'amélioration).
+export const PLUS_STOCK_MAX = 4;
+export function stashPlus(life, id, plus) {
+  if (!(plus > 0)) return stash(life, id);
+  const list = (life.plusStock ||= []);
+  list.push({ id, plus });
+  while (list.length > PLUS_STOCK_MAX) { const o = list.shift(); life.gold += Math.round(itemSellPrice(o.id) * plusValueFactor({ plus: o.plus })); }
+}
+// Score d'une pièce avec son niveau d'amélioration
+export const scoreWithPlus = (id, plus = 0) => gearScore(id) * (1 + UPGRADE_BONUS * plus);
+
+// `plus` : niveau d'amélioration de la pièce acquise (achetée déjà améliorée)
+export function acquireItem(life, id, plus = 0) {
   const it = ITEMS[id];
   if (!it) return;
   const slot = it.type;
   const cur = life.gear[slot];
   const blocked = (slot === "bouclier" && ITEMS[life.gear.arme]?.twoHanded) || (slot === "arme" && it.twoHanded && life.gear.bouclier);
-  if (slot in { chapeau: 1, cape: 1, plastron: 1, amulette: 1, gants: 1, ceinture: 1, anneau: 1, jambieres: 1, arme: 1, bouclier: 1, relique1: 1 } && !blocked && (!cur || gearScore(id) > gearScore(cur))) {
+  if (slot in { chapeau: 1, cape: 1, plastron: 1, amulette: 1, gants: 1, ceinture: 1, anneau: 1, jambieres: 1, arme: 1, bouclier: 1, relique1: 1 } && !blocked && (!cur || scoreWithPlus(id, plus) > scoreWithPlus(cur, life.upg?.[slot] || 0))) {
+    const curPlus = life.upg?.[slot] || 0;
     life.gear[slot] = id;
-    if (life.upg) delete life.upg[slot];            // l'amélioration restait sur l'ancienne pièce
-    if (cur) stash(life, cur);
-  } else stash(life, id);
+    if (plus > 0) (life.upg ||= {})[slot] = plus; else if (life.upg) delete life.upg[slot];
+    if (cur) stashPlus(life, cur, curPlus);         // l'ancienne pièce garde son amélioration, pour la vendre
+  } else stashPlus(life, id, plus);
 }
 
 // --- Fabrication ------------------------------------------------------------------------------------------------------

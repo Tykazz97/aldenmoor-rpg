@@ -73,6 +73,8 @@ const audit = (day) => {
     }
     for (const id of ALCHEMY_ORDER) if ((l.bag.res[id] || 0) > 0 && !(l.pro?.alchimiste || (l.dj && l.dj.runs >= 0))) bad(`${where} ${who} : des potions sans jamais avoir distillé`);
     for (const [slot, n] of Object.entries(l.upg || {})) if (!l.gear[slot] || !Number.isInteger(n) || n < 1 || n > 3) bad(`${where} ${who} : amélioration invalide ${slot}=${n}`);
+    for (const o of l.plusStock || []) if (!ITEMS[o.id] || !(o.plus >= 1 && o.plus <= 3)) bad(`${where} ${who} : pièce améliorée à vendre invalide ${JSON.stringify(o)}`);
+    if ((l.plusStock || []).length > 4) bad(`${where} ${who} : trop de pièces améliorées en stock`);
     if (l.taxPaid) bad(`${where} ${who} : registre de taxe inattendu`);
   }
   // marché

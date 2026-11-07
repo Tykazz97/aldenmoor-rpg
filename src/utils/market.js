@@ -29,7 +29,7 @@ import { ITEM_SELL_RATE, itemValue, itemSellPrice } from "./itemValue.js";
 import { getPopulation } from "../sim/population.js";
 import { SIM_START } from "../sim/config.js";
 import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
-import { shoppingList, stash, acquireItem, gearScore, targetPieces } from "../sim/lifeCraft.js";
+import { shoppingList, stash, stashPlus, acquireItem, gearScore, scoreWithPlus, targetPieces } from "../sim/lifeCraft.js";
 import { BUILDS } from "../sim/partyBots.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
@@ -128,7 +128,7 @@ function returnToSim(s, l) {
   const life = s.sims?.lives[l.seller];
   if (!life) return;
   if (l.kind === "res") life.bag.res[l.rid] = (life.bag.res[l.rid] || 0) + l.qty;
-  else stash(life, l.rid);
+  else stashPlus(life, l.rid, l.item?.plus || 0);
 }
 
 // Les simulés présents achètent ce qu'il leur manque pour leur prochaine fabrication (annonces les moins chères d'abord,
@@ -152,14 +152,14 @@ export function simBuysGear(s, life, b, bucket) {
     if (l.kind !== "item" || l.qty < 1 || l.seller === b.id || !mine.has(l.rid) || l.unit > life.gold - GEAR_RESERVE) continue;
     const it = ITEMS[l.rid], cur = life.gear[it.type];
     if ((it.type === "bouclier" && ITEMS[life.gear.arme]?.twoHanded) || (it.type === "arme" && it.twoHanded && life.gear.bouclier)) continue;
-    const gain = gearScore(l.rid) - (cur ? gearScore(cur) : 0);
+    const gain = scoreWithPlus(l.rid, l.item?.plus || 0) - (cur ? scoreWithPlus(cur, life.upg?.[it.type] || 0) : 0);
     if (gain > bestGain) { best = l; bestGain = gain; }
   }
   if (!best) return false;
   best.qty = 0;
   life.gold -= best.unit;
   creditSeller(s, best, 1, bucket);
-  acquireItem(life, best.rid);
+  acquireItem(life, best.rid, best.item?.plus || 0);
   life.gearBought = (life.gearBought || 0) + 1;
   tally(s, bucket, "items");
   return true;
@@ -298,8 +298,15 @@ function stepListings(s, bucket) {
   if (itemsNow < ITEM_LISTINGS_TARGET && rng() < 0.3) {
     if (sims) {
       // un simulé met en vente un équipement de son sac (ses fabrications d'entraînement, ses drops en trop) ; à défaut, le colporteur
+      const plusHolders = getPopulation().filter((b) => (sims.lives[b.id]?.plusStock?.length || 0) > 0);
       const holders = getPopulation().filter((b) => (sims.lives[b.id]?.bag.items.length || 0) > 0);
-      if (holders.length) {
+      if (plusHolders.length && rng() < 0.6) {
+        // une pièce améliorée dont il n'a plus l'usage : elle part avec son +N, plus chère
+        const b = rng.pick(plusHolders), life = sims.lives[b.id], o = life.plusStock[0], item = { ...ITEMS[o.id], plus: o.plus };
+        const unit = Math.max(1, Math.round(itemWorth(item) * (1.15 + b.greed + (rng() - 0.5) * 0.16)));
+        const tax = saleTax(unit);
+        if (life.gold >= tax) { life.gold -= tax; life.plusStock.shift(); s.listings.push({ id: s.nextId++, seller: b.id, kind: "item", rid: o.id, item, qty: 1, unit, exp: bucket + 144 + rng.int(0, 144) }); }
+      } else if (holders.length) {
         const b = rng.pick(holders), life = sims.lives[b.id], rid = life.bag.items[life.bag.items.length - 1];
         const unit = Math.max(1, Math.round(itemValue(rid) * (1.15 + b.greed + (rng() - 0.5) * 0.16)));
         const tax = saleTax(unit);

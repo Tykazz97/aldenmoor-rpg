@@ -142,7 +142,7 @@ Chaque pièce portée (ni relique, ni clé) peut passer **+1, +2, +3** à l'atel
 - de l'**or** : valeur de la pièce × 3, × 8 puis × 20, plus la taxe de la ville (1 % ici, inscrite dans `taxPaid`).
 Une pièce améliorée se revend plus cher (+50 % de sa valeur par niveau). C'est le grand puits d'or : un +3 sur tout l'équipement coûte bien plus que la fabrication du set.
 
-**Simulés** (`sim/lifeUpgrade.js`) : ils récoltent la ressource rare si leur métier est le bon, ramassent les éclats en combat, et achètent ce qui manque à l'hôtel des ventes (seulement s'ils ont l'or). À l'atelier ils montent d'abord toutes leurs pièces à +1 (arme, plastron…), puis +2, puis +3 ; une pièce remplacée perd son niveau. Leurs chances de victoire en tiennent compte (`plusBucket`). `node scripts/audit-global.js` affiche le nombre d'améliorations et l'or dépensé par profil.
+**Simulés** (`sim/lifeUpgrade.js`) : ils récoltent la ressource rare si leur métier est le bon, ramassent les éclats en combat, et achètent ce qui manque à l'hôtel des ventes (seulement s'ils ont l'or). À l'atelier ils montent d'abord toutes leurs pièces à +1 (arme, plastron…), puis +2, puis +3 ; une pièce qu'ils remplacent garde son +N dans un petit stock (`plusStock`, 4 au plus) et ils la mettent en vente à l'hôtel des ventes avec son niveau, plus chère ; un simulé peut aussi l'acheter déjà améliorée. Leurs chances de victoire en tiennent compte (`plusBucket`). `node scripts/audit-global.js` affiche le nombre d'améliorations et l'or dépensé par profil.
 
 ## Taxe de fabrication des villes
 

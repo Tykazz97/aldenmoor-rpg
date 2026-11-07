@@ -12,7 +12,12 @@ import { ENEMIES } from "../src/data/zones.js";
 import { CLASSES } from "../src/data/classes.js";
 import { rareFindChance, rollRareFind } from "../src/utils/perks.js";
 import { nextUpgrade, upgradeStep, upgradeShopping, plusBucket } from "../src/sim/lifeUpgrade.js";
-import { acquireItem, tierGear } from "../src/sim/lifeCraft.js";
+import { acquireItem, tierGear, stashPlus, PLUS_STOCK_MAX, scoreWithPlus } from "../src/sim/lifeCraft.js";
+import { getPopulation } from "../src/sim/population.js";
+import { SIM_START } from "../src/sim/config.js";
+import { enableSimMarket, newMarket, tickMarket, buyFromListing } from "../src/utils/market.js";
+
+const T0 = Date.UTC(2027, 0, 4, 12), DAY = 86400000;
 import { emptyBag } from "../src/sim/lives.js";
 import { emptyQuests } from "../src/sim/lifeQuests.js";
 
@@ -173,14 +178,15 @@ test("simulé : il achète à l'hôtel des ventes ce qui lui manque (éclats et 
 });
 
 test("simulé : une pièce remplacée perd son amélioration ; le niveau moyen sert aux chances de victoire", () => {
-  const life = mkLife();
+  const life = mkLife("guerrier", 5);
   life.bag.res = { eclat_brut: 99, veine_d_acier: 99 };
   while (upgradeStep(life, bot()));
   const slots = Object.keys(life.upg);
   assert.ok(plusBucket(life) >= 0);
   const slot = slots[0], old = life.gear[slot];
-  const better = Object.values(ITEMS).find((i) => i.type === slot && i.classKey === "guerrier" && i.id !== old && i.tier > ITEMS[old].tier);
-  if (better) { acquireItem(life, better.id); assert.equal(life.upg[slot], undefined, "amélioration perdue avec l'ancienne pièce"); }
+  const better = ITEMS[tierGear("guerrier", 45)[slot]];
+  assert.notEqual(better.id, old);
+  acquireItem(life, better.id); assert.equal(life.upg[slot], undefined, "amélioration perdue avec l'ancienne pièce");
   const l2 = mkLife(); l2.upg = Object.fromEntries(["arme", "plastron", "jambieres", "chapeau", "gants", "ceinture", "bouclier", "cape", "amulette", "anneau"].map((s) => [s, 3]));
   assert.equal(plusBucket(l2), 3);
   assert.equal(plusBucket(mkLife()), 0);
@@ -190,6 +196,50 @@ test("le bot de combat porte ses améliorations : plus fort à +3 qu'à +0", () 
   const g = tierGear("guerrier", 30);
   const a = calcStats(makeBotPlayer("guerrier", 30, g)), b = calcStats(makeBotPlayer("guerrier", 30, g, undefined, 3));
   assert.ok(b.atkPhys > a.atkPhys && b.maxHp >= a.maxHp && b.defPhys > a.defPhys);
+});
+
+test("simulé : la pièce remplacée garde son +N dans un stock à vendre (4 au plus, le surplus est cédé)", () => {
+  const life = mkLife("guerrier", 5);
+  const slot = "arme", old = life.gear[slot];
+  life.upg = { [slot]: 2 };
+  const better = ITEMS[tierGear("guerrier", 45)[slot]];
+  acquireItem(life, better.id);
+  assert.deepEqual(life.plusStock, [{ id: old, plus: 2 }]);
+  assert.equal(life.upg[slot], undefined);
+  assert.ok(!life.bag.items.includes(old), "pas dans le sac ordinaire");
+  const g = life.gold;
+  for (let i = 0; i < 5; i++) stashPlus(life, old, 1);
+  assert.equal(life.plusStock.length, PLUS_STOCK_MAX);
+  assert.ok(life.gold > g, "le surplus est cédé");
+});
+
+test("simulé : acheter une pièce déjà améliorée la fait porter avec son niveau", () => {
+  const life = mkLife("guerrier", 5);
+  const slot = "arme", cur = life.gear[slot];
+  const better = ITEMS[tierGear("guerrier", 45)[slot]];
+  acquireItem(life, better.id, 2);
+  assert.equal(life.gear[slot], better.id); assert.equal(life.upg[slot], 2);
+  // une pièce +2 vaut mieux qu'une pièce neuve du même palier, mais pas qu'un palier au-dessus
+  assert.ok(scoreWithPlus(better.id, 2) > scoreWithPlus(better.id, 0));
+});
+
+test("marché : un simulé met en vente sa pièce améliorée avec son +N, un joueur l'achète avec son niveau", () => {
+  SIM_START.mode = "fresh"; SIM_START.epoch = T0;
+  enableSimMarket(true);
+  let m = newMarket(T0);
+  m = tickMarket(m, T0 + DAY);
+  const sellers = getPopulation().slice(0, 40);
+  const piece = tierGear("guerrier", 30).arme;
+  for (const b of sellers) { const l = m.sims.lives[b.id]; l.gold = 1e5; l.plusStock = [{ id: piece, plus: 2 }]; }
+  let seen = null, day = 1;
+  for (let d = 2; d <= 12 && !seen; d++) { m = tickMarket(m, T0 + d * DAY); day = d; seen = m.listings.find((x) => x.kind === "item" && x.item?.plus === 2); }
+  assert.ok(seen, "une annonce porte la pièce +2");
+  assert.equal(seen.rid, piece);
+  assert.ok(seen.unit > Math.round(itemWorth({ ...ITEMS[piece], plus: 0 })), "plus chère qu'une pièce neuve");
+  const buyer = { ...hero("guerrier"), gold: 1e7, inventory: [] };
+  const r = buyFromListing({ ...buyer, market: m }, seen.id, 1, T0 + day * DAY);
+  assert.ok(r.ok, JSON.stringify(r.reason ?? r.err ?? ""));
+  assert.ok(r.player.inventory.some((i) => i.id === piece && i.plus === 2), "le joueur la reçoit en +2");
 });
 
 console.log(`\n${n} tests OK`);
