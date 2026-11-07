@@ -6,7 +6,7 @@
 // Métiers de craft (forgeron, tailleur, maroquinier, menuisier), de
 // récolte (bûcheron, mineur, herboriste : voir gathering.js) et de raffinage
 // (fondeur, scieur, tanneur, tisserand : voir refining.js). Le
-// Bijoutier et l'Alchimiste viendront avec les capes/amulettes/consommables.
+// Bijoutier fait les anneaux et les amulettes ; l'Alchimiste viendra avec les consommables.
 // ============================================================
 
 import { ITEMS } from "./items.js";
@@ -30,6 +30,10 @@ export const PROFESSIONS = {
   menuisier: {
     key: "menuisier", name: "Menuisier", icon: "🪵",
     desc: "Arcs et bâtons.",
+  },
+  bijoutier: {
+    key: "bijoutier", name: "Bijoutier", icon: "💍",
+    desc: "Anneaux et amulettes, forgés avec les trophées des boss.",
   },
   // --- Récolte : se pratique sur la carte ---
   bucheron: {
@@ -71,7 +75,11 @@ export function xpForLevel(level) {
 }
 
 // Quel métier fabrique quoi
-const SET_PROFESSION = { veteran: "forgeron", apprenti: "tailleur", traqueur: "maroquinier" };
+const SET_PROFESSION = {
+  veteran: "forgeron", apprenti: "tailleur", traqueur: "maroquinier",
+  fossoyeur: "forgeron", charognard: "maroquinier", brasier: "tailleur",
+  chevalier: "forgeron", garou: "maroquinier", esprit: "tailleur",
+};
 const WEAPON_PROFESSION = {
   epee: "forgeron", marteau: "forgeron", dague: "forgeron",
   baton: "menuisier", arc: "menuisier",
@@ -84,6 +92,8 @@ const SLOT_MIN_LEVEL = {
   chapeau: 2, jambieres: 2, arme: 2, bouclier: 2,
   plastron: 3,
 };
+// Les paliers 2 et 3 demandent un métier plus avancé (+3 et +6 niveaux) ; `craftLevel` sur l'objet remplace ce calcul
+const TIER_LEVEL_OFFSET = { 1: 0, 2: 3, 3: 6 };
 
 // Renvoie { profession, minLevel, xp } pour un objet craftable
 // (l'xp gagnée = coût en or de la recette).
@@ -95,12 +105,14 @@ export function getCraftInfo(itemId) {
   let profession;
   if (item.set) profession = SET_PROFESSION[item.set];
   else if (item.type === "bouclier") profession = "forgeron";
+  else if (item.type === "cape") profession = "tailleur";
+  else if (item.type === "amulette" || item.type === "anneau") profession = "bijoutier";
   else if (item.type === "arme") profession = WEAPON_PROFESSION[item.weaponType];
   if (!profession) return null;
 
   return {
     profession,
-    minLevel: SLOT_MIN_LEVEL[item.type] || 1,
+    minLevel: item.craftLevel ?? (SLOT_MIN_LEVEL[item.type] || 1) + TIER_LEVEL_OFFSET[item.tier || 1],
     xp: recipe.gold,
   };
 }

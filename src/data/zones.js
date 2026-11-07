@@ -127,7 +127,7 @@ export const ENEMIES = {
   squelette_fermier: {
     key: "squelette_fermier", name: "Squelette de fermier",
     desc: "Mort-vivant lent mais résistant, armé d'une faux rouillée.",
-    stats: { hp: 360, atkPhys: 22, atkMagie: 0, defPhys: 20, defMagie: 2, esquive: 0, critique: 3, vitesse: 7, pa: 6 },
+    stats: { hp: 420, atkPhys: 25, atkMagie: 0, defPhys: 20, defMagie: 2, esquive: 0, critique: 3, vitesse: 7, pa: 6 },
     xp: 40,
     actions: [
       { id: "coup_de_faux", name: "Coup de faux", pa: 3, type: "phys", power: 1.0, weight: 3 },
@@ -198,7 +198,7 @@ export const ENEMIES = {
   loup_garou: {
     key: "loup_garou", name: "Loup-garou",
     desc: "Évolution corrompue du loup, rapide, dégâts physiques élevés, rage à bas HP.",
-    stats: { hp: 440, atkPhys: 30, atkMagie: 0, defPhys: 18, defMagie: 6, esquive: 14, critique: 12, vitesse: 15, pa: 6 },
+    stats: { hp: 560, atkPhys: 33, atkMagie: 0, defPhys: 18, defMagie: 6, esquive: 14, critique: 12, vitesse: 15, pa: 6 },
     xp: 75,
     actions: [
       { id: "griffure", name: "Griffure", pa: 3, type: "phys", power: 1.0, weight: 3 },
@@ -218,7 +218,7 @@ export const ENEMIES = {
   esprit_errant: {
     key: "esprit_errant", name: "Esprit errant",
     desc: "Spectre, dégâts magiques qui contournent l'armure, inflige parfois Givre.",
-    stats: { hp: 300, atkPhys: 0, atkMagie: 22, defPhys: 26, defMagie: 14, esquive: 14, critique: 6, vitesse: 12, pa: 6 },
+    stats: { hp: 380, atkPhys: 0, atkMagie: 29, defPhys: 26, defMagie: 14, esquive: 14, critique: 6, vitesse: 12, pa: 6 },
     xp: 70,
     actions: [
       { id: "toucher_glacial", name: "Toucher glacial", pa: 3, type: "mag", power: 1.0, weight: 3, effect: { kind: "weaken", element: "givre", turns: 2, value: 0.15 } },
@@ -234,7 +234,7 @@ export const ENEMIES = {
   chevalier_dechu: {
     key: "chevalier_dechu", name: "Chevalier déchu",
     desc: "Ancien soldat corrompu, équilibre ATK/DEF, capacité de Feu noir.",
-    stats: { hp: 650, atkPhys: 34, atkMagie: 24, defPhys: 32, defMagie: 16, esquive: 4, critique: 8, vitesse: 9, pa: 6 },
+    stats: { hp: 720, atkPhys: 34, atkMagie: 24, defPhys: 32, defMagie: 16, esquive: 4, critique: 8, vitesse: 9, pa: 6 },
     xp: 95,
     actions: [
       { id: "coup_d_epee_noire", name: "Coup d'épée noire", pa: 3, type: "phys", power: 1.0, weight: 3 },

@@ -4,7 +4,7 @@
 // Un joueur automatique de niveau L affronte les rencontres de chaque zone. Il a :
 //  - la caractéristique principale de sa classe + de la vitalité (65 % / 35 % des points gagnés),
 //  - la meilleure panoplie de départ de sa classe + son arme,
-//  - un équipement qui progresse avec le niveau (voir gearFactor : les panoplies suivantes),
+//  - l'équipement de son palier (sets des 3 régions, voir BUILDS ci-dessous),
 //  - ses points de sort investis dans ses meilleurs sorts, et la barre de combat du grimoire.
 // Il lance le sort le plus rentable (dégâts par PA) sur l'ennemi le plus faible ; il n'utilise ni
 // parade ni sorts de soutien : c'est donc un joueur plutôt prudent, un humain fait mieux.
@@ -24,26 +24,28 @@ import { buildSpellBar, rankUp, spellPointsLeft, rankCost, loadoutOf } from "../
 const N = Number(process.argv[2]) || 200;
 const ONLY = process.argv[3] ? process.argv[3].split(",") : null;      // ex. : node ... 200 loups,cavalier
 
+// Équipement par palier (voir src/data/gearTiers.js) : palier 1 jusqu'au niveau 9, palier 2 de 10 à 15, palier 3 à partir de 16.
+// (On suppose que le joueur a fabriqué le set de la région précédente avant d'attaquer la suivante.)
 const BUILDS = {
-  guerrier: { weapon: "epee_milicien", wtype: "epee", main: "force", set: "veteran", shield: true },
-  assassin: { weapon: "dague_ebrechee", wtype: "dague", main: "agilite", set: "traqueur" },
-  magicien: { weapon: "baton_noueux", wtype: "baton", main: "intelligence", set: "apprenti" },
+  guerrier: { wtype: "epee", main: "force", tiers: [
+    { weapon: "epee_milicien", set: "veteran", shield: "bouclier_milicien" },
+    { weapon: "epee_fossoyeur", set: "fossoyeur", shield: "bouclier_fossoyeur" },
+    { weapon: "epee_chevalier", set: "chevalier", shield: "bouclier_chevalier" },
+  ] },
+  assassin: { wtype: "dague", main: "agilite", tiers: [
+    { weapon: "dague_ebrechee", set: "traqueur" }, { weapon: "dague_charognard", set: "charognard" }, { weapon: "dague_garou", set: "garou" },
+  ] },
+  magicien: { wtype: "baton", main: "intelligence", tiers: [
+    { weapon: "baton_noueux", set: "apprenti" }, { weapon: "baton_brasier", set: "brasier" }, { weapon: "baton_esprit", set: "esprit" },
+  ] },
 };
-
-// Équipement : jusqu'au niveau 10 on a la panoplie de la zone 1 ; ensuite les panoplies suivantes
-// (étape 2 du plan) apportent environ +8 % de stats d'équipement par niveau.
-export const gearFactor = (level) => (level <= 10 ? 1 : 1 + 0.08 * (level - 10));
-const SCALED = ["atk_phys", "atk_magie", "def_phys", "def_magie", "hp"];
+export const tierOf = (level) => (level < 10 ? 0 : level < 16 ? 1 : 2);
 
 function gear(build, level) {
-  const f = gearFactor(level);
-  const items = [build.weapon, ...SETS[build.set].pieces, ...(build.shield ? ["bouclier_milicien"] : [])];
+  const t = build.tiers[tierOf(level)];
+  const items = [t.weapon, ...SETS[t.set].pieces, ...(t.shield ? [t.shield] : [])];
   const equipped = {};
-  for (const id of items) {
-    const it = { ...ITEMS[id] };
-    for (const k of SCALED) if (it[k]) it[k] = Math.round(it[k] * f);
-    equipped[it.type] = it;
-  }
+  for (const id of items) equipped[ITEMS[id].type] = ITEMS[id];
   return equipped;
 }
 

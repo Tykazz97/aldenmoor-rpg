@@ -4,6 +4,8 @@
 // dans toute la Zone 1, indépendamment des régions.
 // ============================================================
 
+import { TIER_ITEMS, TIER_SETS } from "./gearTiers.js";
+
 const ICON_BASE = "/assets/icons/items";
 
 export const ITEMS = {
@@ -254,6 +256,9 @@ export const ITEMS = {
   },
 };
 
+// Paliers 2 et 3 (voir gearTiers.js)
+Object.assign(ITEMS, TIER_ITEMS);
+
 export const ITEM_ORDER = Object.keys(ITEMS);
 
 // ============================================================
@@ -292,6 +297,8 @@ export const SETS = {
     },
   },
 };
+
+Object.assign(SETS, TIER_SETS);
 
 // Calcule les bonus de set actifs à partir des items équipés
 export function calcSetBonuses(equipped) {

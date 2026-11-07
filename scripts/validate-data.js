@@ -28,6 +28,11 @@ for (const [itemId, recipe] of Object.entries(RECIPES)) {
   }
 }
 
+// Chaque objet a son icône
+for (const it of Object.values(ITEMS)) {
+  if (!it.img || !existsSync(`public${it.img}`)) err(`Objet ${it.id} : icône absente (${it.img})`);
+}
+
 // Chaque recette doit être rattachée à un métier
 for (const itemId of Object.keys(RECIPES)) {
   if (!getCraftInfo(itemId)) err(`Recette ${itemId} : aucun métier ne la fabrique`);

@@ -56,6 +56,9 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
   const riposte = Math.max(0, ...bonuses.map((b) => b.riposte || 0));
   const firstCrit = bonuses.some((b) => b.guaranteedFirstCrit);
   const spellDiscount = Math.max(0, ...bonuses.map((b) => b.firstSpellDiscount || 0));
+  const thorns = Math.max(0, ...bonuses.map((b) => b.thorns || 0));          // part des dégâts reçus renvoyée en feu noir
+  const lifesteal = Math.max(0, ...bonuses.map((b) => b.lifesteal || 0));    // part des dégâts infligés rendue en PV
+  const armorPen = Math.max(0, ...bonuses.map((b) => b.armorPen || 0));      // part de DEF ignorée par tous les sorts
 
   const player = {
     id: "player",
@@ -71,7 +74,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     dropBonus: stats.dropBonus || 0,
     pa: 0,
     effects: [],
-    flags: { firstCrit, riposte, spellDiscount, discountReady: false, shadowDodge: false, shadowCrit: false },
+    flags: { firstCrit, riposte, spellDiscount, thorns, lifesteal, armorPen, discountReady: false, shadowDodge: false, shadowCrit: false },
     spells: spells || spellsFor(weaponType, classKey, level),
     alive: true,
   };
@@ -169,6 +172,15 @@ function attack(s, events, attacker, target, opts) {
     events.push({ type: "death", id: target.id });
   } else if (!target.isPlayer) {
     checkPhases(s, events, target);
+  }
+
+  // Épines (set du Chevalier Déchu) : une part des dégâts reçus est renvoyée à l'attaquant en feu noir
+  if (target.isPlayer && target.alive && target.flags.thorns > 0 && attacker.alive && !noCounter) {
+    const back = Math.max(1, Math.round(damage * target.flags.thorns));
+    attacker.hp = Math.max(0, attacker.hp - back);
+    events.push({ type: "dot", id: attacker.id, amount: back, element: "feu", hpAfter: attacker.hp });
+    if (attacker.hp <= 0) { attacker.alive = false; events.push({ type: "death", id: attacker.id }); }
+    else if (!attacker.isPlayer) checkPhases(s, events, attacker);
   }
 
   // Contre-attaque du joueur : Parade (sort) ou Riposte (bonus du set Vétéran)
@@ -403,7 +415,7 @@ export function castSpell(state, spellId, targetId = null) {
   for (const t of targets) {
     const res = attack(s, events, player, t, {
       type: spell.type, power: spell.power, critBonus: spell.critBonus || 0,
-      armorPen: spell.armorPen || 0, ignoreEsquive: spell.ignoreEsquive || 0,
+      armorPen: Math.min(0.6, (spell.armorPen || 0) + (player.flags.armorPen || 0)), ignoreEsquive: spell.ignoreEsquive || 0,
       label: spell.name, spellId, element: spell.applyElement,
     });
     if (res.hit) {
@@ -412,8 +424,9 @@ export function castSpell(state, spellId, targetId = null) {
     }
   }
 
-  if (spell.lifesteal && totalDamage > 0 && player.alive) {
-    const heal = Math.max(1, Math.round(totalDamage * spell.lifesteal));
+  const steal = (spell.lifesteal || 0) + (player.flags.lifesteal || 0);
+  if (steal > 0 && totalDamage > 0 && player.alive) {
+    const heal = Math.max(1, Math.round(totalDamage * steal));
     player.hp = Math.min(player.maxHp, player.hp + heal);
     events.push({ type: "heal", id: "player", amount: heal, hpAfter: player.hp });
   }

@@ -11,9 +11,10 @@
 // (gathering.js) ; les drops de monstres complètent. Bois, minerai, peaux, chiffons et orties
 // passent d'abord par le RAFFINAGE (refining.js) : deux matières brutes donnent une matière raffinée,
 // et les recettes ci-dessous demandent les matières raffinées. Les ressources du
-// Cavalier Déchu ne sont pas encore utilisées :
-// elles serviront pour un set / des pièces dédiés (à définir).
+// Cavalier Déchu servent à l'anneau et à l'amulette de boss (gearTiers.js).
 // ============================================================
+
+import { TIER_RECIPES } from "./gearTiers.js";
 
 export const RECIPES = {
   // --- Harnois du Vétéran (sanglier + bandit) ---
@@ -43,6 +44,9 @@ export const RECIPES = {
   arc_chasse: { ingredients: { planche_de_frene: 2, planche_de_chene: 1, croc_de_loup: 2, fourrure_grise: 2 }, gold: 40 },
   bouclier_milicien: { ingredients: { planche_de_chene: 1, lingot_de_fer: 2, cuir_de_sanglier: 2, defense_ebrechee: 2 }, gold: 45 },
 };
+
+// Paliers 2 et 3 (sets des Champs Calcinés et de la Lisière, objets de boss) : voir gearTiers.js
+Object.assign(RECIPES, TIER_RECIPES);
 
 // Objets qui ne se craftent pas mais tombent directement sur un monstre :
 // dague_ebrechee et masse_rouillee (voir drops dans zones.js).
