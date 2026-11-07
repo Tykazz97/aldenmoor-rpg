@@ -1,6 +1,6 @@
 // Tests des combats en groupe (le joueur + 2 alliés bots) :  node scripts/test-party.js
 import assert from "node:assert/strict";
-import { createCombat, advance, castSpell, endTurn, PARTY_HP_SCALE, PARTY_DROP_MULT } from "../src/combat/engine.js";
+import { createCombat, advance, castSpell, endTurn, PARTY_HP_SCALE, PARTY_DROP_MULT, SOLO_XP_MULT } from "../src/combat/engine.js";
 import { defaultAllies, botSpec, makeBotPlayer, PARTY_SIZE } from "../src/sim/partyBots.js";
 import { ENEMIES } from "../src/data/zones.js";
 import { CLASSES } from "../src/data/classes.js";
@@ -108,12 +108,14 @@ test("un allié à terre ne joue plus mais le combat continue ; c'est la mort du
   assert.ok(low.allies.some((a) => a.alive), "au moins un allié était encore debout");
 });
 
-test("les récompenses sont celles du seul joueur (même xp et or qu'en solo) et les renforts d'esprits ont des PV adaptés", () => {
+test("les récompenses sont celles du seul joueur (même or qu'en solo, et pas le bonus d'xp du solo) et les renforts d'esprits ont des PV adaptés", () => {
   const e = ENEMIES.chevalier_dechu;
   const { st } = autoplay(fightOf("guerrier", 20, ["chevalier_dechu"], { seed: 2 }));
   assert.equal(st.phase, "victory");
   assert.equal(st.rewards.xp, e.xp);
   assert.ok(st.rewards.gold >= e.gold[0] && st.rewards.gold <= e.gold[1]);
+  const solo = autoplay(fightOf("guerrier", 20, ["chevalier_dechu"], { seed: 2, party: false })).st;
+  assert.equal(solo.rewards.xp, Math.round(e.xp * SOLO_XP_MULT), "+25 % d'xp en solo");
   const boss = fightOf("guerrier", 20, ["veilleur_corrompu"], { seed: 9 });
   let s2 = advance(boss).state;
   s2.enemies[0].hp = Math.round(s2.enemies[0].maxHp * 0.6);

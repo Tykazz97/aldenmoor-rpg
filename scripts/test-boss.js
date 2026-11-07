@@ -6,7 +6,7 @@ import { ENEMIES } from "../src/data/zones.js";
 import { ENCOUNTERS } from "../src/data/encounters.js";
 import { MAPS } from "../src/data/maps.js";
 import { calcStats } from "../src/utils/calcStats.js";
-import { createCombat, advance, castSpell, endTurn } from "../src/combat/engine.js";
+import { createCombat, advance, castSpell, endTurn, SOLO_XP_MULT } from "../src/combat/engine.js";
 import { activeGroups } from "../src/utils/mapPath.js";
 import { boardFor, acceptQuest, completeQuest, progressOf, questsOf } from "../src/utils/quests.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
@@ -156,7 +156,7 @@ test("les esprits appelés jouent leur tour, mais ne rapportent ni xp, ni or, ni
   assert.equal(end.phase, "victory");
   assert.equal(end.rewards.kills.veilleur_corrompu, 1);
   assert.equal(end.rewards.kills.esprit_errant, undefined);
-  assert.equal(end.rewards.xp, boss.xp);
+  assert.equal(end.rewards.xp, Math.round(boss.xp * SOLO_XP_MULT));
   assert.ok(end.rewards.gold >= boss.gold[0] && end.rewards.gold <= boss.gold[1]);
   assert.ok(!("cle_du_manoir" in end.rewards.resources) && !end.rewards.items.includes("cle_du_manoir"));
 });

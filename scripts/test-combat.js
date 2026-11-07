@@ -3,7 +3,7 @@
 // ============================================================
 
 import assert from "node:assert/strict";
-import { createCombat, advance, castSpell, endTurn, spellsFor, PA_MAX } from "../src/combat/engine.js";
+import { createCombat, advance, castSpell, endTurn, spellsFor, PA_MAX, SOLO_XP_MULT } from "../src/combat/engine.js";
 
 const BASE_STATS = {
   atkPhys: 20, atkMagie: 20, defPhys: 0, defMagie: 0, maxHp: 100,
@@ -234,7 +234,7 @@ test("victoire : récompenses cohérentes avec le bestiaire", () => {
   let { state } = toPlayerTurn(mk({ stats: { atkPhys: 500 }, enemies: ["loup_des_plaines"], seed: 2 }));
   const r = castSpell(state, "taillade", "e0");
   assert.equal(r.state.phase, "victory");
-  assert.equal(r.state.rewards.xp, 12);
+  assert.equal(r.state.rewards.xp, Math.round(12 * SOLO_XP_MULT));
   assert.ok(r.state.rewards.gold >= 3 && r.state.rewards.gold <= 8);
   for (const id of Object.keys(r.state.rewards.resources)) {
     assert.ok(["croc_de_loup", "fourrure_grise", "oeil_de_loup_argente"].includes(id));
