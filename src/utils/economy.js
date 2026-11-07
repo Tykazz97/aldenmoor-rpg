@@ -13,6 +13,7 @@ import { NODES, NODE_ORDER } from "../data/gathering.js";
 import { RESOURCES } from "../data/resources.js";
 import { RECIPES } from "../data/recipes.js";
 import { ITEMS } from "../data/items.js";
+import { CLASSES } from "../data/classes.js";
 import { itemSellPrice, TAX_RATE } from "./market.js";
 
 export const GOLD_SHARE_MIN = 0.25, GOLD_SHARE_MAX = 0.55;
@@ -26,7 +27,7 @@ export function encounterIncome(enc) {
     const e = ENEMIES[k];
     if (e.gold) gold += avg(e.gold[0], e.gold[1]);
     for (const d of e.drops || []) {
-      const qty = d.chance * avg(d.min ?? 1, d.max ?? 1);
+      const qty = d.chance * avg(d.min ?? 1, d.max ?? 1) / (d.forClass ? Object.keys(CLASSES).length : 1);   // butin de classe : un tiers des joueurs pour chaque version
       drops += d.type === "resource" ? qty * RESOURCES[d.id].value * RESALE : qty * itemSellPrice(d.id);
     }
   }

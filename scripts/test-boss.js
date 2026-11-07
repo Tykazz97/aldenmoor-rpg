@@ -1,4 +1,4 @@
-// Tests du Veilleur Corrompu (boss de la Lisière), de l'appel d'esprits, de la relique et de la chaîne de quêtes :  node scripts/test-boss.js
+// Tests du Veilleur Corrompu (boss de la Lisière), de l'appel d'esprits, des armes uniques et de la chaîne de quêtes :  node scripts/test-boss.js
 import assert from "node:assert/strict";
 import { ITEMS } from "../src/data/items.js";
 import { RECIPES } from "../src/data/recipes.js";
@@ -14,6 +14,7 @@ import { applyCraft, canCraft } from "../src/utils/crafting.js";
 import { getCraftInfo, PROFESSIONS, recipesOfProfession } from "../src/data/professions.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { perkLines } from "../src/utils/perks.js";
+import { CLASSES } from "../src/data/classes.js";
 import { CHAIN_QUESTS } from "../src/data/quests.js";
 
 let n = 0;
@@ -21,7 +22,8 @@ const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
 console.log("Veilleur Corrompu");
 
 const boss = ENEMIES.veilleur_corrompu;
-const relic = ITEMS.lanterne_du_veilleur;
+const UNIQUE = { guerrier: "lame_du_veilleur", assassin: "croc_du_veilleur", magicien: "sceptre_du_veilleur" };
+const relic = ITEMS.lame_du_veilleur;
 const baseStats = (equipped = {}) => calcStats({ level: 20, baseHp: 400, caracs: {}, equipped });
 // Combat contre le boss, au tour du héros, avec un héros quasi invincible (pour observer le boss sans mourir)
 function bossFight(seed = 5, stats = { ...baseStats(), maxHp: 1e6, esquive: 0 }) {
@@ -51,19 +53,58 @@ test("le boss est complet : stats, 3 phases de jeu, rencontre, groupe sur la car
   assert.deepEqual(activeGroups(custom, { cleared: { x: 0, y: 0 } }, 6000).map((o) => o.id), ["y"]);
 });
 
-test("butin : plus de clé sur le boss (elle se fabrique), une essence, et UNE relique très rare non fabricable", () => {
-  const rel = boss.drops.find((d) => d.id === "lanterne_du_veilleur");
+test("butin : plus de clé sur le boss (elle se fabrique), une essence, et une arme unique par classe, très rare et non fabricable", () => {
   assert.ok(!boss.drops.some((d) => d.id === "cle_du_manoir"), "la clé ne tombe plus sur le boss");
   assert.ok(boss.drops.some((d) => d.id === "essence_du_veilleur" && d.chance >= 0.5));
-  assert.ok(rel.chance > 0 && rel.chance <= 0.08, "relique : 8 % au plus");
-  assert.equal(boss.drops.filter((d) => ITEMS[d.id]?.type?.startsWith("relique")).length, 1);
-  assert.equal(relic.type, "relique1"); assert.equal(relic.rarity, "legendaire");
-  assert.ok(!RECIPES.lanterne_du_veilleur, "la relique ne se fabrique pas");
+  assert.ok(!boss.drops.some((d) => d.id === "lanterne_du_veilleur") && !ITEMS.lanterne_du_veilleur, "plus de relique");
+  const uniques = boss.drops.filter((d) => d.forClass);
+  assert.deepEqual(uniques.map((d) => d.forClass).sort(), ["assassin", "guerrier", "magicien"], "une arme par classe");
+  for (const d of uniques) {
+    assert.equal(d.id, UNIQUE[d.forClass]);
+    assert.ok(d.chance > 0 && d.chance <= 0.08, "5 % au plus");
+    const it = ITEMS[d.id];
+    assert.equal(it.type, "arme"); assert.equal(it.rarity, "legendaire"); assert.equal(it.classKey, d.forClass);
+    assert.ok(!RECIPES[d.id], "ne se fabrique pas");
+    assert.equal(it.weaponType, ITEMS[CLASSES[d.forClass].startWeapon].weaponType, "garde le type d'arme (donc les sorts) de sa classe");
+  }
+  assert.equal(new Set(uniques.map((d) => d.chance)).size, 1, "même chance pour chaque classe");
 });
 
-test("la relique est plus forte que n'importe quel accessoire de boss", () => {
-  const total = (it) => ["hp", "def_phys", "def_magie", "atk_phys", "atk_magie", "critique", "esquive"].reduce((t, k) => t + (it[k] || 0), 0);
-  for (const id of ["anneau_cavalier", "amulette_armure_maudite", "cape_epouvantail", "amulette_coeur_de_braise"]) assert.ok(total(relic) > total(ITEMS[id]) * 2, id);
+test("chaque arme unique dépasse nettement la meilleure arme de palier 3 de sa classe, et a un passif", () => {
+  const power = (it) => ["atk_phys", "atk_magie"].reduce((s, k) => s + (it[k] || 0), 0);
+  const best = { guerrier: ITEMS.epee_chevalier, assassin: ITEMS.dague_garou, magicien: ITEMS.baton_esprit };
+  for (const [cls, id] of Object.entries(UNIQUE)) {
+    assert.ok(power(ITEMS[id]) >= power(best[cls]) * 1.5, cls);
+    assert.ok(Object.keys(ITEMS[id].passive).length === 1 && ITEMS[id].passiveDesc, cls);
+  }
+});
+
+test("le butin d'arme unique est celui de la classe du joueur, jamais celui d'une autre", () => {
+  const saved = boss.drops.map((d) => ({ ...d }));
+  boss.drops.forEach((d) => { d.chance = 1; });                       // pour tester le tirage, on le rend certain
+  try {
+    for (const [cls, id] of Object.entries(UNIQUE)) {
+      const stats = { ...baseStats(), maxHp: 1e6, esquive: 0, atkPhys: 5000 };
+      let st = createCombat({ stats, weaponType: "epee", classKey: cls, level: 20, enemyKeys: ["veilleur_corrompu"], seed: 21 });
+      st = advance(st).state;
+      for (let i = 0; i < 30 && st.phase === "playerTurn"; i++) {
+        st.player.pa = 6;
+        const sp = st.player.spells.find((s2) => s2.type !== "buff" && s2.pa <= 6);
+        st = castSpell(st, sp.id, st.enemies.find((e) => e.alive).id).state;
+        if (st.phase === "playerTurn" && st.player.pa < 2) st = advance(endTurn(st).state).state;
+      }
+      assert.equal(st.phase, "victory", cls);
+      assert.deepEqual(st.rewards.items, [id], cls);
+    }
+  } finally { boss.drops.splice(0, boss.drops.length, ...saved); }
+});
+
+test("les passifs d'armes uniques deviennent des effets de combat (vol de vie, mépris de l'armure, dernier souffle)", () => {
+  const flags = (id, cls) => createCombat({ stats: baseStats({ arme: ITEMS[id] }), weaponType: ITEMS[id].weaponType, classKey: cls, level: 20, enemyKeys: ["veilleur_corrompu"], seed: 1 }).player.flags;
+  assert.equal(flags("croc_du_veilleur", "assassin").lifesteal, 0.07);
+  assert.equal(flags("sceptre_du_veilleur", "magicien").armorPen, 0.25);
+  assert.equal(flags("lame_du_veilleur", "guerrier").lastStand, 0.35);
+  assert.equal(flags("lame_du_veilleur", "guerrier").lifesteal, 0);
 });
 
 test("sous 66 % de vie, le Veilleur appelle 2 esprits : ils rejoignent l'ordre de jeu, sans dépasser 3 ennemis", () => {
@@ -155,8 +196,8 @@ test("Regard du néant retire 2 PA au héros pour son prochain tour", () => {
   assert.equal(found.loss.amount, 2);
 });
 
-test("Lanterne du Veilleur : un coup mortel laisse 35 % des PV, une seule fois par combat", () => {
-  const stats = { ...baseStats({ relique1: relic }), esquive: 0 };
+test("Lame du Veilleur : un coup mortel laisse 35 % des PV, une seule fois par combat", () => {
+  const stats = { ...baseStats({ arme: relic }), esquive: 0 };
   assert.equal(stats.passives.lastStand, 0.35);
   assert.equal(baseStats().passives.lastStand, undefined);
   let st = createCombat({ stats, weaponType: "epee", classKey: "guerrier", level: 20, enemyKeys: ["veilleur_corrompu"], seed: 3 });
@@ -176,7 +217,7 @@ test("Lanterne du Veilleur : un coup mortel laisse 35 % des PV, une seule fois p
     assert.ok(!r2.events.some((e) => e.type === "lastStand"));
     assert.equal(r2.state.phase, "defeat");
   }
-  // sans la relique : la défaite est immédiate
+  // sans l'arme : la défaite est immédiate
   let nr = createCombat({ stats: { ...baseStats(), esquive: 0 }, weaponType: "epee", classKey: "guerrier", level: 20, enemyKeys: ["veilleur_corrompu"], seed: 3 });
   nr = advance(nr).state; nr.player.hp = 1;
   assert.equal(advance(endTurn(nr).state).state.phase, "defeat");
@@ -205,7 +246,7 @@ test("chaîne de quêtes : 3 étapes dans l'ordre, à partir du niveau 14, rendu
   }
   assert.deepEqual(chainIn(p), [], "chaîne terminée : elle ne revient pas");
   assert.equal(questsOf(p).chain.length, 3);
-  assert.ok(!CHAIN_QUESTS.some((c) => c.rewards?.item), "la relique n'est jamais une récompense de quête");
+  assert.ok(!CHAIN_QUESTS.some((c) => c.rewards?.item), "l'arme unique n'est jamais une récompense de quête");
 });
 
 test("Bricoleur : fabrique la Clé du Manoir (ingrédients dont l'Essence du Veilleur), qui ne s'équipe pas", () => {

@@ -69,7 +69,7 @@ Zone 1 est découpée en trois cartes de difficulté croissante, chacune avec se
 
 Chaque région a son équipement, fabriqué avec ses drops (`src/data/gearTiers.js`). **Palier 1** (Prairies) : Vétéran, Apprenti, Traqueur. **Palier 2** (Champs Calcinés) : Plates du Fossoyeur (guerrier), Plumage du Charognard (assassin), Atours du Brasier (magicien). **Palier 3** (Lisière) : Harnois du Chevalier Déchu, Pelage du Loup-Garou, Mante de l'Esprit Errant. Chaque set a 5 pièces, une arme de la classe (et un bouclier pour le guerrier) ; les stats valent environ ×1,35 (palier 2) et ×1,9 (palier 3) celles du palier 1. Les nouveaux bonus de 5 pièces : riposte plus forte et épines (renvoi de 20 % des dégâts en feu noir), vol de vie, sorts qui ignorent une part de la défense (voir `src/combat/engine.js`).
 
-Les trophées des boss donnent des objets communs à toutes les classes, fabriqués par le **Bijoutier** (nouveau métier : anneau du Cavalier Déchu, amulette de l'Armure Maudite, amulette du Cœur de Braise) et le Tailleur (cape de l'Épouvantail Ancestral). Un set de palier supérieur demande un niveau de métier plus élevé (+3 au palier 2, +6 au palier 3, voir `professions.js`). Les emplacements de reliques sont réservés au butin des boss (voir « Le Veilleur Corrompu »). `test-gear.js` vérifie les paliers (stats croissantes, métiers, effets de combat).
+Les trophées des boss donnent des objets communs à toutes les classes, fabriqués par le **Bijoutier** (nouveau métier : anneau du Cavalier Déchu, amulette de l'Armure Maudite, amulette du Cœur de Braise) et le Tailleur (cape de l'Épouvantail Ancestral). Un set de palier supérieur demande un niveau de métier plus élevé (+3 au palier 2, +6 au palier 3, voir `professions.js`). Les emplacements de reliques restent vides pour l'instant, réservés aux futurs boss. `test-gear.js` vérifie les paliers (stats croissantes, métiers, effets de combat).
 
 ## Le Veilleur Corrompu (boss de la Lisière)
 
@@ -78,9 +78,14 @@ Tout au bout de la carte de la Lisière des Ombres, dans le coin est. Il réappa
 - **Appel**, sous 66 % de vie : il fait venir **2 esprits errants** (nouvelle mécanique `summon` des phases, dans `engine.js`). Ils entrent dans l'ordre de jeu juste après lui, ne rapportent ni xp, ni or, ni butin, et on ne dépasse jamais 3 ennemis.
 - **Rage**, sous 33 % : +40 % d'attaque, et il débloque Feu noir et Souffle putride (actions avec `needsPhase`).
 
-Butin : l'**Essence du Veilleur** (60 %, 1 à 2) et la **Lanterne du Veilleur**, à **5 %** seulement. Le boss ne lâche pas la clé du donjon : elle se fabrique (voir « Le Bricoleur »). C'est la première relique : emplacement `relique1`, non fabricable, stats très au-dessus des accessoires de boss, et le passif **Dernier souffle** (une fois par combat, un coup mortel laisse 35 % des PV ; passifs d'objets via `passive` → `calcStats().passives` → drapeaux du moteur). Les trois autres emplacements de reliques attendent les prochains boss.
+Butin : l'**Essence du Veilleur** (60 %, 1 à 2) et, à **5 %** seulement, une **arme unique propre à ta classe**. Il n'y a qu'un seul tirage : l'objet qui tombe est celui de la classe du joueur (`forClass` dans les drops de `zones.js`), donc chaque classe a exactement la même chance. Le boss ne lâche pas la clé du donjon : elle se fabrique (voir « Le Bricoleur »).
+- **Lame du Veilleur** (guerrier, épée à une main) : ATK 46, DEF, PV, et « Dernier souffle » : une fois par combat, un coup mortel laisse 35 % des PV.
+- **Croc du Veilleur** (assassin, dague) : ATK 40, 10 % critique, 6 % esquive, et 7 % des dégâts infligés rendus en PV.
+- **Sceptre du Veilleur** (magicien, bâton à deux mains) : ATK magique 38, DEF magique, PV, et les sorts ignorent 25 % de la défense.
 
-**Chaîne de quêtes** au tableau d'Aldenmoor (`CHAIN_QUESTS` dans `quests.js`, à partir du niveau 14, dans l'ordre, une seule fois) : faire taire 8 esprits errants, mettre 6 chevaliers déchus au repos, puis vaincre le Veilleur. Elles paient or, xp et réputation, jamais la relique. `test-boss.js` vérifie le boss, l'appel, la rage, la relique et la chaîne.
+Ces armes sont légendaires, non fabricables, et gardent le type d'arme de leur classe (donc ses sorts). Leur `passive` est lu par `calcStats().passives` puis par le moteur de combat, avec les mêmes drapeaux que les bonus de set. L'emplacement de relique reste vide, pour un futur boss.
+
+**Chaîne de quêtes** au tableau d'Aldenmoor (`CHAIN_QUESTS` dans `quests.js`, à partir du niveau 14, dans l'ordre, une seule fois) : faire taire 8 esprits errants, mettre 6 chevaliers déchus au repos, puis vaincre le Veilleur. Elles paient or, xp et réputation, jamais l'arme unique. `test-boss.js` vérifie le boss, l'appel, la rage, les armes uniques et la chaîne.
 
 ## Le Bricoleur (clés des donjons)
 

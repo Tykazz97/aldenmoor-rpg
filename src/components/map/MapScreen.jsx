@@ -302,7 +302,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
 
           {life && <CityChat feed={feed} online={life.agents.length + 1} onSend={sendChat} playerName={player.name} />}
 
-          {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} onFight={() => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter) }); setPopup(null); }} onBack={() => setPopup(null)} />}
+          {popup && <EngagePopup group={popup} hasWeapon={!!player.equipped.arme} classKey={player.classKey} onFight={() => { syncPos(); setFight({ group: popup, enc: encounterOf(popup.encounter) }); setPopup(null); }} onBack={() => setPopup(null)} />}
         </div>
       </div>
       )}

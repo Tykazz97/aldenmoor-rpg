@@ -268,7 +268,10 @@ export const ENEMIES = {
     gold: [200, 300],
     drops: [
       { type: "resource", id: "essence_du_veilleur", chance: 0.6, min: 1, max: 2 },
-      { type: "item", id: "lanterne_du_veilleur", chance: 0.05, min: 1, max: 1 },
+      // arme unique : un seul tirage à 5 %, et l'objet est celui de la classe du joueur (forClass)
+      { type: "item", id: "lame_du_veilleur", forClass: "guerrier", chance: 0.05, min: 1, max: 1 },
+      { type: "item", id: "croc_du_veilleur", forClass: "assassin", chance: 0.05, min: 1, max: 1 },
+      { type: "item", id: "sceptre_du_veilleur", forClass: "magicien", chance: 0.05, min: 1, max: 1 },
     ],
   },
 

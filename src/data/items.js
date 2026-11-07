@@ -274,26 +274,33 @@ ITEMS.cle_du_manoir = {
 };
 
 // ---------------------------------------------------------
-// RELIQUES — butin de boss, non fabricables, très rares. Chaque boss a la sienne (un seul emplacement rempli
-// pour l'instant : relique1 ; les trois autres viendront avec les prochains boss).
-// `passive` : effet spécial lu par le moteur de combat (voir calcStats.passives).
+// ARMES UNIQUES — butin ultra rare de boss, une par classe (le boss lâche celle de la classe du joueur,
+// voir `forClass` dans zones.js), non fabricables. Leur `passive` (lifesteal, armorPen, lastStand...) agit
+// en combat comme un bonus de set. Elles gardent le type d'arme de leur classe, donc ses sorts.
 // ---------------------------------------------------------
-ITEMS.lanterne_du_veilleur = {
-  id: "lanterne_du_veilleur",
-  name: "Lanterne du Veilleur",
-  type: "relique1",
-  rarity: "legendaire",
-  img: `${ICON_BASE}/accessories/lanterne_du_veilleur.png`,
-  hp: 150,
-  def_phys: 15,
-  def_magie: 15,
-  atk_phys: 10,
-  atk_magie: 10,
-  critique: 5,
-  esquive: 3,
-  passive: { lastStand: 0.35 },
-  passiveDesc: "Dernier souffle : une fois par combat, un coup mortel vous laisse à 35 % de vos PV",
-};
+Object.assign(ITEMS, {
+  lame_du_veilleur: {
+    id: "lame_du_veilleur", name: "Lame du Veilleur", type: "arme", weaponType: "epee", twoHanded: false,
+    rarity: "legendaire", classKey: "guerrier", img: `${ICON_BASE}/weapons/lame_du_veilleur.png`,
+    atk_phys: 46, def_phys: 16, def_magie: 8, hp: 60,
+    passive: { lastStand: 0.35 },
+    passiveDesc: "Dernier souffle : une fois par combat, un coup mortel vous laisse à 35 % de vos PV",
+  },
+  croc_du_veilleur: {
+    id: "croc_du_veilleur", name: "Croc du Veilleur", type: "arme", weaponType: "dague", twoHanded: false,
+    rarity: "legendaire", classKey: "assassin", img: `${ICON_BASE}/weapons/croc_du_veilleur.png`,
+    atk_phys: 40, critique: 10, esquive: 6,
+    passive: { lifesteal: 0.07 },
+    passiveDesc: "Vol de vie : 7 % des dégâts infligés rendus en PV",
+  },
+  sceptre_du_veilleur: {
+    id: "sceptre_du_veilleur", name: "Sceptre du Veilleur", type: "arme", weaponType: "baton", twoHanded: true,
+    rarity: "legendaire", classKey: "magicien", img: `${ICON_BASE}/weapons/sceptre_du_veilleur.png`,
+    atk_magie: 38, def_magie: 14, hp: 40,
+    passive: { armorPen: 0.25 },
+    passiveDesc: "Lueur du Veilleur : vos sorts ignorent 25 % de la défense",
+  },
+});
 
 export const ITEM_ORDER = Object.keys(ITEMS);
 

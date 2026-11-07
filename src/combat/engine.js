@@ -53,17 +53,19 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
   const s = { seed: seed >>> 0 };
 
   const bonuses = (stats.setBonuses || []).map((b) => b.bonus);
+  const pv = stats.passives || {};                                            // passifs d'objets (armes uniques) : mêmes drapeaux que les sets
   const riposte = Math.max(0, ...bonuses.map((b) => b.riposte || 0));
   const firstCrit = bonuses.some((b) => b.guaranteedFirstCrit);
-  const spellDiscount = Math.max(0, ...bonuses.map((b) => b.firstSpellDiscount || 0));
-  const thorns = Math.max(0, ...bonuses.map((b) => b.thorns || 0));          // part des dégâts reçus renvoyée en feu noir
-  const lifesteal = Math.max(0, ...bonuses.map((b) => b.lifesteal || 0));    // part des dégâts infligés rendue en PV
-  const armorPen = Math.max(0, ...bonuses.map((b) => b.armorPen || 0));      // part de DEF ignorée par tous les sorts
-  const lastStand = (stats.passives && stats.passives.lastStand) || 0;       // relique : un coup fatal laisse ce % de PV (une fois par combat)
+  const spellDiscount = Math.max(0, pv.spellDiscount || 0, ...bonuses.map((b) => b.firstSpellDiscount || 0));
+  const thorns = Math.max(0, pv.thorns || 0, ...bonuses.map((b) => b.thorns || 0));          // part des dégâts reçus renvoyée en feu noir
+  const lifesteal = Math.max(0, pv.lifesteal || 0, ...bonuses.map((b) => b.lifesteal || 0));    // part des dégâts infligés rendue en PV
+  const armorPen = Math.max(0, pv.armorPen || 0, ...bonuses.map((b) => b.armorPen || 0));      // part de DEF ignorée par tous les sorts
+  const lastStand = pv.lastStand || 0;                                       // un coup fatal laisse ce % de PV (une fois par combat)
 
   const player = {
     id: "player",
     name: "Héros",
+    classKey,
     isPlayer: true,
     hp: stats.maxHp,
     maxHp: stats.maxHp,
@@ -298,6 +300,7 @@ function rollRewards(s) {
     rewards.kills[e.key] = (rewards.kills[e.key] || 0) + 1;
     if (def.gold) rewards.gold += randInt(s, def.gold[0], def.gold[1]);
     for (const d of def.drops || []) {
+      if (d.forClass && d.forClass !== s.player.classKey) continue;   // butin propre à une classe (armes uniques)
       if (rand(s) < Math.min(1, d.chance * mult)) {
         const qty = randInt(s, d.min, d.max);
         if (d.type === "resource") rewards.resources[d.id] = (rewards.resources[d.id] || 0) + qty;

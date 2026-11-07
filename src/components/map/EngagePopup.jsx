@@ -8,12 +8,13 @@ import { encounterOf } from "./mapConstants.js";
 // ------------------------------------------------------------
 // Fenêtre d'engagement : aperçu du groupe et du butin possible
 // ------------------------------------------------------------
-export default function EngagePopup({ group, hasWeapon, onFight, onBack }) {
+export default function EngagePopup({ group, hasWeapon, classKey, onFight, onBack }) {
   const enc = encounterOf(group.encounter);
   const drops = [];
   const seen = new Set();
   for (const k of enc.enemies) {
     for (const d of ENEMIES[k].drops || []) {
+      if (d.forClass && d.forClass !== classKey) continue;
       const id = `${d.type}:${d.id}`;
       if (!seen.has(id)) { seen.add(id); drops.push(d); }
     }
