@@ -4,7 +4,7 @@ import { CLASSES, CLASS_ORDER } from "../../data/classes.js";
 import { ITEMS } from "../../data/items.js";
 import { WEAPON_TYPES } from "../../data/weapons.js";
 import { CARACS } from "../../data/caracs.js";
-import { BODIES, heroSpriteUrl, bodyReady } from "../../data/heroSprites.js";
+import { BODIES, heroSpriteUrl } from "../../data/heroSprites.js";
 
 const sectionTitle = { fontSize: 11, color: color.mist, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 8 };
 
@@ -43,7 +43,6 @@ export default function CharacterCreator({ onCreate, onImport }) {
                   <button key={k} onClick={() => setGender(k)} style={pill(gender === k)}>{label}</button>
                 ))}
               </div>
-              {!bodyReady(gender) && <div style={{ fontSize: 11, color: color.mist, marginTop: 6 }}>Silhouette féminine en cours de création : en attendant, le personnage s'affiche avec la silhouette masculine.</div>}
             </div>
             <div>
               <div style={sectionTitle}>Classe</div>

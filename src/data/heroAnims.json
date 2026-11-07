@@ -166,5 +166,173 @@
    }
   },
   "pngH": 392
+ },
+ "f/base": {
+  "w": 193,
+  "h": 301,
+  "box": [
+   193,
+   178,
+   515,
+   680
+  ],
+  "anchor": [
+   82.2,
+   295.2
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 16,
+    "cols": 6,
+    "rows": 3,
+    "duration": 2.25
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.667
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.5
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.5
+   }
+  },
+  "pngH": 392
+ },
+ "f/veteran": {
+  "w": 287,
+  "h": 263,
+  "box": [
+   73,
+   240,
+   552,
+   678
+  ],
+  "anchor": [
+   154.2,
+   258.0
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 16,
+    "cols": 6,
+    "rows": 3,
+    "duration": 2.792
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.75
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.125
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.208
+   }
+  },
+  "pngH": 384
+ },
+ "f/apprenti": {
+  "w": 317,
+  "h": 284,
+  "box": [
+   124,
+   205,
+   653,
+   679
+  ],
+  "anchor": [
+   123.6,
+   279.0
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 16,
+    "cols": 6,
+    "rows": 3,
+    "duration": 2.125
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.333
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.708
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.792
+   }
+  },
+  "pngH": 392
+ },
+ "f/traqueur": {
+  "w": 226,
+  "h": 315,
+  "box": [
+   153,
+   155,
+   530,
+   680
+  ],
+  "anchor": [
+   106.2,
+   309.0
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 16,
+    "cols": 6,
+    "rows": 3,
+    "duration": 2.792
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.75
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.792
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.583
+   }
+  },
+  "pngH": 392
  }
 }

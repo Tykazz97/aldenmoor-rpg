@@ -3,6 +3,8 @@
 //   node scripts/test-classes.js
 // ============================================================
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+const ANIMS = JSON.parse(readFileSync("src/data/heroAnims.json", "utf8"));
 import { CLASSES, CLASS_ORDER, classSpellsAt, newSpellsAt } from "../src/data/classes.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { calcStats } from "../src/utils/calcStats.js";
@@ -61,8 +63,13 @@ test("tenues proposées : celle de la classe, base, et les sets possédés", () 
   assert.deepEqual(availableOutfits(q).sort(), ["apprenti", "base", "veteran"]);
 });
 
-test("corps féminin sans image : on retombe sur l'image masculine", () => {
-  assert.ok(heroSpriteUrl("f/veteran").includes("/m/veteran.png") || heroSpriteUrl("f/veteran").includes("/f/veteran.png"));
+test("corps féminin : images de combat et animations présentes pour chaque tenue", () => {
+  for (const o of ["base", "veteran", "apprenti", "traqueur"]) {
+    assert.equal(heroSpriteUrl(`f/${o}`), `/assets/combat/hero/f/${o}.png`);
+    assert.ok(existsSync(`public/assets/combat/hero/f/${o}.png`));
+    for (const a of ["walk", "mine", "chop", "herb"]) assert.ok(existsSync(`public/assets/hero/f/${o}/${a}.webp`), `f/${o}/${a}`);
+    assert.ok(ANIMS[`f/${o}`].actions.walk && ANIMS[`f/${o}`].pngH === ANIMS[`m/${o}`].pngH);
+  }
 });
 
 test("niveaux : de nouveaux sorts de classe se débloquent", () => {

@@ -3,15 +3,19 @@ Assemble les feuilles d'animation Ludo du héros en feuilles compactes pour le j
 
 Entrée  : un dossier avec <tenue>_<action>.webp (feuille Ludo, cellules alignées sur le
           cadre source 760x700, pied du héros à (330, 670)) et jobs.json (nb de frames).
-Sortie  : public/assets/hero/<tenue>/<action>.webp + public/assets/hero/anims.json
+Sortie  : public/assets/hero/<corps>/<tenue>/<action>.webp + métadonnées fusionnées dans src/data/heroAnims.json
+          (clé "<corps>/<tenue>" ; pngH d'un autre corps est repris du corps masculin)
 
-Usage   : python3 -I scripts/build-hero-anims.py <dossier_entrée>
+Usage   : python3 -I scripts/build-hero-anims.py <dossier_entrée> [corps = m]
 """
 import json, os, sys
 from PIL import Image
 
 SRC = sys.argv[1]
-OUT = os.path.join(os.path.dirname(__file__), "..", "public", "assets", "hero")
+BODY = sys.argv[2] if len(sys.argv) > 2 else "m"
+ROOT = os.path.join(os.path.dirname(__file__), "..")
+OUT = os.path.join(ROOT, "public", "assets", "hero", BODY)
+META = os.path.join(ROOT, "src", "data", "heroAnims.json")
 FEET = (330, 670)          # point d'appui (pieds) dans le cadre source
 SCALE = 0.6                # réduction des frames
 OUTFITS = ["base", "veteran", "apprenti", "traqueur"]
@@ -28,6 +32,7 @@ def frames_of(path, meta):
         out.append(im.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch)))
     return out
 
+meta_all = json.load(open(META)) if os.path.exists(META) else {}
 meta_out = {}
 for outfit in OUTFITS:
     allf, per = [], {}
@@ -60,5 +65,9 @@ for outfit in OUTFITS:
         meta_out[outfit]["actions"][act] = {"frames": n, "cols": cols, "rows": rows, "duration": round(jobs[f"{outfit}_{act}"]["duration"], 3)}
     print(outfit, (fw, fh), {a: len(f) for a, f in per.items()})
 
-json.dump(meta_out, open(os.path.join(OUT, "anims.json"), "w"), indent=1)
+for outfit, m in meta_out.items():
+    ref = meta_all.get(f"m/{outfit}", {})
+    m["pngH"] = meta_all.get(f"{BODY}/{outfit}", {}).get("pngH") or ref.get("pngH")
+    meta_all[f"{BODY}/{outfit}"] = m
+json.dump(meta_all, open(META, "w"), indent=1)
 print("ok")

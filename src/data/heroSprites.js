@@ -20,11 +20,8 @@ export const HERO_OUTFITS = ["base", "veteran", "apprenti", "traqueur"];
 export const OUTFIT_LABELS = { base: "Voyageur", veteran: "Vétéran", apprenti: "Apprenti", traqueur: "Traqueur" };
 export const BODIES = { m: "Masculin", f: "Féminin" };
 
-// Looks dont l'image de combat existe ; les autres retombent sur le corps masculin
-const COMBAT_READY = new Set(["m/base", "m/veteran", "m/apprenti", "m/traqueur"]);
-
-// Le corps a-t-il ses propres images ? (sinon on affiche le masculin)
-export const bodyReady = (body) => [...COMBAT_READY].some((k) => k.startsWith(`${body}/`));
+// Looks dont l'image de combat existe ; un look manquant retombe sur le corps masculin
+const COMBAT_READY = new Set(HERO_OUTFITS.flatMap((o) => [`m/${o}`, `f/${o}`]));
 
 function outfitFromSets(setBonuses = []) {
   let best = null;
