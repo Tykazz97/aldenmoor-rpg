@@ -6,14 +6,14 @@ import { color } from "../../styles/theme.js";
 import { encounterOf } from "./mapConstants.js";
 import { CLASSES } from "../../data/classes.js";
 import { PARTY_SIZE, buildAllies, companionCandidates } from "../../sim/partyBots.js";
-import { getPopulation } from "../../sim/population.js";
+import { getLivePopulation } from "../../sim/simWorld.js";
 
 // ------------------------------------------------------------
 // Fenêtre d'engagement : aperçu du groupe et du butin possible
 // ------------------------------------------------------------
 export default function EngagePopup({ group, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
   const [picking, setPicking] = useState(false);
-  const population = getPopulation();
+  const population = getLivePopulation();
   const companions = player?.companions || [];
   const allies = useMemo(() => (player ? buildAllies(player, companions, population) : []), [player?.level, player?.classKey, companions.join()]); // eslint-disable-line
   const candidates = useMemo(() => (player && picking ? companionCandidates(player, population) : []), [picking, player?.level]); // eslint-disable-line

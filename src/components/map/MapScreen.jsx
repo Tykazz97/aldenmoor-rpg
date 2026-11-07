@@ -12,7 +12,7 @@ import { useCityChat } from "./useCityChat.js";
 import { HARVEST_MS, cq, key, encounterOf } from "./mapConstants.js";
 import { SIM_PLAYERS, SIM_ON_MAPS } from "../../sim/config.js";
 import { createMapLife, stepMapLife, whoFights } from "../../sim/mapLife.js";
-import { getPopulation } from "../../sim/population.js";
+import { getLivePopulation } from "../../sim/simWorld.js";
 import { EncounterFight } from "../combat/CombatScreen.jsx";
 import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
@@ -75,7 +75,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const isCity = map.kind === "city";
   const { life, feed, heroBubble, sendChat, onCityEvents } = useCityChat({ map, isCity, playerRef, posRef });
   // Aventuriers simulés des régions : leurs victoires éliminent vraiment le groupe (réapparition habituelle)
-  const mapLife = useMemo(() => (!isCity && SIM_ON_MAPS ? createMapLife({ map, population: getPopulation(), seed: (Date.now() & 0xfffff) + 7 }) : null), [isCity, map]);
+  const mapLife = useMemo(() => (!isCity && SIM_ON_MAPS ? createMapLife({ map, population: getLivePopulation(), seed: (Date.now() & 0xfffff) + 7 }) : null), [isCity, map]);
   if (mapLife) {
     mapLife.blocked = blocked;
     mapLife.activeGroups = groups;

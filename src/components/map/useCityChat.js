@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { getPopulation } from "../../sim/population.js";
+import { getLivePopulation } from "../../sim/simWorld.js";
 import { createCityLife, playerSays, pickResponder, queueSay, whereIs } from "../../sim/cityLife.js";
 import { askBot, loadMemory, remember } from "../../sim/brain.js";
 import { SIM_PLAYERS } from "../../sim/config.js";
 
-const POPULATION = getPopulation();   // les 200 joueurs simulés (toujours les mêmes)
 
 // Joueurs simulés de la ville et fil de discussion (inactifs tant que SIM_PLAYERS est à false :
 // `life` vaut alors null et le reste ne fait rien).
@@ -13,7 +12,7 @@ export function useCityChat({ map, isCity, playerRef, posRef }) {
   const [heroBubble, setHeroBubble] = useState(null);
   const feedKey = useRef(0);
   const bubbleTimer = useRef(null);
-  const life = useMemo(() => (isCity && SIM_PLAYERS ? createCityLife({ map, population: POPULATION, seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
+  const life = useMemo(() => (isCity && SIM_PLAYERS ? createCityLife({ map, population: getLivePopulation(), seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
   const addFeed = useCallback((m) => setFeed((f) => [...f, { ...m, key: ++feedKey.current }].slice(-40)), []);
   useEffect(() => {
     setFeed(life ? life.history.map((h) => ({ ...h, key: ++feedKey.current })) : []);

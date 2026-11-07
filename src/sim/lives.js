@@ -1,0 +1,158 @@
+// ============================================================
+// Vie des joueurs simulés : chacun a SON personnage (niveau, xp, or, métier) qui progresse avec le temps réel,
+// même quand tu n'es pas là. Sans React, testable. Rien n'est tiré « en direct » : tout est rejoué à partir de
+// l'heure seulement, par pas de 10 minutes (comme le marché), avec une graine par simulé et par pas.
+// Même heure = même histoire, et rejouer en une fois ou en plusieurs morceaux donne le même résultat.
+//
+// Un simulé ne joue pas 24 h sur 24 : il a des horaires (quelques heures par jour, de préférence le soir), des jours sans
+// jouer, et un zèle propre. Quand il joue, selon son activité (combattant, récolteur, marchand, flâneur) :
+//   - il enchaîne des combats dans la région de son niveau (xp, or) ; au-delà du niveau de la région l'xp s'effondre,
+//     faute de contenu plus difficile (ce plafond disparaîtra avec les nouvelles régions) ;
+//   - ou il récolte et monte son métier de récolte.
+// Étape suivante prévue : sac et ressources, fabrication d'équipement, achats et ventes à l'hôtel des ventes.
+// ============================================================
+import { ENEMIES } from "../data/zones.js";
+import { ENCOUNTERS } from "../data/encounters.js";
+import { NODES } from "../data/gathering.js";
+import { MAPS } from "../data/maps.js";
+import { ZONES } from "../data/zones.js";
+import { xpToNext, MAX_LEVEL } from "../utils/progression.js";
+import { xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
+import { makeRng, hashString } from "./rng.js";
+
+export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
+export const MAX_CATCHUP_STEPS = 7 * 144;              // au plus 7 jours rejoués à la fois
+export const FIGHTS_PER_STEP = 0.6;                    // combats par pas de 10 min d'un simulé zélé : un simulé n'est pas un joueur acharné (à régler avec scripts/simulate-lives.js)
+export const GATHERS_PER_STEP = 2;                     // récoltes par pas de 10 min
+export const OVERLEVEL_HALF = 2;                       // au-delà du niveau max de la région : l'xp est divisée par 2 tous les 2 niveaux
+const PROFESSIONS_OF_GATHER = ["bucheron", "mineur", "herboriste"];
+
+const hash01 = (s) => hashString(s) / 4294967296;
+
+// --- Régions : niveaux et groupes de monstres ordinaires -------------------------------------------------------------
+function buildRegions() {
+  const out = [];
+  for (const r of ZONES.aldenmoor.regions) {
+    const m = /(\d+)\D+(\d+)/.exec(r.levels || "");
+    const map = Object.values(MAPS).find((x) => x.regionKey === r.key);
+    if (!m || !map) continue;
+    const encs = [...new Set(map.groups.map((g) => g.encounter))].map((id) => ENCOUNTERS.find((e) => e.id === id)).filter((e) => e && !e.boss);
+    out.push({ key: r.key, lo: Number(m[1]), hi: Number(m[2]), encounters: encs.map((e) => ({ xp: e.enemies.reduce((s, k) => s + (ENEMIES[k].xp || 0), 0), gold: e.enemies.reduce((s, k) => s + ((ENEMIES[k].gold?.[0] + ENEMIES[k].gold?.[1]) / 2 || 0), 0) })) });
+  }
+  return out.sort((a, b) => a.lo - b.lo);
+}
+const REGIONS = buildRegions();
+export const regionFor = (level) => [...REGIONS].reverse().find((r) => level >= r.lo) || REGIONS[0];
+export const overlevelMult = (level) => { const hi = regionFor(level).hi; return level > hi ? Math.pow(0.5, (level - hi) / OVERLEVEL_HALF) : 1; };
+
+// --- Traits de caractère qui ne changent pas (déduits de l'id, rien à sauvegarder) -----------------------------------
+const START_HOURS = [[17, 3], [18, 4], [19, 4], [20, 4], [21, 3], [22, 2], [13, 2], [14, 1], [9, 2], [10, 2], [15, 1]];
+export function traitsOf(bot) {
+  const r = makeRng(hashString(`life:${bot.id}`));
+  return {
+    diligence: Math.round((0.45 + r() * 0.85) * 100) / 100,        // zèle : 0,45 à 1,3
+    start: r.weighted(START_HOURS),                              // heure de début de séance (heure de Suisse)
+    hours: r.int(2, 6),                                          // durée d'une séance
+    playDay: Math.round((0.55 + r() * 0.4) * 100) / 100,         // probabilité de jouer un jour donné
+    primary: r.pick(PROFESSIONS_OF_GATHER),                      // métier de récolte
+  };
+}
+
+// Joue-t-il pendant ce pas ?
+export function isActive(bot, step, traits = traitsOf(bot)) {
+  const ms = step * STEP_MS + 3600_000;                          // UTC+1 : heure de Suisse
+  const day = Math.floor(ms / 86400000);
+  const hour = (ms % 86400000) / 3600000;
+  if (hash01(`${bot.id}:day:${day}`) >= traits.playDay) return false;
+  return ((hour - traits.start + 24) % 24) < traits.hours;
+}
+
+// Part de ses séances passée à combattre / récolter, selon l'activité
+const SHARES = { combattant: { fight: 0.9, gather: 0.1 }, recolteur: { fight: 0.2, gather: 0.8 }, marchand: { fight: 0.3, gather: 0.35 }, flaneur: { fight: 0.3, gather: 0.15 } };
+
+// --- État d'un simulé --------------------------------------------------------------------------------------------------
+// { id, level, xp, gold, kills, gathers, prof: { key, level, xp } }
+export function initialLife(bot, mode = "generated", seed = 1) {
+  const t = traitsOf(bot);
+  if (mode === "fresh") return { id: bot.id, level: 1, xp: 0, gold: 0, kills: 0, gathers: 0, prof: { key: t.primary, level: 1, xp: 0 } };
+  const r = makeRng(hashString(`init:${bot.id}:${seed}`));
+  const level = bot.level;
+  const profLevel = Math.max(1, Math.min(MAX_PROFESSION_LEVEL, Math.round(level * (bot.activity === "recolteur" ? 1.3 : 0.6) * (0.7 + r() * 0.6))));
+  return { id: bot.id, level, xp: Math.floor(r() * xpToNext(level)), gold: Math.round(level * (20 + r() * 60)), kills: level * 12, gathers: profLevel * 8, prof: { key: t.primary, level: profLevel, xp: Math.floor(r() * xpForLevel(profLevel)) } };
+}
+
+function addXp(life, amount) {
+  let { level, xp } = life;
+  xp += amount;
+  while (level < MAX_LEVEL && xp >= xpToNext(level)) { xp -= xpToNext(level); level += 1; }
+  if (level >= MAX_LEVEL) xp = 0;
+  life.level = level; life.xp = xp;
+}
+function addProfXp(prof, amount) {
+  prof.xp += amount;
+  while (prof.level < MAX_PROFESSION_LEVEL && prof.xp >= xpForLevel(prof.level)) { prof.xp -= xpForLevel(prof.level); prof.level += 1; }
+  if (prof.level >= MAX_PROFESSION_LEVEL) prof.xp = 0;
+}
+const bestNode = (profKey, level) => Object.values(NODES).filter((n) => n.profession === profKey && n.minLevel <= level).sort((a, b) => b.minLevel - a.minLevel)[0];
+
+// Un pas de 10 minutes (modifie `life`)
+export function stepLife(life, bot, step, traits = traitsOf(bot)) {
+  if (!isActive(bot, step, traits)) return life;
+  const rng = makeRng(hashString(`${bot.id}:${step}`));
+  const share = SHARES[bot.activity] || SHARES.flaneur;
+  const roll = rng();
+  if (roll < share.fight) {
+    const region = regionFor(life.level);
+    const n = Math.floor(FIGHTS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());   // arrondi au hasard : 0,4 combat = 4 chances sur 10 d'en faire un
+    const mult = overlevelMult(life.level);
+    let xp = 0, gold = 0;
+    for (let i = 0; i < n; i++) { const e = rng.pick(region.encounters); xp += e.xp; gold += e.gold; }
+    life.kills += n;
+    life.gold += Math.round(gold);
+    addXp(life, Math.round(xp * mult));
+  } else if (roll < share.fight + share.gather) {
+    const n = Math.floor(GATHERS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());
+    const node = bestNode(life.prof.key, life.prof.level);
+    if (node) { life.gathers += n; addProfXp(life.prof, n * node.xp); }
+  }
+  return life;
+}
+
+// --- Le monde des simulés ------------------------------------------------------------------------------------------------
+// { v:1, mode, epoch, step, lives: { id: life } } : `step` = prochain pas à jouer
+export const stepOf = (ms) => Math.floor(ms / STEP_MS);
+
+export function createLives({ population, mode = "generated", epoch = 1, now = Date.now() }) {
+  const start = mode === "fresh" ? Math.max(stepOf(epoch), 0) : stepOf(now);
+  const lives = {};
+  for (const b of population) lives[b.id] = initialLife(b, mode, epoch);
+  return { v: 1, mode, epoch, step: start, lives };
+}
+
+// Rejoue tous les pas jusqu'à `now` (au plus MAX_CATCHUP_STEPS). Renvoie le nombre de pas joués.
+export function advanceLives(world, population, now = Date.now()) {
+  const target = stepOf(now);
+  if (target <= world.step) return 0;
+  if (target - world.step > MAX_CATCHUP_STEPS) world.step = target - MAX_CATCHUP_STEPS;
+  const traits = new Map(population.map((b) => [b.id, traitsOf(b)]));
+  let played = 0;
+  for (; world.step < target; world.step++) {
+    for (const b of population) {
+      const life = world.lives[b.id];
+      if (life) stepLife(life, b, world.step, traits.get(b.id));
+    }
+    played++;
+  }
+  return played;
+}
+
+// La population « vivante » : les mêmes aventuriers, avec leur niveau du moment
+export function liveBots(world, population) {
+  return population.map((b) => { const l = world.lives[b.id]; return l ? { ...b, level: l.level, gold: l.gold, life: l } : b; });
+}
+
+// Une sauvegarde lue du navigateur est-elle utilisable ? (bonne version, même départ, même population)
+export function validWorld(w, { mode, epoch }, population) {
+  return !!w && w.v === 1 && w.mode === mode && w.epoch === epoch && Number.isFinite(w.step) && w.lives && typeof w.lives === "object"
+    && population.every((b) => { const l = w.lives[b.id]; return l && Number.isFinite(l.level) && l.level >= 1 && l.prof && Number.isFinite(l.prof.level); });
+}

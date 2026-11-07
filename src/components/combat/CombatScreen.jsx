@@ -7,7 +7,7 @@ import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { sfx } from "./sfx.js";
 import { HERO_X, HERO_B, HERO_H } from "./stage.js";
 import { buildAllies } from "../../sim/partyBots.js";
-import { getPopulation } from "../../sim/population.js";
+import { getLivePopulation } from "../../sim/simWorld.js";
 import { useFightPlayback } from "./useFightPlayback.js";
 import EncounterSelect from "./EncounterSelect.jsx";
 import CombatHud from "./CombatHud.jsx";
@@ -62,7 +62,7 @@ export function EncounterFight({ encounter, player, stats, party = false, onRewa
 // ------------------------------------------------------------
 function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire" }) {
   // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
-  const allySpecs = useMemo(() => (party ? buildAllies(player, player.companions, getPopulation()) : []), []); // eslint-disable-line
+  const allySpecs = useMemo(() => (party ? buildAllies(player, player.companions, getLivePopulation()) : []), []); // eslint-disable-line
   const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, heroSpriteUrl(a.look)])), [allySpecs]);
   const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);

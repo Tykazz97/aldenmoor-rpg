@@ -6,3 +6,10 @@ export const SIM_PLAYERS = false;
 // Aventuriers simulés sur les cartes de région : ils se promènent en groupe, vont affronter des groupes de monstres
 // (qui disparaissent vraiment, puis réapparaissent comme d'habitude). Sans chat, donc sans appel au modèle de langage.
 export const SIM_ON_MAPS = true;
+
+// Départ de la vie des joueurs simulés (src/sim/lives.js). Chaque simulé a son personnage, qui progresse avec le temps réel.
+//   mode "generated" : ils démarrent au niveau tiré par la génération de la population (pratique pour les tests)
+//   mode "fresh"     : tout le monde repart du niveau 1 à `epoch` (le « fresh start » du lancement officiel)
+// Changer `epoch` (ou le mode) efface les sauvegardes des simulés dans le navigateur et recommence à zéro.
+// Pour le lancement : mode "fresh" et epoch = Date.now() du jour J (un nombre fixe, en millisecondes).
+export const SIM_START = { mode: "generated", epoch: 1 };
