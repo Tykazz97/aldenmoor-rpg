@@ -1,6 +1,6 @@
 // Tests des combats en groupe (le joueur + 2 alliés bots) :  node scripts/test-party.js
 import assert from "node:assert/strict";
-import { createCombat, advance, castSpell, endTurn, PARTY_HP_SCALE } from "../src/combat/engine.js";
+import { createCombat, advance, castSpell, endTurn, PARTY_HP_SCALE, PARTY_DROP_MULT } from "../src/combat/engine.js";
 import { defaultAllies, botSpec, makeBotPlayer, PARTY_SIZE } from "../src/sim/partyBots.js";
 import { ENEMIES } from "../src/data/zones.js";
 import { CLASSES } from "../src/data/classes.js";
@@ -50,7 +50,7 @@ test("les alliés par défaut sont les deux autres classes, au niveau du joueur,
   assert.deepEqual(defaultAllies({ name: "X", classKey: "magicien", level: 5 }).map((x) => x.classKey).sort(), ["assassin", "guerrier"]);
 });
 
-test("en groupe : 2 alliés dans l'état, ordre de jeu mixte, ennemis plus costauds ; seul : rien ne change", () => {
+test("en groupe : 2 alliés dans l'état, ordre de jeu mixte, mêmes ennemis qu'en solo ; seul : rien ne change", () => {
   const solo = fightOf("guerrier", 14, ["chevalier_dechu", "chevalier_dechu"], { party: false });
   assert.deepEqual(solo.allies, []); assert.equal(solo.hpScale, 1);
   assert.equal(solo.enemies[0].maxHp, ENEMIES.chevalier_dechu.stats.hp);
@@ -132,7 +132,7 @@ test("les passifs d'armes uniques et les sets des alliés bots sont pris en comp
   assert.equal(st.player.flags.lifesteal, 0);
 });
 
-test("équilibre : en groupe, le même combat est gagné au moins aussi souvent qu'en solo, mais dure plus de tours", () => {
+test("équilibre : en groupe, le même combat est gagné au moins aussi souvent qu'en solo, et le combat est plus court", () => {
   const stats = { win: [0, 0], rounds: [0, 0] };
   for (let seed = 1; seed <= 20; seed++) {
     [false, true].forEach((party, i) => {
@@ -143,7 +143,7 @@ test("équilibre : en groupe, le même combat est gagné au moins aussi souvent 
   }
   assert.ok(stats.win[1] >= stats.win[0], `groupe ${stats.win[1]}/20 contre solo ${stats.win[0]}/20`);
   assert.ok(stats.win[1] >= 14, "un groupe au niveau conseillé gagne le plus souvent");
-  assert.ok(stats.rounds[1] > stats.rounds[0], "les monstres plus costauds allongent le combat");
+  assert.ok(stats.rounds[1] < stats.rounds[0], "à trois, on termine plus vite");
 });
 
 test("chaque classe peut mener un groupe (les 3 profils fonctionnent comme joueur et comme alliés)", () => {
@@ -152,6 +152,21 @@ test("chaque classe peut mener un groupe (les 3 profils fonctionnent comme joueu
     assert.ok(st.phase === "victory" || st.phase === "defeat", cls);
     assert.equal(st.allies.length, 2);
   }
+});
+
+
+test("en groupe, les ennemis ne sont pas plus costauds et le butin est meilleur (x1,25 à 2, x1,5 à 3)", () => {
+  assert.deepEqual(PARTY_HP_SCALE, { 1: 1, 2: 1, 3: 1 });
+  assert.deepEqual(PARTY_DROP_MULT, { 1: 1, 2: 1.25, 3: 1.5 });
+  const g = fightOf("guerrier", 14, ["chevalier_dechu"]);
+  assert.equal(g.enemies[0].maxHp, ENEMIES.chevalier_dechu.stats.hp);
+  // Statistique : une ressource à 30 % tombe plus souvent en groupe qu'en solo (mêmes graines)
+  const key = "loup_des_plaines";
+  const d = (ENEMIES[key].drops || []).find((x) => x.type === "resource" && x.chance < 0.5 && x.chance > 0.1);
+  assert.ok(d, "un drop de test existe");
+  const count = (party) => { let c = 0; for (let seed = 1; seed <= 400; seed++) { const { st } = autoplay(fightOf("guerrier", 14, [key], { party, seed, tweak: (x) => { x.enemies[0].hp = 1; } })); assert.equal(st.phase, "victory"); c += st.rewards.resources[d.id] ? 1 : 0; } return c; };
+  const solo = count(false), grp = count(true);
+  assert.ok(grp > solo * 1.15, `groupe ${grp} > solo ${solo}`);
 });
 
 console.log(`\n${n} tests passent.`);

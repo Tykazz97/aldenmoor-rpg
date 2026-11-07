@@ -83,7 +83,9 @@ function makeHero({ id, name, stats, weaponType = null, classKey = null, level =
 
 // Points de vie des ennemis selon la taille du groupe de héros : à plusieurs, les monstres encaissent davantage
 // (valeurs réglées avec scripts/simulate-zones.js en mode groupe).
-export const PARTY_HP_SCALE = { 1: 1, 2: 3, 3: 4.5 };
+export const PARTY_HP_SCALE = { 1: 1, 2: 1, 3: 1 };   // plus de difficulté accrue en groupe
+// Bonus de butin selon la taille du groupe : multiplie la chance de chaque drop
+export const PARTY_DROP_MULT = { 1: 1, 2: 1.25, 3: 1.5 };
 
 // `spells` : barre de sorts déjà composée (voir buildSpellBar dans utils/spellbook.js). Sans elle, tous les sorts débloqués.
 // `allies` : alliés bots, chacun { name, stats, weaponType, classKey, level, spells } (voir sim/partyBots.js). Le joueur reste
@@ -310,7 +312,8 @@ function startTurn(s, events, actor) {
 // ------------------------------------------------------------
 function rollRewards(s) {
   const rewards = { xp: 0, gold: 0, resources: {}, items: [], kills: {} };
-  const mult = 1 + (s.player.dropBonus || 0) / 100;
+  const groupMult = PARTY_DROP_MULT[1 + (s.allies || []).length] ?? PARTY_DROP_MULT[3];
+  const mult = (1 + (s.player.dropBonus || 0) / 100) * groupMult;
   for (const e of s.enemies) {
     if (e.summoned) continue;   // les renforts appelés en combat ne rapportent rien
     const def = ENEMIES[e.key];
