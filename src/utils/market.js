@@ -41,7 +41,7 @@ let JOINT = false;
 export const enableSimMarket = (on = true) => { JOINT = !!on; };
 export const simMarketEnabled = () => JOINT;
 const NPC = "npc";
-// Le colporteur ne vend ni ressources rares, ni équipement au-dessus du commun (pièces fabriquées, épiques, reliques) : cela ne vient que des joueurs
+// Le colporteur ne vend ni ressources rares, ni ressources de donjon, ni équipement au-dessus du commun (pièces fabriquées, épiques, reliques) : cela ne vient que des joueurs
 const NPC_ITEMS = ITEM_ORDER.filter((id) => ITEMS[id].rarity === "commune");
 const SIM_SELL_KEEP = 8;                       // un simulé garde au moins 8 unités de chaque ressource pour ses fabrications
 const MAX_CATCHUP_JOINT = 1008;                // 7 jours de rattrapage quand les simulés vivent ici
@@ -164,7 +164,7 @@ function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
     const qty = Math.min(sellableOf(life, id, SIM_SELL_KEEP), rng.int(lo, hi));
     return { seller: b.id, greed: b.greed, qty, life, bot: b };
   }
-  if (RESOURCES[id].rarity !== "rare" && supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
+  if (RESOURCES[id].rarity !== "rare" && !RESOURCES[id].dungeon && supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
   return null;
 }
 

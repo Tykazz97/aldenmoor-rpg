@@ -178,6 +178,13 @@ export const RESOURCES = {
     source: "veilleur_corrompu",
   },
 
+  // --- Le Manoir Englouti (donjon) : ressources exclusives, pour les sets du palier 4 ---
+  soie_funeraire: { id: "soie_funeraire", name: "Soie funéraire", rarity: "commune", value: 30, source: "serviteur_spectral", dungeon: true },
+  cuir_de_molosse: { id: "cuir_de_molosse", name: "Cuir de molosse", rarity: "commune", value: 30, source: "molosse_du_manoir", dungeon: true },
+  plaque_noyee: { id: "plaque_noyee", name: "Plaque noyée", rarity: "commune", value: 30, source: "garde_noye", dungeon: true },
+  larme_de_deuil: { id: "larme_de_deuil", name: "Larme de deuil", rarity: "peu_commune", value: 110, source: "pleureuse", dungeon: true },
+  essence_de_deuil: { id: "essence_de_deuil", name: "Essence de deuil", rarity: "rare", value: 700, source: "dame_en_deuil", dungeon: true },
+
   // --- Ressources RAFFINÉES : on ne les trouve pas, on les fabrique à l'atelier (voir refining.js) ---
   lingot_de_fer: { id: "lingot_de_fer", name: "Lingot de fer", rarity: "commune", value: 16, source: "raffinage" },
   lingot_de_cuivre: { id: "lingot_de_cuivre", name: "Lingot de cuivre", rarity: "peu_commune", value: 62, source: "raffinage" },

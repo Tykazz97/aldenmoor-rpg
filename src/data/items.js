@@ -302,6 +302,20 @@ Object.assign(ITEMS, {
   },
 });
 
+// ---------------------------------------------------------
+// RELIQUE UNIVERSELLE — butin ultra rare (0,5 %) de La Dame en Deuil, utilisable par les trois classes.
+// Type "relique1" : elle se porte dans l'emplacement de relique (ses passifs ne se cumulent pas avec eux-mêmes).
+// ---------------------------------------------------------
+ITEMS.medaillon_dame_en_deuil = {
+  id: "medaillon_dame_en_deuil",
+  name: "Médaillon de la Dame en Deuil",
+  type: "relique1",
+  rarity: "legendaire",
+  img: `${ICON_BASE}/accessories/medaillon_dame_en_deuil.png`,
+  passive: { paBonus: 1, finalDamage: 0.10 },
+  passiveDesc: "Veuvage : +1 PA à chaque tour et +10 % de dommages finaux (physiques comme magiques)",
+};
+
 export const ITEM_ORDER = Object.keys(ITEMS);
 
 // ============================================================

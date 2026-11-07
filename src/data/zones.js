@@ -276,9 +276,91 @@ export const ENEMIES = {
   },
 
   // --- Donjon : Le Manoir Englouti ---
+  // Pour un groupe de 3 héros niveaux 20 à 26 (voir src/data/dungeons.js). Les PV ne sont pas rendus entre les salles.
+  serviteur_spectral: {
+    key: "serviteur_spectral", name: "Serviteur spectral", dungeon: true,
+    desc: "Domestique mort au service de la maison. Son toucher glace et sa livrée ne craint presque pas les armes.",
+    stats: { hp: 750, atkPhys: 0, atkMagie: 68, defPhys: 55, defMagie: 28, esquive: 10, critique: 8, vitesse: 12, pa: 6 },
+    xp: 170,
+    actions: [
+      { id: "service_glacial", name: "Service glacial", pa: 3, type: "mag", power: 1.0, weight: 3, effect: { kind: "weaken", element: "givre", turns: 2, value: 0.15 } },
+      { id: "plateau_d_argent", name: "Plateau d'argent", pa: 5, type: "mag", power: 1.6, weight: 1 },
+    ],
+    gold: [40, 70],
+    drops: [
+      { type: "resource", id: "soie_funeraire", chance: 0.55, min: 1, max: 2 },
+      { type: "resource", id: "larme_de_deuil", chance: 0.12, min: 1, max: 1 },
+    ],
+  },
+  molosse_du_manoir: {
+    key: "molosse_du_manoir", name: "Molosse du manoir", dungeon: true,
+    desc: "Chien de garde du seigneur, rapide et féroce. Ses crocs déchirent l'armure.",
+    stats: { hp: 900, atkPhys: 78, atkMagie: 0, defPhys: 32, defMagie: 18, esquive: 12, critique: 12, vitesse: 16, pa: 6 },
+    xp: 180,
+    actions: [
+      { id: "morsure_du_molosse", name: "Morsure", pa: 3, type: "phys", power: 1.0, weight: 3 },
+      { id: "curee", name: "Curée", pa: 5, type: "phys", power: 1.6, weight: 1, effect: { kind: "defDown", turns: 2, value: 0.2 } },
+    ],
+    gold: [40, 70],
+    drops: [
+      { type: "resource", id: "cuir_de_molosse", chance: 0.55, min: 1, max: 2 },
+      { type: "resource", id: "larme_de_deuil", chance: 0.1, min: 1, max: 1 },
+    ],
+  },
+  garde_noye: {
+    key: "garde_noye", name: "Garde noyé", dungeon: true,
+    desc: "Soldat du manoir, englouti avec lui. Lent, cuirassé de rouille et d'algues, il frappe très fort.",
+    stats: { hp: 1400, atkPhys: 78, atkMagie: 0, defPhys: 80, defMagie: 38, esquive: 0, critique: 6, vitesse: 8, pa: 6 },
+    xp: 230,
+    actions: [
+      { id: "coup_de_hallebarde", name: "Coup de hallebarde", pa: 3, type: "phys", power: 1.0, weight: 3 },
+      { id: "fracas_de_cuirasse", name: "Fracas de cuirasse", pa: 5, type: "phys", power: 1.7, weight: 2, effect: { kind: "defDown", turns: 2, value: 0.25 } },
+    ],
+    gold: [55, 90],
+    drops: [
+      { type: "resource", id: "plaque_noyee", chance: 0.55, min: 1, max: 2 },
+      { type: "resource", id: "larme_de_deuil", chance: 0.12, min: 1, max: 1 },
+    ],
+  },
+  pleureuse: {
+    key: "pleureuse", name: "Pleureuse", dungeon: true,
+    desc: "Servante en deuil. Ses lamentations épuisent les héros, ses larmes glacent le sang.",
+    stats: { hp: 650, atkPhys: 0, atkMagie: 64, defPhys: 22, defMagie: 60, esquive: 8, critique: 6, vitesse: 13, pa: 6 },
+    xp: 190,
+    actions: [
+      { id: "larmes_glacees", name: "Larmes glacées", pa: 3, type: "mag", power: 1.0, weight: 3, effect: { kind: "weaken", element: "givre", turns: 2, value: 0.15 } },
+      { id: "lamentation", name: "Lamentation", pa: 4, type: "mag", power: 1.2, weight: 2, effect: { kind: "paLoss", value: 1 } },
+    ],
+    gold: [50, 80],
+    drops: [
+      { type: "resource", id: "soie_funeraire", chance: 0.4, min: 1, max: 1 },
+      { type: "resource", id: "larme_de_deuil", chance: 0.25, min: 1, max: 1 },
+    ],
+  },
   dame_en_deuil: {
-    key: "dame_en_deuil", name: "La Dame en Deuil", boss: true,
-    desc: "Noble ayant invoqué une magie interdite pour ramener son époux (le Cavalier Déchu). Combat en 2 phases : magie/Givre, puis rituel final incontrôlable (Feu/Poison/Givre).",
+    key: "dame_en_deuil", name: "La Dame en Deuil", boss: true, dungeon: true,
+    desc: "Noble ayant invoqué une magie interdite pour ramener son époux (le Cavalier Déchu). Combat en 2 phases : magie et Givre, puis, sous 50 % de vie, rituel final incontrôlable (Feu, Poison et Givre).",
+    stats: { hp: 5000, atkPhys: 0, atkMagie: 72, defPhys: 60, defMagie: 50, esquive: 0, critique: 8, vitesse: 11, pa: 6 },
+    xp: 1800,
+    actions: [
+      { id: "plainte_glaciale", name: "Plainte glaciale", pa: 3, type: "mag", power: 1.0, weight: 3, effect: { kind: "weaken", element: "givre", turns: 2, value: 0.2 } },
+      { id: "voile_de_deuil", name: "Voile de deuil", pa: 4, type: "mag", power: 1.3, weight: 2, effect: { kind: "paLoss", value: 1 } },
+      { id: "baiser_de_givre", name: "Baiser de givre", pa: 5, type: "mag", power: 1.7, weight: 2, effect: { kind: "weaken", element: "givre", turns: 3, value: 0.25 } },
+      // phase 2 : le rituel (needsPhase = indice de la phase qui les débloque)
+      { id: "flamme_du_rituel", name: "Flamme du rituel", pa: 4, type: "mag", power: 1.4, weight: 3, needsPhase: 0, effect: { kind: "dot", element: "feu", turns: 3, ratio: 0.3 } },
+      { id: "sang_noir", name: "Sang noir", pa: 4, type: "mag", power: 1.2, weight: 2, needsPhase: 0, effect: { kind: "dot", element: "poison", turns: 3, ratio: 0.3 } },
+      { id: "cri_du_veuvage", name: "Cri du veuvage", pa: 5, type: "mag", power: 1.6, weight: 2, needsPhase: 0, effect: { kind: "paLoss", value: 2 } },
+    ],
+    phases: [
+      { below: 0.5, atkMult: 1.25, announce: "Le rituel s'emballe : la Dame ne se contrôle plus !" },
+    ],
+    gold: [600, 900],
+    drops: [
+      { type: "resource", id: "essence_de_deuil", chance: 0.8, min: 1, max: 2 },
+      { type: "resource", id: "larme_de_deuil", chance: 1, min: 2, max: 4 },
+      // relique universelle : 0,5 % exactement (`fixed` : ni la Chance ni le bonus de groupe ne la changent)
+      { type: "item", id: "medaillon_dame_en_deuil", chance: 0.005, fixed: true, min: 1, max: 1 },
+    ],
   },
 };
 
@@ -290,6 +372,7 @@ const SPRITE_HEIGHT = {
   loup_des_plaines: 150, sanglier_sauvage: 170, bandit_des_routes: 215, cavalier_dechu: 290,
   corbeau_charognard: 130, squelette_fermier: 215, epouvantail_hante: 235, epouvantail_ancestral: 305,
   loup_garou: 240, esprit_errant: 250, chevalier_dechu: 265, veilleur_corrompu: 330,
+  serviteur_spectral: 250, molosse_du_manoir: 190, garde_noye: 285, pleureuse: 250, dame_en_deuil: 340,
 };
 for (const enemy of Object.values(ENEMIES)) {
   if (enemy.stats) {

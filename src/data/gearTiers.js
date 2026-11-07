@@ -75,6 +75,34 @@ const SETS_DEF = [
       5: { desc: "+22 ATK Magique, +32 DEF Magique, +70 PV, le premier sort de chaque tour coûte 1 PA de moins, tes sorts ignorent 15 % de la défense", atk_magie: 22, def_magie: 32, hp: 70, firstSpellDiscount: 1, armorPen: 0.15 },
     },
   },
+  // --- Palier 4 : Le Manoir Englouti (donjon, niveaux 20 à 26) ---
+  {
+    key: "garde_noye", tier: 4, rarity: "epique", name: "Armure du Garde Noyé", color: "#3fa7a0", classKey: "guerrier",
+    names: ["Grand heaume du Garde Noyé", "Cuirasse du Garde Noyé", "Gantelets du Garde Noyé", "Ceinture du Garde Noyé", "Jambières du Garde Noyé"],
+    stats: [{ def_phys: 15, hp: 28 }, { def_phys: 32, hp: 53 }, { def_phys: 11, atk_phys: 8 }, { def_phys: 14, hp: 25 }, { def_phys: 15, hp: 27 }],
+    bonuses: {
+      2: { desc: "+22 DEF Physique, +45 PV", def_phys: 22, hp: 45 },
+      5: { desc: "+56 DEF Physique, +140 PV, 30 % de chance de riposte, 25 % des dégâts reçus sont renvoyés en feu noir", def_phys: 56, hp: 140, riposte: 0.3, thorns: 0.25 },
+    },
+  },
+  {
+    key: "veneur", tier: 4, rarity: "epique", name: "Cuir du Veneur", color: "#b5533c", classKey: "assassin",
+    names: ["Capuche du Veneur", "Veste du Veneur", "Gants du Veneur", "Ceinture du Veneur", "Jambières du Veneur"],
+    stats: [{ esquive: 7, critique: 6, atk_phys: 6 }, { esquive: 10, critique: 7, atk_phys: 13 }, { critique: 6, atk_phys: 10 }, { esquive: 7, critique: 3, atk_phys: 6 }, { esquive: 6, critique: 3, atk_phys: 7 }],
+    bonuses: {
+      2: { desc: "+11 % Esquive, +8 % Critique", esquive: 11, critique: 8 },
+      5: { desc: "+20 % Esquive, +16 % Critique, +10 ATK Physique, +70 PV, premier coup critique garanti, 6 % des dégâts infligés rendus en PV", esquive: 20, critique: 16, atk_phys: 10, hp: 70, guaranteedFirstCrit: true, lifesteal: 0.06 },
+    },
+  },
+  {
+    key: "veuve", tier: 4, rarity: "epique", name: "Atours de la Veuve", color: "#9a7fe0", classKey: "magicien",
+    names: ["Voilette de la Veuve", "Robe de deuil de la Veuve", "Gants de la Veuve", "Ceinture de la Veuve", "Jambières de la Veuve"],
+    stats: [{ atk_magie: 11, def_magie: 8 }, { atk_magie: 21, hp: 39 }, { atk_magie: 6, def_magie: 10 }, { atk_magie: 8, def_magie: 8 }, { atk_magie: 10, hp: 28 }],
+    bonuses: {
+      2: { desc: "+14 ATK Magique, +18 DEF Magique", atk_magie: 14, def_magie: 18 },
+      5: { desc: "+31 ATK Magique, +45 DEF Magique, +100 PV, le premier sort de chaque tour coûte 1 PA de moins, tes sorts ignorent 20 % de la défense", atk_magie: 31, def_magie: 45, hp: 100, firstSpellDiscount: 1, armorPen: 0.2 },
+    },
+  },
 ];
 
 export const TIER_ITEMS = {};
@@ -100,6 +128,10 @@ weapon("baton_brasier", "Bâton du Brasier", 2, "rare", "baton", true, "baton_br
 weapon("epee_chevalier", "Lame du Chevalier Déchu", 3, "epique", "epee", false, "epee_chevalier", { atk_phys: 30, def_phys: 4 });
 weapon("dague_garou", "Dague du Loup-Garou", 3, "epique", "dague", false, "dague_garou", { atk_phys: 25, critique: 4 });
 weapon("baton_esprit", "Bâton de l'Esprit Errant", 3, "epique", "baton", true, "baton_esprit", { atk_magie: 23, def_magie: 6 }, { craftLevel: 5 });
+weapon("epee_garde_noye", "Lame du Garde Noyé", 4, "epique", "epee", false, "epee_garde_noye", { atk_phys: 42, def_phys: 6 });
+weapon("dague_veneur", "Dague du Veneur", 4, "epique", "dague", false, "dague_veneur", { atk_phys: 35, critique: 5 });
+weapon("baton_veuve", "Bâton de la Veuve", 4, "epique", "baton", true, "baton_veuve", { atk_magie: 32, def_magie: 8 }, { craftLevel: 8 });
+TIER_ITEMS.bouclier_garde_noye = { id: "bouclier_garde_noye", name: "Bouclier du Garde Noyé", type: "bouclier", rarity: "epique", tier: 4, img: `${ICON}/weapons/bouclier_garde_noye.png`, def_phys: 27, def_magie: 14 };
 TIER_ITEMS.bouclier_fossoyeur = { id: "bouclier_fossoyeur", name: "Bouclier du Fossoyeur", type: "bouclier", rarity: "rare", tier: 2, img: `${ICON}/weapons/bouclier_fossoyeur.png`, def_phys: 14, def_magie: 7 };
 TIER_ITEMS.bouclier_chevalier = { id: "bouclier_chevalier", name: "Bouclier du Chevalier Déchu", type: "bouclier", rarity: "epique", tier: 3, img: `${ICON}/weapons/bouclier_chevalier.png`, def_phys: 19, def_magie: 10 };
 
@@ -165,6 +197,29 @@ export const TIER_RECIPES = {
   ceinture_esprit: { ingredients: { ectoplasme: 4, etoffe: 2, voile_spectral: 1 }, gold: 150 },
   jambieres_esprit: { ingredients: { ectoplasme: 5, etoffe: 3, voile_spectral: 2 }, gold: 200 },
   baton_esprit: { ingredients: { planche_de_chene: 3, ectoplasme: 5, voile_spectral: 4, etoffe: 1 }, gold: 240 },
+
+  // --- Palier 4 : Le Manoir Englouti (ressources exclusives du donjon ; l'essence de deuil, rare, n'est demandée que pour le plastron) ---
+  chapeau_garde_noye: { ingredients: { plaque_noyee: 5, lingot_de_fer: 3, larme_de_deuil: 1 }, gold: 360 },
+  plastron_garde_noye: { ingredients: { plaque_noyee: 8, lingot_de_cuivre: 3, lingot_de_fer: 3, larme_de_deuil: 3, essence_de_deuil: 1 }, gold: 680 },
+  gants_garde_noye: { ingredients: { plaque_noyee: 5, lingot_de_fer: 2, larme_de_deuil: 1 }, gold: 300 },
+  ceinture_garde_noye: { ingredients: { plaque_noyee: 5, cuir_de_molosse: 2, larme_de_deuil: 1 }, gold: 300 },
+  jambieres_garde_noye: { ingredients: { plaque_noyee: 6, lingot_de_fer: 3, larme_de_deuil: 2 }, gold: 400 },
+  epee_garde_noye: { ingredients: { lingot_de_cuivre: 3, plaque_noyee: 6, larme_de_deuil: 4, lingot_de_fer: 2 }, gold: 520 },
+  bouclier_garde_noye: { ingredients: { lingot_de_cuivre: 2, plaque_noyee: 7, larme_de_deuil: 3, planche_de_chene: 1 }, gold: 480 },
+
+  chapeau_veneur: { ingredients: { cuir_de_molosse: 5, cuir_de_sanglier: 2, larme_de_deuil: 1 }, gold: 360 },
+  plastron_veneur: { ingredients: { cuir_de_molosse: 8, cuir_de_sanglier: 3, larme_de_deuil: 3, fil_d_ortie: 2, essence_de_deuil: 1 }, gold: 680 },
+  gants_veneur: { ingredients: { cuir_de_molosse: 5, cuir_de_sanglier: 2, larme_de_deuil: 1 }, gold: 300 },
+  ceinture_veneur: { ingredients: { cuir_de_molosse: 5, cuir_de_sanglier: 2, larme_de_deuil: 1 }, gold: 300 },
+  jambieres_veneur: { ingredients: { cuir_de_molosse: 6, cuir_de_sanglier: 3, larme_de_deuil: 2 }, gold: 400 },
+  dague_veneur: { ingredients: { lingot_de_cuivre: 2, cuir_de_molosse: 6, larme_de_deuil: 4, cuir_de_sanglier: 1 }, gold: 480 },
+
+  chapeau_veuve: { ingredients: { soie_funeraire: 5, etoffe: 2, larme_de_deuil: 1 }, gold: 360 },
+  plastron_veuve: { ingredients: { soie_funeraire: 8, etoffe: 3, larme_de_deuil: 3, fil_d_ortie: 2, essence_de_deuil: 1 }, gold: 680 },
+  gants_veuve: { ingredients: { soie_funeraire: 5, etoffe: 2, larme_de_deuil: 1 }, gold: 300 },
+  ceinture_veuve: { ingredients: { soie_funeraire: 5, etoffe: 2, larme_de_deuil: 1 }, gold: 300 },
+  jambieres_veuve: { ingredients: { soie_funeraire: 6, etoffe: 3, larme_de_deuil: 2 }, gold: 400 },
+  baton_veuve: { ingredients: { planche_de_chene: 3, soie_funeraire: 6, larme_de_deuil: 4, etoffe: 1 }, gold: 480 },
 
   // --- Objets de boss ---
   anneau_cavalier: { ingredients: { eperon_corrompu: 1, lingot_de_cuivre: 2, defense_ebrechee: 2 }, gold: 100 },

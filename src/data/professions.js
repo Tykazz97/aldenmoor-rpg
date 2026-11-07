@@ -83,6 +83,7 @@ const SET_PROFESSION = {
   veteran: "forgeron", apprenti: "tailleur", traqueur: "maroquinier",
   fossoyeur: "forgeron", charognard: "maroquinier", brasier: "tailleur",
   chevalier: "forgeron", garou: "maroquinier", esprit: "tailleur",
+  garde_noye: "forgeron", veneur: "maroquinier", veuve: "tailleur",
 };
 const WEAPON_PROFESSION = {
   epee: "forgeron", marteau: "forgeron", dague: "forgeron",
@@ -96,8 +97,8 @@ const SLOT_MIN_LEVEL = {
   chapeau: 2, jambieres: 2, arme: 2, bouclier: 2,
   plastron: 3,
 };
-// Les paliers 2 et 3 demandent un métier plus avancé (+3 et +6 niveaux) ; `craftLevel` sur l'objet remplace ce calcul
-const TIER_LEVEL_OFFSET = { 1: 0, 2: 3, 3: 6 };
+// Les paliers 2, 3 et 4 demandent un métier plus avancé (+3, +6 et +9 niveaux) ; `craftLevel` sur l'objet remplace ce calcul
+const TIER_LEVEL_OFFSET = { 1: 0, 2: 3, 3: 6, 4: 9 };
 
 // Renvoie { profession, minLevel, xp } pour un objet craftable
 // (l'xp gagnée = coût en or de la recette).

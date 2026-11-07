@@ -19,7 +19,7 @@ export default function CombatHud({ cs, hpView, timeline, ended, busy, myTurn, s
         </div>
         <div className="cb-pa" title="Points d'action : ceux que tu ne dépenses pas sont perdus">
           <span className="cb-pa-label">PA</span>
-          {Array.from({ length: PA_MAX }, (_, i) => {
+          {Array.from({ length: p.paMax ?? PA_MAX }, (_, i) => {
             const cost = hoverSpell && myTurn ? spellCost(cs, hoverSpell) : 0;
             const on = i < p.pa;
             const preview = on && cost > 0 && i >= p.pa - cost;

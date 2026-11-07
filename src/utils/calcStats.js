@@ -52,7 +52,7 @@ export function calcStats(player) {
     critique: Math.min(75, (caracBonus.critique || 0) + equip.critique + setBonus.critique),
     dropBonus: (caracBonus.dropBonus || 0) + equip.dropBonus,
     vitesse: (caracBonus.vitesse || 10) + equip.vitesse,
-    paMax: 6, // base fixe, non modifiable par caracs pour l'instant
+    paMax: 6 + (passives.paBonus || 0), // base fixe (+ relique de la Dame en Deuil), non modifiable par caracs pour l'instant
     passives,
     setBonuses, // exposé pour affichage (nom du set, palier atteint)
   };

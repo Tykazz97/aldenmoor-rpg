@@ -22,9 +22,9 @@ function pickSpell(state) {
 }
 
 // Un combat complet ; renvoie l'état final ({ phase: "victory" | "defeat", ... })
-export function autoFight(player, enemyKeys, seed, allies = []) {
+export function autoFight(player, enemyKeys, seed, allies = [], carry = null) {
   const stats = calcStats(player);
-  let st = createCombat({ stats, weaponType: BUILDS[player.classKey].wtype, classKey: player.classKey, level: player.level, enemyKeys, spells: buildSpellBar(player), seed, allies });
+  let st = createCombat({ stats, weaponType: BUILDS[player.classKey].wtype, classKey: player.classKey, level: player.level, enemyKeys, spells: buildSpellBar(player), seed, allies, carry });
   for (let guard = 0; st.phase !== "victory" && st.phase !== "defeat" && guard < 20000; guard++) {
     if (st.phase === "running") { st = advance(st).state; continue; }
     const sp = pickSpell(st);
@@ -33,6 +33,25 @@ export function autoFight(player, enemyKeys, seed, allies = []) {
     st = castSpell(st, sp.id, target.id).state;
   }
   return st;
+}
+
+// Un donjon : les salles à la suite, PV reportés d'une salle à l'autre (un héros tombé se relève avec 20 % de ses PV max).
+// Renvoie { cleared, rooms (nombre de salles gagnées), rewards (butin cumulé des salles gagnées), hp (PV à la fin) }.
+export function autoDungeon(player, allies, rooms, seed) {
+  const rewards = { xp: 0, gold: 0, resources: {}, items: [], kills: {} };
+  let carry = null, won = 0, hp = null;
+  for (const room of rooms) {
+    const st = autoFight(player, room.enemies, seed * 31 + won, allies, carry);
+    hp = { player: st.player.hp, allies: st.allies.map((a) => a.hp) };
+    if (st.phase !== "victory") return { cleared: false, rooms: won, rewards, hp };
+    const r = st.rewards;
+    rewards.xp += r.xp; rewards.gold += r.gold;
+    for (const [k, v] of Object.entries(r.resources)) rewards.resources[k] = (rewards.resources[k] || 0) + v;
+    rewards.items.push(...r.items);
+    for (const [k, v] of Object.entries(r.kills)) rewards.kills[k] = (rewards.kills[k] || 0) + v;
+    carry = hp; won++;
+  }
+  return { cleared: true, rooms: won, rewards, hp };
 }
 
 export const FIGHT_SAMPLES = 4;

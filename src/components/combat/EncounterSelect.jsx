@@ -44,7 +44,7 @@ export default function EncounterSelect({ player, stats, weaponType, heroSrc, on
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, fontSize: 11, textAlign: "center" }}>
           <Mini label="PV" value={stats.maxHp} c="#c0392b" />
           <Mini label="Initiative" value={stats.vitesse} c={color.frost} />
-          <Mini label="PA" value={PA_MAX} c={color.goldBright} />
+          <Mini label="PA" value={stats.paMax ?? PA_MAX} c={color.goldBright} />
           <Mini label="ATK Phys" value={stats.atkPhys} c={color.phys} />
           <Mini label="ATK Mag" value={stats.atkMagie} c={color.mag} />
           <Mini label="Esquive" value={`${Math.round(stats.esquive)}%`} c={color.success} />

@@ -59,6 +59,8 @@ function makeHero({ id, name, stats, weaponType = null, classKey = null, level =
   const lifesteal = Math.max(0, pv.lifesteal || 0, ...bonuses.map((b) => b.lifesteal || 0));    // part des dégâts infligés rendue en PV
   const armorPen = Math.max(0, pv.armorPen || 0, ...bonuses.map((b) => b.armorPen || 0));      // part de DEF ignorée par tous les sorts
   const lastStand = pv.lastStand || 0;                                       // un coup fatal laisse ce % de PV (une fois par combat)
+  const paBonus = Math.max(0, pv.paBonus || 0);                              // PA en plus à chaque tour (relique de la Dame en Deuil)
+  const finalDamage = Math.max(0, pv.finalDamage || 0);                      // dommages finaux en plus, physiques comme magiques (0,10 = +10 %)
   return {
     id,
     name,
@@ -74,8 +76,9 @@ function makeHero({ id, name, stats, weaponType = null, classKey = null, level =
     },
     dropBonus: stats.dropBonus || 0,
     pa: 0,
+    paMax: PA_MAX + paBonus,
     effects: [],
-    flags: { firstCrit, riposte, spellDiscount, thorns, lifesteal, armorPen, lastStand, lastStandUsed: false, discountReady: false, shadowDodge: false, shadowCrit: false },
+    flags: { finalDamage, firstCrit, riposte, spellDiscount, thorns, lifesteal, armorPen, lastStand, lastStandUsed: false, discountReady: false, shadowDodge: false, shadowCrit: false },
     spells: spells || spellsFor(weaponType, classKey, level),
     alive: true,
   };
@@ -92,11 +95,19 @@ export const PARTY_DROP_MULT = { 1: 1, 2: 1.25, 3: 1.5 };
 // `spells` : barre de sorts déjà composée (voir buildSpellBar dans utils/spellbook.js). Sans elle, tous les sorts débloqués.
 // `allies` : alliés bots, chacun { name, stats, weaponType, classKey, level, spells } (voir sim/partyBots.js). Le joueur reste
 // le seul à choisir ses actions ; les alliés jouent seuls à leur tour d'initiative.
-export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, allies = [], seed = Date.now() >>> 0 }) {
+// `carry` : PV des héros à l'entrée du combat, pour enchaîner des salles de donjon sans soin entre elles : { player: pv, allies: [pv, ...] }.
+// Un héros tombé dans la salle précédente se relève avec au moins DUNGEON_REVIVE de ses PV max.
+export const DUNGEON_REVIVE = 0.2;
+export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, allies = [], seed = Date.now() >>> 0, carry = null }) {
   const s = { seed: seed >>> 0 };
 
   const player = makeHero({ id: "player", name: "Héros", stats, weaponType, classKey, level, spells });
   const allyHeroes = allies.map((a, i) => makeHero({ id: `ally${i}`, name: a.name || `Allié ${i + 1}`, stats: a.stats, weaponType: a.weaponType, classKey: a.classKey, level: a.level ?? level, spells: a.spells, ally: true }));
+  if (carry) {
+    const apply = (h, hp) => { if (Number.isFinite(hp)) h.hp = Math.min(h.maxHp, Math.max(Math.ceil(h.maxHp * DUNGEON_REVIVE), Math.round(hp))); };
+    apply(player, carry.player);
+    allyHeroes.forEach((a, i) => apply(a, carry.allies?.[i]));
+  }
   const hpScale = PARTY_HP_SCALE[1 + allyHeroes.length] ?? PARTY_HP_SCALE[3];
 
   const enemies = enemyKeys.map((key, i) => {
@@ -194,7 +205,8 @@ function attack(s, events, attacker, target, opts) {
   else crit = rand(s) * 100 < Math.min(75, attacker.stats.critique + critBonus);
 
   const weaken = 1 - maxEffect(attacker, "weaken");   // Givre : l'attaquant fait moins de dégâts
-  const damage = Math.max(1, Math.round(atk * power * variance * reduction * weaken * (crit ? CRIT_MULT : 1)));
+  const finalMult = 1 + (attacker.flags?.finalDamage || 0);                  // dommages finaux (relique)
+  const damage = Math.max(1, Math.round(atk * power * variance * reduction * weaken * finalMult * (crit ? CRIT_MULT : 1)));
   const fatal = target.hp - damage <= 0;
   target.hp = Math.max(0, target.hp - damage);
   events.push({
@@ -325,7 +337,7 @@ function rollRewards(s) {
     if (def.gold) rewards.gold += randInt(s, def.gold[0], def.gold[1]);
     for (const d of def.drops || []) {
       if (d.forClass && d.forClass !== s.player.classKey) continue;   // butin propre à une classe (armes uniques)
-      if (rand(s) < Math.min(1, d.chance * mult)) {
+      if (rand(s) < Math.min(1, d.fixed ? d.chance : d.chance * mult)) {
         const qty = randInt(s, d.min, d.max);
         if (d.type === "resource") rewards.resources[d.id] = (rewards.resources[d.id] || 0) + qty;
         else for (let i = 0; i < qty; i++) rewards.items.push(d.id);
@@ -414,7 +426,7 @@ export function advance(state) {
     const paLoss = actor.effects.filter((e) => e.kind === "paLoss").reduce((sum, e) => sum + e.value, 0);
     startTurn(s, events, actor);          // dégâts sur la durée, durée des effets
     if (!actor.alive) { checkEnd(s, events); continue; }
-    const basePa = actor.isPlayer ? PA_MAX : (actor.stats.pa ?? ENEMY_PA);   // joueur et alliés : 6 PA
+    const basePa = actor.isPlayer ? (actor.paMax ?? PA_MAX) : (actor.stats.pa ?? ENEMY_PA);   // joueur et alliés : 6 PA (+ bonus de relique)
     const pa = Math.max(0, basePa - paLoss);
     if (pa === 0) { events.push({ type: "skip", id: actor.id }); continue; }
 
