@@ -15,6 +15,8 @@ import { calcStats } from "../src/utils/calcStats.js";
 import { emptyQuests, questStep, bump, huntTarget } from "../src/sim/lifeQuests.js";
 import { boardFor, progressOf, dayKey, standingOf } from "../src/utils/quests.js";
 import { ENEMIES } from "../src/data/zones.js";
+import { bankStep, drawFromBank, bankFreeSlots, emptyBank, BAG_RES_DEPOSIT, BAG_RES_KEEP, BAG_ITEMS_KEEP } from "../src/sim/lifeBank.js";
+import { bankCapacity, bankUsed, BANK_START } from "../src/utils/bank.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { MAX_PROFESSION_LEVEL } from "../src/data/professions.js";
 
@@ -328,6 +330,56 @@ await test("styles de jeu : chaque simulé répartit ses caractéristiques et so
   assert.ok(glass.stats.maxHp < tank.stats.maxHp);
   // style par défaut inchangé
   assert.equal(JSON.stringify(botSpec("magicien", 12).stats), JSON.stringify(botSpec("magicien", 12, { style: DEFAULT_BUILD }).stats));
+});
+
+await test("coffre : le surplus de ressources et les équipements de réserve y sont rangés, dans la limite des emplacements", () => {
+  const bot = pop.find((b) => b.classKey === "guerrier"), life = initialLife(bot, "fresh");
+  life.gear = tierGear("guerrier", 20);
+  life.bag.res = { bois_de_frene: 80, ortie: 10, fer: 31 };
+  life.bag.items = Array.from({ length: 16 }, () => "epee_milicien");
+  bankStep(life);
+  assert.equal(life.bag.res.bois_de_frene, BAG_RES_KEEP);
+  assert.equal(life.bank.resources.bois_de_frene, 80 - BAG_RES_KEEP);
+  assert.equal(life.bag.res.ortie, 10, "sous le seuil : rien ne bouge");
+  assert.equal(life.bag.items.length, BAG_ITEMS_KEEP);
+  assert.equal(life.bank.items.length, 4);
+  // coffre plein : rien de plus n'entre, et l'agrandissement n'a lieu que s'il a deux fois le prix
+  life.bank = emptyBank();
+  life.bank.items = Array.from({ length: BANK_START }, () => "epee_milicien");
+  assert.equal(bankFreeSlots(life), 0);
+  life.bag.res = { bois_de_frene: 99 }; life.gold = 150;
+  bankStep(life);
+  assert.equal(life.bag.res.bois_de_frene, 99, "plein : tout reste dans le sac");
+  assert.equal(life.bank.upgrades, 0, "pas assez d'or pour agrandir");
+  life.gold = 250; bankStep(life);
+  assert.equal(life.bank.upgrades, 1); assert.equal(life.gold, 150);
+  assert.equal(bankCapacity({ bank: life.bank, quests: life.quests }), BANK_START + 10);
+});
+
+await test("coffre : il en sort ce qui manque (fabrication, achats) et reprend une pièce meilleure que la sienne", () => {
+  const bot = pop.find((b) => b.classKey === "guerrier"), life = initialLife(bot, "fresh");
+  life.bank = { items: [], resources: { fer: 12, ortie: 3 }, upgrades: 0 };
+  const left = drawFromBank(life, { fer: 5, ortie: 9, bois: 2 });
+  assert.deepEqual(left, { ortie: 6, bois: 2 });
+  assert.equal(life.bag.res.fer, 5); assert.equal(life.bag.res.ortie, 3); assert.equal(life.bank.resources.fer, 7); assert.ok(!("ortie" in life.bank.resources));
+  const better = tierGear("guerrier", 20).arme;
+  life.bank.items.push(better);
+  bankStep(life);
+  assert.equal(life.gear.arme, better);
+  assert.ok(!life.bank.items.includes(better));
+});
+
+await test("coffre : après un mois, la plupart des simulés ont un coffre bien rempli, sans dépasser sa capacité, et le marché reste alimenté", () => {
+  const w = run(fresh(), 30);
+  let withBank = 0;
+  for (const b of pop) {
+    const l = w.lives[b.id], pl = { bank: l.bank, quests: l.quests };
+    if (!l.bank) continue;
+    assert.ok(bankUsed(pl) <= bankCapacity(pl), `${b.id} coffre ${bankUsed(pl)}/${bankCapacity(pl)}`);
+    assert.ok(Object.values(l.bank.resources).every((q) => q > 0) && l.bank.items.every((id) => ITEMS[id]));
+    if (bankUsed(pl) > 0) withBank++;
+  }
+  assert.ok(withBank > 120, `${withBank} simulés utilisent leur coffre`);
 });
 
 console.log(`\n${n} tests passent.`);

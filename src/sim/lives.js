@@ -23,6 +23,8 @@ import { xpToNext, MAX_LEVEL } from "../utils/progression.js";
 import { xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
 import { BAG_ITEMS_MAX, starterGear, tierGear, acquireItem, craftStep, sellSurplus } from "./lifeCraft.js";
 import { makeRng, hashString } from "./rng.js";
+import { bankStep, drawFromBank } from "./lifeBank.js";
+import { shoppingList } from "./lifeCraft.js";
 import { emptyQuests, bump, questStep, huntTarget } from "./lifeQuests.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
@@ -150,9 +152,11 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
       for (let i = 0; i < n; i++) { const q = rng.int(node.yield[0], node.yield[1]); life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + q; bump(life, "gathered", node.resource, q); }
     }
   } else {
+    if (life.bank && Object.keys(life.bank.resources).length) drawFromBank(life, shoppingList(life, bot));   // il sort du coffre ce dont l'atelier a besoin
     craftStep(life, bot, rng, { merchant: opts.merchant !== false });   // atelier : raffiner, fabriquer, s'équiper
   }
   if (rng() < QUEST_CHANCE) questStep(life, bot, step * STEP_MS, rng, regionFor(life.level).enemyKeys);   // tableau des quêtes
+  bankStep(life);                                                // il range le surplus au coffre
   sellSurplus(life, opts.keep);
   return life;
 }

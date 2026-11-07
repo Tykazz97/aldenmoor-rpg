@@ -123,6 +123,9 @@ Le tableau de quêtes d'Aldenmoor (bâtiment de la ville) propose chaque jour un
 
 **Caractéristiques et grimoire des simulés** (`buildOf` dans `sim/partyBots.js`) : chacun a son style de jeu, tiré de son identifiant et donc stable : part de points dans la caractéristique principale (50 à 80 %), une caractéristique secondaire (chance, vitesse…), goût pour les sorts de zone, sorts montés haut ou répartis. Sa répartition est recalculée à partir de son niveau, comme si les points avaient été dépensés un par un ; les compagnons que tu emmènes combattent avec ce style.
 
-Étapes suivantes possibles : plus d'offre venant des simulés (moins du colporteur), coffre, boss et donjons pour les simulés, achats et ventes à l'hôtel des ventes, les inviter à te rejoindre en pleine carte, des vrais joueurs dans le groupe (serveur), l'IA des bots (parade, sorts de soutien).
+
+**Coffre des simulés** (`sim/lifeBank.js`) : même coffre que le tien (`utils/bank.js` : 20 emplacements, agrandissements payants, emplacements offerts par la réputation d'Aldenmoor). Un simulé y range ses ressources en trop (au-delà de 30 unités il en garde 15 sur lui) et ses équipements de réserve (au-delà de 12 dans le sac) au lieu de les brader ; il en sort ce qui manque avant de fabriquer, avant d'aller acheter au marché et pour une quête de livraison, reprend une pièce rangée si elle vaut mieux que celle qu'il porte, et agrandit le coffre quand il est plein s'il a deux fois le prix. Après un mois, ≈ 90 % des simulés ont un coffre bien rempli ; l'offre du marché reste du même ordre.
+
+Étapes suivantes possibles : plus d'offre venant des simulés (moins du colporteur), boss et donjons pour les simulés, achats et ventes à l'hôtel des ventes, les inviter à te rejoindre en pleine carte, des vrais joueurs dans le groupe (serveur), l'IA des bots (parade, sorts de soutien).
 
 Enchères à l'hôtel des ventes, vrais joueurs sur le même marché, joueurs simulés dans les régions, groupes et guildes, régions 2 et 3, emplacements d'équipement restants.

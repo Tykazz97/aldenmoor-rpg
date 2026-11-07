@@ -12,6 +12,7 @@ import { boardFor, acceptQuest, completeQuest, abandonQuest, progressOf, dayKey 
 import { MAX_ACTIVE_QUESTS } from "../data/quests.js";
 import { ENEMIES } from "../data/zones.js";
 import { emptyCounters } from "../utils/counters.js";
+import { bankHas, drawFromBank } from "./lifeBank.js";
 
 export const emptyQuests = () => ({ active: [], done: { day: -1, ids: [] }, rep: {}, chain: [], counters: emptyCounters() });
 export const QUEST_STALE_DAYS = 2;                 // une quête non terminée au bout de 2 jours est abandonnée
@@ -45,7 +46,7 @@ export const feasibleKill = (quest, pool) => !ENEMIES[quest.target]?.miniBoss &&
 // Un tour de quêtes : rend ce qui est terminé, abandonne ce qui traîne, puis en accepte une au besoin.
 // `pool` : ensemble des ennemis de sa région ; renvoie le nombre de quêtes rendues.
 export function questStep(life, bot, nowMs, rng, pool) {
-  let p = asPlayer(life), done = 0;
+  let p = asPlayer(life), done = 0, toDraw = null;
   const day = dayKey(nowMs);
   for (const q of [...p.quests.active]) {
     if (progressOf(p, q).done) { const r = completeQuest(p, q.id, nowMs); if (r.ok) { p = r.player; done++; } }
@@ -55,16 +56,17 @@ export function questStep(life, bot, nowMs, rng, pool) {
     const pref = PREF[bot.activity] || PREF.flaneur;
     const options = boardFor(p, nowMs).filter((q) => {
       if (q.type === "kill") return feasibleKill(q, pool);
-      if (q.type === "deliver") return (p.resources[q.target] || 0) >= q.qty;
+      if (q.type === "deliver") return (p.resources[q.target] || 0) + bankHas(life, q.target) >= q.qty;
       return q.type === "gather";
     });
     if (options.length) {
       const q = rng.weighted(options.map((x) => [x, pref[x.type] || 1]));
       const r = acceptQuest(p, q.id, nowMs);
-      if (r.ok) p = r.player;
+      if (r.ok) { p = r.player; if (q.type === "deliver") toDraw = { [q.target]: Math.max(0, q.qty - (p.resources[q.target] || 0)) }; }
     }
   }
   commit(life, p);
+  if (toDraw) drawFromBank(life, toDraw);                         // la livraison part du coffre si besoin
   return done;
 }
 
