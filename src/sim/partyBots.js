@@ -39,14 +39,14 @@ function gear(build, level) {
 }
 
 // Un personnage complet (comme un joueur) de classe et niveau donnés
-export function makeBotPlayer(classKey, level) {
+export function makeBotPlayer(classKey, level, gearIds = null) {
   const cls = CLASSES[classKey], b = BUILDS[classKey];
   const pts = POINTS_PER_LEVEL * (level - 1);
   const mainPts = Math.round(pts * 0.65);
   const caracs = { ...cls.startCaracs };
   caracs[b.main] = (caracs[b.main] || 0) + mainPts;
   caracs.vitalite = (caracs.vitalite || 0) + (pts - mainPts) + FREE_VITALITE_PER_LEVEL * (level - 1);
-  let p = { classKey, level, gold: 0, caracs, baseHp: 100, equipped: gear(b, level), spellbook: { ranks: {}, loadout: null } };
+  let p = { classKey, level, gold: 0, caracs, baseHp: 100, equipped: gearIds ? Object.fromEntries(Object.entries(gearIds).filter(([, id]) => ITEMS[id]).map(([slot, id]) => [slot, ITEMS[id]])) : gear(b, level), spellbook: { ranks: {}, loadout: null } };
   // points de sort : sur le sort le plus rentable de la barre, jusqu'au rang 3, puis le suivant…
   for (let guard = 0; guard < 200 && spellPointsLeft(p) > 0; guard++) {
     const bar = buildSpellBar(p).filter((s) => s.type !== "buff" && s.rank < 3);
@@ -59,8 +59,8 @@ export function makeBotPlayer(classKey, level) {
 }
 
 // Ce que createCombat attend pour un allié : { name, stats, weaponType, classKey, level, spells } (+ look pour l'affichage)
-export function botSpec(classKey, level, { name, body = "m", look } = {}) {
-  const player = makeBotPlayer(classKey, level);
+export function botSpec(classKey, level, { name, body = "m", look, gear: gearIds = null } = {}) {
+  const player = makeBotPlayer(classKey, level, gearIds);
   return {
     name: name || CLASSES[classKey].label,
     classKey, level,
@@ -107,7 +107,7 @@ export function buildAllies(player, companionIds = [], population = []) {
     if (b && !chosen.includes(b)) chosen.push(b);
     if (chosen.length >= PARTY_SIZE - 1) break;
   }
-  const specs = chosen.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look }));
+  const specs = chosen.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look, gear: b.life?.gear }));
   if (specs.length >= PARTY_SIZE - 1) return specs;
   const generic = defaultAllies(player);
   const have = new Set([player.classKey, ...specs.map((s) => s.classKey)]);

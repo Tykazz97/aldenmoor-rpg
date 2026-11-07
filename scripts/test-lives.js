@@ -9,6 +9,9 @@ import { MAX_LEVEL, xpToNext } from "../src/utils/progression.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";
 import { makeRng } from "../src/sim/rng.js";
+import { craftStep, starterGear, tierGear, gearScore, acquireItem, sellSurplus, STOCK_KEEP } from "../src/sim/lifeCraft.js";
+import { botSpec } from "../src/sim/partyBots.js";
+import { RECIPES } from "../src/data/recipes.js";
 import { MAX_PROFESSION_LEVEL } from "../src/data/professions.js";
 
 let n = 0;
@@ -76,10 +79,10 @@ await test("ils progressent : niveaux qui montent sans jamais baisser, métiers 
   const sorted = lv(w);
   assert.ok(med(sorted) >= 8 && med(sorted) <= 30, `niveau médian ${med(sorted)} après 40 jours`);
   assert.ok(sorted[sorted.length - 1] > med(sorted) + 3, "il y a des écarts entre joueurs");
-  // monotone : un jour de plus ne fait jamais reculer personne
+  // monotone : un jour de plus ne fait jamais reculer personne (l'or peut baisser : ils dépensent, mais jamais sous zéro)
   const snap = Object.fromEntries(Object.entries(w.lives).map(([k, l]) => [k, [l.level, l.gold, l.kills]]));
   advanceLives(w, pop, T0 + 41 * DAY);
-  for (const [k, l] of Object.entries(w.lives)) assert.ok(l.level >= snap[k][0] && l.gold >= snap[k][1] && l.kills >= snap[k][2]);
+  for (const [k, l] of Object.entries(w.lives)) assert.ok(l.level >= snap[k][0] && l.kills >= snap[k][2] && l.gold >= 0);
 });
 
 await test("les combattants montent plus vite en niveau, les récolteurs plus vite en métier", () => {
@@ -165,7 +168,7 @@ await test("sac : ils gardent les drops et la récolte, équipement de leur clas
 
 await test("sac : l'équipement en trop est revendu (or), et les anciennes sauvegardes reçoivent un sac vide", () => {
   const b = pop.find((x) => x.classKey === "guerrier");
-  const life = { gold: 0, bag: emptyBag() };
+  const life = { gold: 0, bag: emptyBag(), gear: { arme: "epee_milicien" } };   // déjà équipé : les doublons vont dans le sac
   const sure = { drops: [{ type: "item", id: "epee_milicien", chance: 1, min: 1, max: 1 }, { type: "resource", id: "croc_de_loup", chance: 1, min: 2, max: 2 }, { type: "item", id: "croc_du_veilleur", chance: 1, min: 1, max: 1, forClass: "assassin" }] };
   const rng = makeRng(1);
   for (let i = 0; i < BAG_ITEMS_MAX; i++) rollDrops(life, b, sure, rng);
@@ -179,6 +182,72 @@ await test("sac : l'équipement en trop est revendu (or), et les anciennes sauve
   migrateWorld(old);
   assert.deepEqual(old.lives.a.bag, { res: {}, items: [] });
   assert.ok(!validWorld({ ...old, lives: { ...old.lives, a: { ...old.lives.a, bag: undefined } } }, { mode: "fresh", epoch: T0 }, [{ id: "a" }]));
+});
+
+const warrior = () => pop.find((x) => x.classKey === "guerrier");
+const freshLife = (b) => ({ id: b.id, level: 5, xp: 0, gold: 0, kills: 0, gathers: 0, crafted: 0, prof: { key: "mineur", level: 1, xp: 0 }, pro: {}, gear: starterGear(b.classKey), bag: emptyBag() });
+
+await test("fabrication : avec les ressources et l'or, il fabrique une pièce manquante, la porte, et paie comme un vrai joueur", () => {
+  const b = warrior(), life = freshLife(b);
+  const missing = Object.keys(RECIPES).filter((id) => ITEMS[id]?.set === "veteran" && !Object.values(life.gear).includes(id));
+  assert.ok(missing.length >= 2, "des pièces du Vétéran manquent au départ");
+  life.gold = 500;
+  for (const id of missing) for (const [r, q] of Object.entries(RECIPES[id].ingredients)) life.bag.res[r] = (life.bag.res[r] || 0) + q;
+  const made = craftStep(life, b, makeRng(7));
+  assert.ok(made && missing.includes(made), `fabriqué ${made}`);
+  assert.equal(life.gear[ITEMS[made].type], made, "il la porte");
+  assert.equal(life.crafted, 1);
+  assert.ok(life.gold <= 500 - RECIPES[made].gold, "le coût en or est payé");
+  assert.ok(Object.values(life.pro).some((p) => p.xp > 0 || p.level > 1), "xp de métier gagnée");
+  for (const [r, q] of Object.entries(life.bag.res)) assert.ok(q >= 0, r);
+});
+
+await test("fabrication : sans or ni ressources rien ne se passe ; il achète ce qui manque seulement s'il en a les moyens", () => {
+  const b = warrior();
+  const poor = freshLife(b);
+  assert.equal(craftStep(poor, b, makeRng(1)), null);
+  assert.deepEqual(poor.bag, emptyBag()); assert.equal(poor.gold, 0);
+  const rich = freshLife(b); rich.gold = 400;
+  const made = craftStep(rich, b, makeRng(2));
+  assert.ok(made, "avec 400 or il achète ses ingrédients et fabrique");
+  assert.ok(rich.gold >= 0 && rich.gold < 400);
+});
+
+await test("équipement : une pièce meilleure est portée (l'ancienne va au sac), une moins bonne est gardée ; surplus de ressources revendu", () => {
+  const b = warrior(), life = freshLife(b);
+  life.gear.arme = "epee_milicien";
+  const better = ["epee_fossoyeur", "epee_chevalier"].find((id) => gearScore(id) > gearScore("epee_milicien"));
+  acquireItem(life, better);
+  assert.equal(life.gear.arme, better); assert.deepEqual(life.bag.items, ["epee_milicien"]);
+  acquireItem(life, "epee_milicien");
+  assert.equal(life.gear.arme, better, "une moins bonne ne remplace pas");
+  life.bag.res.croc_de_loup = STOCK_KEEP + 30;
+  const g0 = life.gold; sellSurplus(life);
+  assert.equal(life.bag.res.croc_de_loup, STOCK_KEEP); assert.ok(life.gold > g0);
+});
+
+await test("la progression d'équipement est réelle : après un mois, beaucoup ont fabriqué, et ce qu'ils portent est cohérent", () => {
+  const w = run(fresh(), 30);
+  let crafted = 0, tier2 = 0;
+  for (const b of pop) {
+    const l = w.lives[b.id];
+    if (l.crafted > 0) crafted++;
+    for (const [slot, id] of Object.entries(l.gear)) { const it = ITEMS[id]; assert.ok(it && it.type === slot, `${id} dans ${slot}`); assert.ok(!it.classKey || it.classKey === b.classKey); }
+    if (Object.values(l.gear).some((id) => (ITEMS[id].tier || 1) >= 2)) tier2++;
+    assert.ok(l.gold >= 0 && Object.values(l.bag.res).every((q) => q >= 0));
+    assert.ok(l.bag.items.length <= BAG_ITEMS_MAX);
+  }
+  assert.ok(crafted > 100, `${crafted} simulés ont fabriqué quelque chose`);
+  assert.ok(tier2 > 30, `${tier2} portent du palier 2 ou plus`);
+});
+
+await test("les compagnons combattent avec leur vrai équipement : un simulé mal équipé est plus faible qu'un bien équipé", () => {
+  const b = warrior();
+  const weak = botSpec("guerrier", 20, { name: "A", gear: starterGear("guerrier") });
+  const strong = botSpec("guerrier", 20, { name: "B", gear: tierGear("guerrier", 20) });
+  const dflt = botSpec("guerrier", 20, { name: "C" });
+  assert.ok(strong.stats.maxHp > weak.stats.maxHp && strong.stats.defPhys > weak.stats.defPhys);
+  assert.equal(dflt.stats.maxHp, strong.stats.maxHp, "sans équipement connu : celui du palier, comme avant");
 });
 
 console.log(`\n${n} tests passent.`);

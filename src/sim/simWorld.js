@@ -15,7 +15,7 @@ function write(w) { try { localStorage.setItem(LIVES_KEY, JSON.stringify(w)); } 
 export function getLiveWorld(now = Date.now()) {
   const pop = getPopulation();
   if (!world) {
-    const saved = migrateWorld(read());
+    const saved = migrateWorld(read(), pop);
     world = validWorld(saved, SIM_START, pop) ? saved : createLives({ population: pop, mode: SIM_START.mode, epoch: SIM_START.epoch, now });
     cacheStep = -1;
   }
