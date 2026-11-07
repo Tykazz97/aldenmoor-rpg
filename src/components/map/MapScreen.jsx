@@ -11,7 +11,8 @@ import { RESOURCES, RESOURCE_RARITIES } from "../../data/resources.js";
 import { ITEMS } from "../../data/items.js";
 import { NODES } from "../../data/gathering.js";
 import { PROFESSIONS } from "../../data/professions.js";
-import { heroOutfitFor, heroSpriteUrl } from "../../data/heroSprites.js";
+import { heroOutfitFor } from "../../data/heroSprites.js";
+import { heroAnimMeta, heroSheetUrl, heroFrameLayout, frameBackground, HERO_ACTION_FOR_PROFESSION } from "../../data/heroAnims.js";
 import { canGather, rollYield } from "../../utils/gathering.js";
 import { findPath, pathToObject, stepMove, canStand, activeGroups, activeNodes, mapWidth, mapHeight } from "../../utils/mapPath.js";
 import { color } from "../../styles/theme.js";
@@ -19,8 +20,8 @@ import { color } from "../../styles/theme.js";
 const VIEW_W = 14;        // largeur visible : 14 tuiles
 const SPEED = 4.4;        // vitesse du héros, en tuiles par seconde
 const TOUCH = 0.95;       // distance à laquelle on "touche" un objet en marchant au clavier
-const HARVEST_MS = 1100;  // durée d'une récolte
-const HERO_H = 10.5;      // hauteur du héros (unités de sprite, 6.25 = une tuile)
+const HARVEST_MS = 2000;  // durée d'une récolte (un cycle complet de l'animation de métier)
+const WALK_CYCLE = 0.72;  // durée d'un cycle de marche, en secondes
 const cq = (n) => `calc(var(--cq) * ${n})`;
 const key = (x, y) => `${x},${y}`;
 const encounterOf = (id) => ENCOUNTERS.find((e) => e.id === id);
@@ -43,7 +44,9 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   const [view, setView] = useState("region");   // "region" | "world" (carte du monde)
   const [now, setNow] = useState(() => Date.now());
 
-  const viewRef = useRef(null), worldElRef = useRef(null), heroRef = useRef(null), dotRef = useRef(null);
+  const viewRef = useRef(null), worldElRef = useRef(null), heroRef = useRef(null), heroAnimRef = useRef(null), dotRef = useRef(null);
+  const harvestAct = useRef(null);                // { action, t0 } pendant une récolte
+  const animKey = useRef("");
   const posRef = useRef({ ...world.pos });
   const camRef = useRef(null);
   const pathRef = useRef(null);                   // { pts, then }
@@ -68,8 +71,14 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   objsRef.current = { groups, nodes };
   pausedRef.current = !!(fight || harvest);
 
-  const heroSrc = heroSpriteUrl(heroOutfitFor(stats.setBonuses));
+  const outfit = heroOutfitFor(stats.setBonuses);
+  const outfitRef = useRef(outfit);
+  outfitRef.current = outfit;
+  const heroLayout = heroFrameLayout(outfit);
   const region = ZONES.aldenmoor.regions.find((r) => r.key === map.regionKey);
+
+  // précharge les feuilles d'animation de la tenue
+  useEffect(() => { for (const a of ["walk", "mine", "chop", "herb"]) { const im = new Image(); im.src = heroSheetUrl(outfit, a); } }, [outfit]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -90,9 +99,11 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
     if (!chk.ok) { showToast(`${PROFESSIONS[def.profession].name} niveau ${def.minLevel} requis (tu es niveau ${chk.level}).`); return; }
     facingRef.current = n.x + 0.5 >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
     harvestRef.current = true;
+    harvestAct.current = { action: HERO_ACTION_FOR_PROFESSION[def.profession], t0: performance.now() };
     setHarvest({ node: n });
     harvestTimer.current = setTimeout(() => {
       harvestRef.current = false;
+      harvestAct.current = null;
       setHarvest(null);
       const qty = rollYield(def);
       const before = playerRef.current.professions[def.profession];
@@ -230,10 +241,29 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
       if (Math.abs(vx) > 0.2 && Math.sign(vx) !== facingRef.current) { facingRef.current = Math.sign(vx); setFacing(facingRef.current); }
       if (moving !== walkingRef.current) { walkingRef.current = moving; setWalking(moving); }
 
-      // position du héros dans le monde
-      hel.style.transform = `translate3d(${pos.x * tile}px, ${(pos.y + 0.4) * tile}px, 0) translate(-50%, -100%)`;
+      // position du héros (point d'appui = les pieds) et image d'animation
+      hel.style.transform = `translate3d(${pos.x * tile}px, ${(pos.y + 0.4) * tile}px, 0)`;
       const z = String(Math.floor((pos.y + 0.4) * 10) + 5);
       if (hel.style.zIndex !== z) hel.style.zIndex = z;
+      const anim = heroAnimRef.current;
+      if (anim) {
+        const of = outfitRef.current, meta = heroAnimMeta(of);
+        let act = "walk", fi = 0;                         // à l'arrêt : première image de la marche
+        const h = harvestAct.current;
+        if (h) { act = h.action; fi = Math.min(meta.actions[act].frames - 1, Math.floor(((t - h.t0) / HARVEST_MS) * meta.actions[act].frames)); }
+        else if (moving) { const n = meta.actions.walk.frames; fi = Math.floor((((t / 1000) / WALK_CYCLE) % 1) * n); }
+        const key = `${of}/${act}/${fi}`;
+        if (key !== animKey.current) {
+          const [kOf, kAct] = animKey.current.split("/");
+          if (kOf !== of || kAct !== act) {
+            const a = meta.actions[act];
+            anim.style.backgroundImage = `url(${heroSheetUrl(of, act)})`;
+            anim.style.backgroundSize = `${a.cols * 100}% ${a.rows * 100}%`;
+          }
+          anim.style.backgroundPosition = frameBackground(meta.actions[act], fi);
+          animKey.current = key;
+        }
+      }
 
       // caméra : suit le héros avec un peu d'inertie, bornée aux bords de la carte
       const hw = VIEW_W / 2, hh = view.clientHeight / tile / 2;
@@ -356,8 +386,9 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
             {/* héros (position mise à jour à chaque image par la boucle d'animation) */}
             <div className="mp-ent" ref={heroRef}>
               <span className="mp-shadow" />
-              <div className={`mp-flip ${harvest ? "harvesting" : walking ? "walking" : "idle"}`} style={{ transform: `scaleX(${facing})` }}>
-                <img src={heroSrc} alt="Héros" draggable={false} style={{ height: cq(HERO_H) }} />
+              <div className="mp-flip" style={{ transform: `scaleX(${facing})` }}>
+                <div ref={heroAnimRef} className={`mp-hero-anim ${harvest || walking ? "" : "idle"}`} role="img" aria-label="Héros"
+                  style={{ width: cq(heroLayout.w), height: cq(heroLayout.h), left: cq(-heroLayout.ax), top: cq(-heroLayout.ay) }} />
               </div>
             </div>
           </div>
