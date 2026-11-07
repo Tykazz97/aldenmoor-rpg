@@ -7,7 +7,8 @@ import { RECIPES } from "../../data/recipes.js";
 import { ITEMS } from "../../data/items.js";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_RARITIES } from "../../data/resources.js";
 import { REFINING, refiningOf } from "../../data/refining.js";
-import { canCraft, canRefine, maxRefine, professionOf } from "../../utils/crafting.js";
+import { ALCHEMY, alchemyOf } from "../../data/alchemy.js";
+import { canCraft, canRefine, maxRefine, canBrew, maxBrew, professionOf } from "../../utils/crafting.js";
 import { perkLines, isMasterwork } from "../../utils/perks.js";
 import { itemStatLines } from "../../utils/itemText.js";
 
@@ -148,13 +149,16 @@ function RecipeCard({ itemId, check, onCraft }) {
 }
 
 // Raffinage : on transforme des matières brutes en matière raffinée, par 1, par 5 ou au maximum
-function RefineCard({ id, player, onRefine }) {
-  const rec = REFINING[id], out = RESOURCES[id], max = maxRefine(player, id), check = canRefine(player, id, 1);
+// (la même carte sert à l'Alchimiste : `brew` choisit la table des potions)
+function RefineCard({ id, player, onRefine, brew = false }) {
+  const rec = (brew ? ALCHEMY : REFINING)[id], out = RESOURCES[id];
+  const max = brew ? maxBrew(player, id) : maxRefine(player, id), check = brew ? canBrew(player, id, 1) : canRefine(player, id, 1);
+  const effect = !brew ? "" : rec.heal ? ` · rend ${Math.round(rec.heal * 100)} % des PV` : rec.revive ? ` · relève un héros tombé à ${Math.round(rec.revive * 100)} % des PV` : "";
   const rc = RESOURCE_RARITIES[out.rarity]?.color || color.mist;
   const btn = (n, label) => {
     const on = n >= 1 && max >= n;
     return (
-      <button data-refine={n === max ? "max" : String(n)} disabled={!on} onClick={() => onRefine(id, n)} style={{ padding: "5px 10px", fontSize: 12, fontWeight: 600, borderRadius: radius.sm, background: on ? color.gold : color.panelRaised, color: on ? color.void : color.mist, border: `1px solid ${on ? color.goldBright : color.line}`, cursor: on ? "pointer" : "not-allowed" }}>{label}</button>
+      <button {...{ [brew ? "data-brew" : "data-refine"]: n === max ? "max" : String(n) }} disabled={!on} onClick={() => onRefine(id, n)} style={{ padding: "5px 10px", fontSize: 12, fontWeight: 600, borderRadius: radius.sm, background: on ? color.gold : color.panelRaised, color: on ? color.void : color.mist, border: `1px solid ${on ? color.goldBright : color.line}`, cursor: on ? "pointer" : "not-allowed" }}>{label}</button>
     );
   };
   let blocker = null;
@@ -162,14 +166,14 @@ function RefineCard({ id, player, onRefine }) {
   else if (check.lacksResources) blocker = "Matières manquantes";
   else if (check.lacksGold) blocker = "Or insuffisant";
   return (
-    <div data-refine-recipe={id} style={{ background: color.panel, border: `1px solid ${max > 0 ? color.gold + "66" : color.line}`, borderRadius: radius.md, padding: 12, display: "flex", gap: 12, opacity: check.lacksLevel ? 0.6 : 1 }}>
+    <div {...{ [brew ? "data-brew-recipe" : "data-refine-recipe"]: id }} style={{ background: color.panel, border: `1px solid ${max > 0 ? color.gold + "66" : color.line}`, borderRadius: radius.md, padding: 12, display: "flex", gap: 12, opacity: check.lacksLevel ? 0.6 : 1 }}>
       <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: radius.sm, background: color.panelRaised, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <ResourceIcon resource={out} size={42} />
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: rc }}>{out.name}</span>
-          <span style={{ fontSize: 10, color: color.mist }}>{rec.verb} · +{rec.xp} xp par unité · vaut {out.value} or · tu en as {player.resources[id] || 0}</span>
+          <span style={{ fontSize: 10, color: color.mist }}>{rec.verb} · +{rec.xp} xp par unité{effect} · vaut {out.value} or · tu en as {player.resources[id] || 0}</span>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {Object.entries(rec.ingredients).map(([resId, qty]) => {
@@ -211,7 +215,7 @@ function NodeCard({ node, level }) {
   );
 }
 
-export default function ForgePanel({ player, onCraft, onRefine, onTestResources, onTestGold }) {
+export default function ForgePanel({ player, onCraft, onRefine, onBrew, onTestResources, onTestGold }) {
   const [selected, setSelected] = useState(PROFESSION_ORDER[0]);
   const [flash, setFlash] = useState(null);
   const timer = useRef(null);
@@ -238,15 +242,20 @@ export default function ForgePanel({ player, onCraft, onRefine, onTestResources,
     pending.current = { type: "craft", invLen: player.inventory.length };
     onCraft(itemId);
   };
+  const handleBrew = (id, n) => {
+    pending.current = { type: "refine", id, n, have: player.resources[id] || 0 };
+    onBrew(id, n);
+  };
   const handleRefine = (id, n) => {
     pending.current = { type: "refine", id, n, have: player.resources[id] || 0 };
     onRefine(id, n);
   };
 
   const kind = PROFESSIONS[selected].kind;
+  const brewIds = selected === "alchimiste" ? alchemyOf(selected) : null;
   const gatherNodes = kind === "gather" ? nodesOfProfession(selected) : null;
   const refineIds = kind === "refine" ? refiningOf(selected) : null;
-  const recipes = recipesOfProfession(selected);
+  const recipes = brewIds ? [] : recipesOfProfession(selected);
   const owned = RESOURCE_ORDER.filter((id) => (player.resources[id] || 0) > 0);
 
   return (
@@ -269,7 +278,7 @@ export default function ForgePanel({ player, onCraft, onRefine, onTestResources,
 
       {/* Recettes */}
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : refineIds ? `${refineIds.length} transformation${refineIds.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
+        <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : refineIds ? `${refineIds.length} transformation${refineIds.length > 1 ? "s" : ""}` : brewIds ? `${brewIds.length} potion${brewIds.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
         <div style={{ padding: "8px 12px 0", fontSize: 12, color: color.mist }}>{PROFESSIONS[selected].desc}</div>
         <div data-perks style={{ margin: "8px 12px 0", padding: "8px 10px", background: color.void, border, borderRadius: radius.sm, display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em" }}>Avantages du niveau {professionOf(player, selected).level}</div>
@@ -289,6 +298,7 @@ export default function ForgePanel({ player, onCraft, onRefine, onTestResources,
         <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
           {gatherNodes && gatherNodes.map((n) => <NodeCard key={n.id} node={n} level={professionOf(player, selected).level} />)}
           {refineIds && refineIds.map((id) => <RefineCard key={id} id={id} player={player} onRefine={handleRefine} />)}
+          {brewIds && brewIds.map((id) => <RefineCard key={id} id={id} brew player={player} onRefine={handleBrew} />)}
           {!gatherNodes && !refineIds && recipes.map(({ itemId }) => (
             <RecipeCard key={itemId} itemId={itemId} check={canCraft(player, itemId)} onCraft={handleCraft} />
           ))}

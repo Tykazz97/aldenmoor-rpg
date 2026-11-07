@@ -6,7 +6,7 @@
 // Métiers de craft (forgeron, tailleur, maroquinier, menuisier), de
 // récolte (bûcheron, mineur, herboriste : voir gathering.js) et de raffinage
 // (fondeur, scieur, tanneur, tisserand : voir refining.js). Le
-// Bijoutier fait les anneaux et les amulettes, le Bricoleur les clés des donjons ; l'Alchimiste viendra avec les consommables.
+// Bijoutier fait les anneaux et les amulettes, le Bricoleur les clés des donjons ; l'Alchimiste distille les potions de soin (voir alchemy.js).
 // ============================================================
 
 import { ITEMS } from "./items.js";
@@ -38,6 +38,10 @@ export const PROFESSIONS = {
   bricoleur: {
     key: "bricoleur", name: "Bricoleur", icon: "🗝️",
     desc: "Fabrique les clés des donjons.",
+  },
+  alchimiste: {
+    key: "alchimiste", name: "Alchimiste", icon: "⚗️",
+    desc: "Distille des potions de soin avec les herbes et les trophées de la Lisière.",
   },
   // --- Récolte : se pratique sur la carte ---
   bucheron: {

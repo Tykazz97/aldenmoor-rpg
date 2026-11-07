@@ -166,7 +166,7 @@ function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
     const qty = Math.min(sellableOf(life, id, SIM_SELL_KEEP), rng.int(lo, hi));
     return { seller: b.id, greed: b.greed, qty, life, bot: b };
   }
-  if (RESOURCES[id].rarity !== "rare" && !RESOURCES[id].dungeon && supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
+  if (RESOURCES[id].rarity !== "rare" && !RESOURCES[id].dungeon && !RESOURCES[id].crafted && supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
   return null;
 }
 

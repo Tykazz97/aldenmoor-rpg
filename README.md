@@ -102,6 +102,19 @@ Un donjon de **4 salles pour un groupe de 3** (`src/data/dungeons.js`, logique d
 
 Nouveau métier de fabrication : il ne fait que les **clés de donjon**. Pour l'instant une seule, la **Clé du Manoir Englouti** (accessible dès le niveau 1 du métier, pour qu'on puisse y gagner de l'xp) : 3 Essences du Veilleur, 6 lingots de fer, 3 lingots de cuivre, 5 ectoplasmes et 500 or. La clé est un objet de type `cle` : elle reste dans le sac et ne s'équipe pas (`equipItem` ignore tout objet sans emplacement). Avantage du métier : jusqu'à 50 % de chance (au niveau 100) de ne consommer aucune ressource en fabriquant (l'or est dépensé quand même ; pas de chef-d'œuvre pour les clés). Les clés des prochains donjons s'ajouteront à `recipes.js`, avec un objet `type: "cle"`.
 
+## L'Alchimiste (potions de soin)
+
+Un métier de plus à l'atelier (`src/data/alchemy.js`, logique `canBrew` / `applyBrew` / `maxBrew` dans `utils/crafting.js`). Il distille des **potions**, des ressources empilables (elles se rangent au sac et au coffre, se vendent et s'achètent au marché, mais le colporteur n'en vend jamais : seuls les joueurs en produisent). Chaque potion coûte des herbes de la récolte (ortie, sauge) et, plus haut, des trophées de la Lisière : jamais de ressource de donjon.
+
+| Potion | Niveau | Effet prévu | Ingrédients | Or |
+|---|---|---|---|---|
+| Potion de soin mineure | 1 | 25 % des PV | 3 orties | 6 |
+| Potion de soin | 8 | 50 % des PV | 2 orties, 2 sauges | 25 |
+| Grande potion de soin | 16 | 80 % des PV | 4 sauges, 2 ectoplasmes, 1 voile spectral | 80 |
+| Élixir de rappel | 24 | relève un héros tombé à 40 % | 5 sauges, 2 voiles spectraux, 1 pelage maudit | 200 |
+
+Avantage du métier : jusqu'à **40 %** de chance de distiller une potion de plus (comme le raffinage, sans rien consommer de plus). Les potions n'ont **pas encore d'usage** : la pause de soin entre les salles du donjon, leur emploi par les simulés et le rééquilibrage du donjon viendront ensuite.
+
 ## Raffinage
 
 Entre la récolte et la fabrication, il y a le raffinage, à l'atelier : quatre métiers (fondeur, scieur, tanneur, tisserand), chacun avec son niveau. Deux matières brutes donnent une matière raffinée (lingot, planche, cuir, étoffe, fil), qui vaut un peu plus que les deux brutes, en échange d'un peu d'or et de temps. Les recettes d'équipement demandent maintenant ces matières raffinées. Les ressources raffinées se vendent à l'hôtel des ventes (les joueurs simulés en proposent) et certaines quêtes de livraison les demandent. Données dans `src/data/refining.js` ; `node scripts/simulate-economy.js` affiche le bénéfice de chaque transformation.

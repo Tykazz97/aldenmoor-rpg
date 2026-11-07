@@ -56,7 +56,7 @@ export default function App() {
 function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook } = usePlayer(initial.player);
+  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook } = usePlayer(initial.player);
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   useEffect(() => {
@@ -91,7 +91,7 @@ function Game({ initial, onNewCharacter }) {
   };
   // Contenu des lieux de la ville
   const renderBuilding = (kind) => {
-    if (kind === "atelier") return <ForgePanel player={player} onCraft={craft} onRefine={refine} onTestResources={testAddResources} onTestGold={testAddGold} />;
+    if (kind === "atelier") return <ForgePanel player={player} onCraft={craft} onRefine={refine} onBrew={brew} onTestResources={testAddResources} onTestGold={testAddGold} />;
     if (kind === "coffre") return <BankPanel player={player} bank={bank} />;
     if (kind === "marche") return <MarketPanel player={player} onPlayerChange={setPlayer} />;
     if (kind === "panneau") return <QuestPanel player={player} onPlayerChange={setPlayer} atBoard />;
@@ -130,6 +130,7 @@ function Game({ initial, onNewCharacter }) {
           player={player}
           onCraft={craft}
           onRefine={refine}
+          onBrew={brew}
           onTestResources={testAddResources}
           onTestGold={testAddGold}
         />

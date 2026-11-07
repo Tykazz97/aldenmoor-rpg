@@ -7,6 +7,7 @@ import { ITEMS } from "../data/items.js";
 import { RECIPES } from "../data/recipes.js";
 import { getCraftInfo, xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
 import { REFINING } from "../data/refining.js";
+import { ALCHEMY } from "../data/alchemy.js";
 import { recordCraft } from "./counters.js";
 import { rollRefineBonus, rollMasterwork, rollSavedMaterials, makeMasterwork } from "./perks.js";
 
@@ -121,6 +122,39 @@ export function applyRefine(player, id, times = 1, rng = Math.random) {
   const n = Math.floor(times);
   if (!canRefine(player, id, n).ok) return { player, made: 0 };
   const rec = REFINING[id];
+  const resources = { ...player.resources };
+  for (const [r, q] of Object.entries(rec.ingredients)) { resources[r] -= q * n; if (resources[r] <= 0) delete resources[r]; }
+  const bonus = rollRefineBonus(professionOf(player, rec.profession).level, rec.profession, n, rng);
+  resources[id] = (resources[id] || 0) + n + bonus;
+  const prof = gainProfessionXp(professionOf(player, rec.profession), rec.xp * n);
+  return { made: n + bonus, bonus, player: { ...player, gold: player.gold - rec.gold * n, resources, professions: { ...player.professions, [rec.profession]: prof } } };
+}
+
+// ---- Alchimie (potions : voir alchemy.js) ----
+// Même mécanique que le raffinage : par lots, une potion par unité, avec la chance du niveau d'en produire une de plus.
+export function maxBrew(player, id) {
+  const rec = ALCHEMY[id];
+  if (!rec || professionOf(player, rec.profession).level < rec.minLevel) return 0;
+  let n = Math.floor(player.gold / rec.gold);
+  for (const [r, q] of Object.entries(rec.ingredients)) n = Math.min(n, Math.floor((player.resources[r] || 0) / q));
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+export function canBrew(player, id, times = 1) {
+  const rec = ALCHEMY[id];
+  if (!rec) return { ok: false, unknown: true };
+  const level = professionOf(player, rec.profession).level;
+  const missing = {};
+  for (const [r, q] of Object.entries(rec.ingredients)) { const lack = q * times - (player.resources[r] || 0); if (lack > 0) missing[r] = lack; }
+  const lacksLevel = level < rec.minLevel, lacksGold = player.gold < rec.gold * times, lacksResources = Object.keys(missing).length > 0;
+  return { ok: !lacksLevel && !lacksGold && !lacksResources && times >= 1, lacksLevel, lacksGold, lacksResources, missing, level, minLevel: rec.minLevel };
+}
+
+// Distille `times` potions. Renvoie { player, made, bonus } ; le même joueur et made = 0 si c'est impossible.
+export function applyBrew(player, id, times = 1, rng = Math.random) {
+  const n = Math.floor(times);
+  if (!canBrew(player, id, n).ok) return { player, made: 0, bonus: 0 };
+  const rec = ALCHEMY[id];
   const resources = { ...player.resources };
   for (const [r, q] of Object.entries(rec.ingredients)) { resources[r] -= q * n; if (resources[r] <= 0) delete resources[r]; }
   const bonus = rollRefineBonus(professionOf(player, rec.profession).level, rec.profession, n, rng);

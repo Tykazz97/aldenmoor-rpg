@@ -193,6 +193,12 @@ export const RESOURCES = {
   cuir_de_sanglier: { id: "cuir_de_sanglier", name: "Cuir de sanglier", rarity: "commune", value: 13, source: "raffinage" },
   etoffe: { id: "etoffe", name: "Étoffe", rarity: "commune", value: 10, source: "raffinage" },
   fil_d_ortie: { id: "fil_d_ortie", name: "Fil d'ortie", rarity: "commune", value: 13, source: "raffinage" },
+
+  // --- Potions de l'Alchimiste (voir alchemy.js) : consommables, fabriqués par les joueurs ; le colporteur n'en vend pas ---
+  potion_mineure: { id: "potion_mineure", name: "Potion de soin mineure", rarity: "commune", value: 8, source: "alchimie", crafted: true },
+  potion_de_soin: { id: "potion_de_soin", name: "Potion de soin", rarity: "peu_commune", value: 45, source: "alchimie", crafted: true },
+  grande_potion_de_soin: { id: "grande_potion_de_soin", name: "Grande potion de soin", rarity: "peu_commune", value: 140, source: "alchimie", crafted: true },
+  elixir_de_rappel: { id: "elixir_de_rappel", name: "Élixir de rappel", rarity: "rare", value: 450, source: "alchimie", crafted: true },
 };
 
 // Chaque ressource a son icône : public/assets/icons/resources/<id>.png

@@ -3,6 +3,7 @@
 //   Récolte  (bûcheron, mineur, herboriste) : récolte plus rapide, chance de récolte double, chance de trouvaille.
 //   Raffinage (fondeur, scieur, tanneur, tisserand) : chance de produire 1 unité de plus, sans rien consommer de plus.
 //   Fabrication (forgeron, tailleur, maroquinier, menuisier, bijoutier) : chance de « chef-d'œuvre », un objet aux stats +10 %.
+//   Alchimiste (potions) : chance de distiller 1 potion de plus, sans rien consommer de plus.
 //   Bricoleur (clés de donjon, rien à améliorer) : chance de ne consommer aucune ressource (50 % au niveau 100).
 // Niveau 1 : aucun avantage ; niveau 100 : le maximum (PERK_MAX) ; entre les deux, une courbe qui monte plus vite au début.
 // Tous les tirages prennent un `rng` (0..1) pour pouvoir être testés.
@@ -16,6 +17,7 @@ export const PERK_MAX = {
   find: 0.20,         // 20 % de chance de trouvaille
   bonus: 0.40,        // 40 % de chance d'une unité de plus au raffinage
   masterwork: 0.30,   // 30 % de chance de chef-d'œuvre
+  brew: 0.40,         // Alchimiste : 40 % de chance d'une potion de plus
   savedMaterials: 0.50, // Bricoleur : 50 % de chance de ne consommer aucune ressource
 };
 // Les premiers niveaux comptent plus que les derniers : progression = ((niveau − 1) / (niveau max − 1)) ^ PERK_CURVE
@@ -29,11 +31,13 @@ export const FIND_RESOURCE = { bucheron: "bois_de_chene", mineur: "minerai_de_cu
 export const perkProgress = (level) => Math.pow(Math.min(1, Math.max(0, (level - 1) / (MAX_PROFESSION_LEVEL - 1))), PERK_CURVE);
 const kindOf = (key) => PROFESSIONS[key]?.kind || "craft";
 const isKeysmith = (key) => key === "bricoleur";
+const isAlchemist = (key) => key === "alchimiste";
 
 export function perksFor(professionKey, level) {
   const k = perkProgress(level), kind = kindOf(professionKey);
   if (kind === "gather") return { kind, speed: 1 - PERK_MAX.speed * k, double: PERK_MAX.double * k, find: PERK_MAX.find * k };
   if (kind === "refine") return { kind, bonus: PERK_MAX.bonus * k };
+  if (isAlchemist(professionKey)) return { kind: "brew", bonus: PERK_MAX.brew * k };
   if (isKeysmith(professionKey)) return { kind: "keys", saved: PERK_MAX.savedMaterials * k };
   return { kind, masterwork: PERK_MAX.masterwork * k };
 }
@@ -49,6 +53,7 @@ export function perkLines(professionKey, level, maxLevel = MAX_PROFESSION_LEVEL)
     row("Chance de trouvaille rare", now.find, nxt?.find),
   ];
   if (now.kind === "refine") return [row("Chance de produire 1 unité de plus", now.bonus, nxt?.bonus)];
+  if (now.kind === "brew") return [row("Chance de distiller 1 potion de plus", now.bonus, nxt?.bonus)];
   if (now.kind === "keys") return [row("Chance de ne consommer aucune ressource", now.saved, nxt?.saved)];
   return [row("Chance de chef-d'œuvre (+10 % de stats)", now.masterwork, nxt?.masterwork)];
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { calcStats } from "../utils/calcStats.js";
 import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
-import { applyCraft, applyRefine, addResourcesTo } from "../utils/crafting.js";
+import { applyCraft, applyRefine, applyBrew, addResourcesTo } from "../utils/crafting.js";
 import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
 import { rankUp, equipSpell, resetRanks } from "../utils/spellbook.js";
@@ -99,6 +99,10 @@ export function usePlayer(initial) {
     setPlayer((prev) => applyRefine(prev, id, times).player);
   }, []);
 
+  const brew = useCallback((id, times = 1) => {
+    setPlayer((prev) => applyBrew(prev, id, times).player);
+  }, []);
+
   // Récompenses d'un combat gagné (xp, or, ressources, objets)
   const applyCombatRewards = useCallback((rewards) => {
     setPlayer((prev) => applyRewards(prev, rewards, `loot-${Date.now()}-${craftCounter++}`).player);
@@ -125,7 +129,7 @@ export function usePlayer(initial) {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
+    craft, refine, brew, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
   };
 }
 

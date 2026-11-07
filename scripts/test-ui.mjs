@@ -77,6 +77,21 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("Atelier : l'Alchimiste distille une potion de soin avec les herbes de test", async () => {
+    await tab("Atelier").click(); await page.waitForTimeout(250);
+    const give = page.locator("button", { hasText: "+ Ressources" }).first();
+    if (await give.count()) { await give.click(); await page.waitForTimeout(150); }
+    await page.locator("button", { hasText: "+ 500 or" }).first().click(); await page.waitForTimeout(150);
+    await page.locator("button", { hasText: "Alchimiste" }).first().click(); await page.waitForTimeout(250);
+    const body = await page.locator("body").innerText();
+    for (const w of ["Potion de soin mineure", "Grande potion de soin", "Élixir de rappel", "Chance de distiller"]) assert.ok(body.includes(w), w);
+    const one = page.locator('[data-brew-recipe="potion_mineure"] [data-brew="1"]');
+    assert.equal(await one.isEnabled(), true, "×1 disponible");
+    await one.click(); await page.waitForTimeout(250);
+    assert.match(await page.locator("body").innerText(), /Potion de soin mineure ×\d+ produit/);
+    assert.deepEqual(errors, []);
+  });
+
   await step("Marché : les trois onglets Acheter / Vendre / Mes annonces", async () => {
     await tab("Marché").click(); await page.waitForTimeout(400);
     for (const t of ["Acheter", "Vendre", "Mes annonces"]) { await page.locator("button", { hasText: t }).first().click(); await page.waitForTimeout(150); }

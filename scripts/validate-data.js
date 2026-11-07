@@ -13,6 +13,7 @@ import { RECIPES } from "../src/data/recipes.js";
 import { ENEMIES, ZONES } from "../src/data/zones.js";
 import { getCraftInfo, PROFESSIONS } from "../src/data/professions.js";
 import { REFINING } from "../src/data/refining.js";
+import { ALCHEMY } from "../src/data/alchemy.js";
 
 const errors = [];
 const warnings = [];
@@ -59,6 +60,8 @@ for (const [resId, res] of Object.entries(RESOURCES)) {
     if (!Object.values(NODES).some((nd) => nd.resource === resId)) err(`Ressource ${resId} : aucun nœud de récolte ne la donne`);
   } else if (res.source === "raffinage") {
     if (!REFINING[resId]) err(`Ressource ${resId} : aucune recette de raffinage ne la produit`);
+  } else if (res.source === "alchimie") {
+    if (!ALCHEMY[resId]) err(`Ressource ${resId} : aucune recette d'alchimie ne la produit`);
   } else if (!ENEMIES[res.source]) err(`Ressource ${resId} : source inconnue ${res.source}`);
   else if (!dropped.has(`resource:${resId}`)) warn(`Ressource ${resId} : aucun ennemi ne la lâche`);
 }
@@ -74,6 +77,21 @@ for (const [id, rec] of Object.entries(REFINING)) {
     else { raw += RESOURCES[r].value * q; if (RESOURCES[r].source === "raffinage") err(`Raffinage ${id} : ${r} est déjà raffiné`); }
   }
   if (RESOURCES[id].value <= raw) warn(`Raffinage ${id} : vaut ${RESOURCES[id].value} or pour ${raw} or de matières brutes (aucun bénéfice)`);
+}
+
+// Alchimie : produit, ingrédients et métier existants ; pas de ressource de donjon ; une potion soigne ou relève
+for (const [id, rec] of Object.entries(ALCHEMY)) {
+  if (!RESOURCES[id]) { err(`Alchimie ${id} : ressource produite inconnue`); continue; }
+  if (RESOURCES[id].source !== "alchimie") err(`Alchimie ${id} : la ressource devrait avoir source "alchimie"`);
+  if (!RESOURCES[id].crafted) err(`Alchimie ${id} : la ressource devrait porter crafted: true (le colporteur n'en vend pas)`);
+  if (!PROFESSIONS[rec.profession]) err(`Alchimie ${id} : métier ${rec.profession} inconnu`);
+  if (!(rec.heal > 0 || rec.revive > 0)) err(`Alchimie ${id} : ni soin ni relève`);
+  let raw = 0;
+  for (const [r, q] of Object.entries(rec.ingredients)) {
+    if (!RESOURCES[r]) err(`Alchimie ${id} : ingrédient inconnu ${r}`);
+    else { raw += RESOURCES[r].value * q; if (RESOURCES[r].dungeon) err(`Alchimie ${id} : ${r} est une ressource de donjon`); }
+  }
+  if (RESOURCES[id].value <= raw) warn(`Alchimie ${id} : vaut ${RESOURCES[id].value} or pour ${raw} or d'ingrédients (aucun bénéfice)`);
 }
 
 // Sets : pièces existantes et craftables
@@ -142,9 +160,9 @@ for (const o of HERO_OUTFITS) for (const b of ["m", "f"]) {
 }
 
 // Ressources jamais utilisées dans une recette (information)
-const used = new Set(Object.values(RECIPES).flatMap((r) => Object.keys(r.ingredients)));
+const used = new Set([...Object.values(RECIPES), ...Object.values(ALCHEMY)].flatMap((r) => Object.keys(r.ingredients)));
 for (const resId of Object.keys(RESOURCES)) {
-  if (!used.has(resId)) warn(`Ressource ${resId} : utilisée dans aucune recette (pour l'instant)`);
+  if (!used.has(resId) && !RESOURCES[resId].crafted) warn(`Ressource ${resId} : utilisée dans aucune recette (pour l'instant)`);
 }
 
 // Objets de la Région 1 sans aucune source
