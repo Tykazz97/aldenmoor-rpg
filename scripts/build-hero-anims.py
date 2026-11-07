@@ -51,7 +51,7 @@ for outfit in OUTFITS:
                         "anchor": [round((FEET[0] - x0) * SCALE, 1), round((FEET[1] - y0) * SCALE, 1)], "scale": SCALE, "actions": {}}
     os.makedirs(os.path.join(OUT, outfit), exist_ok=True)
     for act, fr in per.items():
-        n = len(fr); cols = 4; rows = (n + cols - 1) // cols
+        n = len(fr); cols = min(n, 6); rows = (n + cols - 1) // cols
         sheet = Image.new("RGBA", (cols * fw, rows * fh), (0, 0, 0, 0))
         for i, f in enumerate(fr):
             g = f.crop((x0, y0, x1, y1)).convert("RGBa").resize((fw, fh), Image.LANCZOS).convert("RGBA")

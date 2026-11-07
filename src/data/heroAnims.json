@@ -1,95 +1,95 @@
 {
  "base": {
-  "w": 226,
+  "w": 227,
   "h": 304,
   "box": [
-   168,
+   166,
    174,
    544,
    681
   ],
   "anchor": [
-   97.2,
+   98.4,
    297.6
   ],
   "scale": 0.6,
   "actions": {
    "walk": {
     "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "cols": 6,
+    "rows": 3,
     "duration": 2.208
    },
    "mine": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.667
    },
    "chop": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.542
    },
    "herb": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.667
    }
   },
   "pngH": 392
  },
  "veteran": {
-  "w": 265,
+  "w": 268,
   "h": 266,
   "box": [
-   109,
+   106,
    240,
-   551,
+   552,
    683
   ],
   "anchor": [
-   132.6,
+   134.4,
    258.0
   ],
   "scale": 0.6,
   "actions": {
    "walk": {
     "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "cols": 6,
+    "rows": 3,
     "duration": 2.708
    },
    "mine": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.458
    },
    "chop": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.542
    },
    "herb": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.583
    }
   },
   "pngH": 384
  },
  "apprenti": {
-  "w": 267,
+  "w": 269,
   "h": 277,
   "box": [
    130,
    218,
-   575,
+   579,
    680
   ],
   "anchor": [
@@ -100,26 +100,26 @@
   "actions": {
    "walk": {
     "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "cols": 6,
+    "rows": 3,
     "duration": 2.125
    },
    "mine": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.833
    },
    "chop": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.333
    },
    "herb": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.125
    }
   },
@@ -129,39 +129,39 @@
   "w": 245,
   "h": 280,
   "box": [
-   140,
-   215,
+   141,
+   214,
    549,
    681
   ],
   "anchor": [
-   114.0,
-   273.0
+   113.4,
+   273.6
   ],
   "scale": 0.6,
   "actions": {
    "walk": {
     "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "cols": 6,
+    "rows": 3,
     "duration": 2.875
    },
    "mine": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.167
    },
    "chop": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.625
    },
    "herb": {
-    "frames": 16,
-    "cols": 4,
-    "rows": 4,
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
     "duration": 2.708
    }
   },
