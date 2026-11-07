@@ -12,7 +12,7 @@ export const ZONES = {
       {
         key: "prairies_sauvages",
         name: "Prairies Sauvages",
-        difficulty: "facile",
+        difficulty: "facile", levels: "Niveaux 1 à 8",
         desc: "Herbes hautes et fermes abandonnées — les premiers signes de troubles.",
         enemies: ["loup_des_plaines", "sanglier_sauvage", "bandit_des_routes"],
         miniBoss: "cavalier_dechu",
@@ -20,7 +20,7 @@ export const ZONES = {
       {
         key: "champs_calcines",
         name: "Champs Calcinés",
-        difficulty: "intermédiaire",
+        difficulty: "intermédiaire", levels: "Niveaux 8 à 14",
         desc: "La corruption se voit désormais — terres brûlées, cultures pourries, ciel assombri.",
         enemies: ["squelette_fermier", "corbeau_charognard", "epouvantail_hante"],
         miniBoss: "epouvantail_ancestral",
@@ -28,7 +28,7 @@ export const ZONES = {
       {
         key: "lisiere_des_ombres",
         name: "Lisière des Ombres",
-        difficulty: "difficile",
+        difficulty: "difficile", levels: "Niveaux 14 à 20",
         desc: "À la frontière de la prairie et d'une forêt sombre, la magie corrompue est manifeste.",
         enemies: ["loup_garou", "esprit_errant", "chevalier_dechu"],
         miniBoss: "veilleur_corrompu",
@@ -123,18 +123,131 @@ export const ENEMIES = {
   },
 
   // --- Région 2 : Champs Calcinés ---
-  squelette_fermier: { key: "squelette_fermier", name: "Squelette de fermier", desc: "Mort-vivant lent mais résistant, armé d'une faux rouillée." },
-  corbeau_charognard: { key: "corbeau_charognard", name: "Corbeau charognard", desc: "Vole, rapide, attaque en groupe, inflige un léger Poison." },
-  epouvantail_hante: { key: "epouvantail_hante", name: "Épouvantail hanté", desc: "Statique puis s'anime, inflige des dégâts de Feu." },
+  // Niveaux conseillés 8 à 14. Les stats de ces monstres sont réglées avec scripts/simulate-zones.js.
+  squelette_fermier: {
+    key: "squelette_fermier", name: "Squelette de fermier",
+    desc: "Mort-vivant lent mais résistant, armé d'une faux rouillée.",
+    stats: { hp: 360, atkPhys: 22, atkMagie: 0, defPhys: 20, defMagie: 2, esquive: 0, critique: 3, vitesse: 7, pa: 6 },
+    xp: 40,
+    actions: [
+      { id: "coup_de_faux", name: "Coup de faux", pa: 3, type: "phys", power: 1.0, weight: 3 },
+      { id: "fauchage", name: "Fauchage", pa: 5, type: "phys", power: 1.5, weight: 1 },
+    ],
+    gold: [10, 20],
+    drops: [
+      { type: "resource", id: "os_jauni", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "lame_de_faux_rouillee", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "crane_de_fermier", chance: 0.02, min: 1, max: 1 },
+      { type: "item", id: "faux_ebrechee", chance: 0.03, min: 1, max: 1 },
+    ],
+  },
+  corbeau_charognard: {
+    key: "corbeau_charognard", name: "Corbeau charognard",
+    desc: "Vole, rapide, attaque en groupe, inflige un léger Poison.",
+    stats: { hp: 150, atkPhys: 14, atkMagie: 0, defPhys: 3, defMagie: 0, esquive: 18, critique: 8, vitesse: 16, pa: 6 },
+    xp: 28,
+    actions: [
+      { id: "coup_de_bec", name: "Coup de bec", pa: 2, type: "phys", power: 0.7, weight: 3 },
+      { id: "picore_empoisonne", name: "Picorement venimeux", pa: 3, type: "phys", power: 0.8, weight: 2, effect: { kind: "dot", element: "poison", turns: 3, ratio: 0.2 } },
+    ],
+    gold: [6, 14],
+    drops: [
+      { type: "resource", id: "plume_noire", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "serre_de_corbeau", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "oeil_de_charognard", chance: 0.02, min: 1, max: 1 },
+    ],
+  },
+  epouvantail_hante: {
+    key: "epouvantail_hante", name: "Épouvantail hanté",
+    desc: "Statique puis s'anime, inflige des dégâts de Feu.",
+    stats: { hp: 300, atkPhys: 8, atkMagie: 26, defPhys: 12, defMagie: 16, esquive: 0, critique: 4, vitesse: 6, pa: 6 },
+    xp: 46,
+    actions: [
+      { id: "etincelle", name: "Étincelle", pa: 3, type: "mag", power: 1.1, weight: 3, effect: { kind: "dot", element: "feu", turns: 2, ratio: 0.25 } },
+      { id: "embrasement", name: "Embrasement", pa: 5, type: "mag", power: 1.6, weight: 1 },
+    ],
+    gold: [10, 22],
+    drops: [
+      { type: "resource", id: "paille_calcinee", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "jute_hantee", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "braise_vivante", chance: 0.02, min: 1, max: 1 },
+    ],
+  },
   epouvantail_ancestral: {
     key: "epouvantail_ancestral", name: "L'Épouvantail Ancestral", miniBoss: true,
-    desc: "Version massive et maléfique de l'épouvantail. Invoque des corbeaux, inflige Feu + Poison.",
+    desc: "Version massive et maléfique de l'épouvantail. Ses corbeaux inflignent le Poison, ses braises le Feu ; entre en fureur à mi-vie.",
+    stats: { hp: 1600, atkPhys: 26, atkMagie: 38, defPhys: 24, defMagie: 22, esquive: 0, critique: 6, vitesse: 8, pa: 6 },
+    xp: 260,
+    actions: [
+      { id: "coup_de_branche", name: "Coup de branche", pa: 3, type: "phys", power: 1.0, weight: 3 },
+      { id: "nuee_de_corbeaux", name: "Nuée de corbeaux", pa: 4, type: "phys", power: 0.9, weight: 2, effect: { kind: "dot", element: "poison", turns: 3, ratio: 0.3 } },
+      { id: "brasier_maudit", name: "Brasier maudit", pa: 5, type: "mag", power: 1.5, weight: 2, effect: { kind: "dot", element: "feu", turns: 3, ratio: 0.35 } },
+    ],
+    phases: [
+      { below: 0.5, atkMult: 1.35, announce: "L'Épouvantail Ancestral s'embrase !" },
+    ],
+    gold: [80, 140],
+    drops: [
+      { type: "resource", id: "branche_ancestrale", chance: 0.6, min: 1, max: 2 },
+      { type: "resource", id: "coeur_de_braise", chance: 0.2, min: 1, max: 1 },
+    ],
   },
 
   // --- Région 3 : Lisière des Ombres ---
-  loup_garou: { key: "loup_garou", name: "Loup-garou", desc: "Évolution corrompue du loup, rapide, dégâts physiques élevés, rage à bas HP." },
-  esprit_errant: { key: "esprit_errant", name: "Esprit errant", desc: "Spectre, dégâts magiques qui ignorent une partie de la DEF Phys, inflige parfois Givre." },
-  chevalier_dechu: { key: "chevalier_dechu", name: "Chevalier déchu", desc: "Ancien soldat corrompu, équilibre ATK/DEF, capacité de Feu noir." },
+  // Niveaux conseillés 14 à 20.
+  loup_garou: {
+    key: "loup_garou", name: "Loup-garou",
+    desc: "Évolution corrompue du loup, rapide, dégâts physiques élevés, rage à bas HP.",
+    stats: { hp: 440, atkPhys: 30, atkMagie: 0, defPhys: 18, defMagie: 6, esquive: 14, critique: 12, vitesse: 15, pa: 6 },
+    xp: 75,
+    actions: [
+      { id: "griffure", name: "Griffure", pa: 3, type: "phys", power: 1.0, weight: 3 },
+      { id: "morsure_sauvage", name: "Morsure sauvage", pa: 4, type: "phys", power: 1.4, weight: 2 },
+      { id: "dechiquetage", name: "Déchiquetage", pa: 5, type: "phys", power: 1.7, weight: 1, effect: { kind: "defDown", turns: 2, value: 0.2 } },
+    ],
+    phases: [
+      { below: 0.4, atkMult: 1.3, announce: "Le loup-garou hurle à la lune !" },
+    ],
+    gold: [18, 34],
+    drops: [
+      { type: "resource", id: "griffe_de_garou", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "pelage_maudit", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "croc_de_pleine_lune", chance: 0.02, min: 1, max: 1 },
+    ],
+  },
+  esprit_errant: {
+    key: "esprit_errant", name: "Esprit errant",
+    desc: "Spectre, dégâts magiques qui contournent l'armure, inflige parfois Givre.",
+    stats: { hp: 300, atkPhys: 0, atkMagie: 22, defPhys: 26, defMagie: 14, esquive: 14, critique: 6, vitesse: 12, pa: 6 },
+    xp: 70,
+    actions: [
+      { id: "toucher_glacial", name: "Toucher glacial", pa: 3, type: "mag", power: 1.0, weight: 3, effect: { kind: "weaken", element: "givre", turns: 2, value: 0.15 } },
+      { id: "hurlement_spectral", name: "Hurlement spectral", pa: 5, type: "mag", power: 1.5, weight: 1, effect: { kind: "paLoss", value: 1 } },
+    ],
+    gold: [14, 28],
+    drops: [
+      { type: "resource", id: "ectoplasme", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "voile_spectral", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "larme_d_ame", chance: 0.02, min: 1, max: 1 },
+    ],
+  },
+  chevalier_dechu: {
+    key: "chevalier_dechu", name: "Chevalier déchu",
+    desc: "Ancien soldat corrompu, équilibre ATK/DEF, capacité de Feu noir.",
+    stats: { hp: 650, atkPhys: 34, atkMagie: 24, defPhys: 32, defMagie: 16, esquive: 4, critique: 8, vitesse: 9, pa: 6 },
+    xp: 95,
+    actions: [
+      { id: "coup_d_epee_noire", name: "Coup d'épée noire", pa: 3, type: "phys", power: 1.0, weight: 3 },
+      { id: "feu_noir", name: "Feu noir", pa: 4, type: "mag", power: 1.5, weight: 2, effect: { kind: "dot", element: "feu", turns: 2, ratio: 0.3 } },
+      { id: "frappe_brise_garde", name: "Frappe brise-garde", pa: 5, type: "phys", power: 1.6, weight: 1, effect: { kind: "defDown", turns: 2, value: 0.25 } },
+    ],
+    gold: [22, 38],
+    drops: [
+      { type: "resource", id: "plaque_noircie", chance: 0.5, min: 1, max: 2 },
+      { type: "resource", id: "maille_corrompue", chance: 0.15, min: 1, max: 1 },
+      { type: "resource", id: "flamme_noire", chance: 0.02, min: 1, max: 1 },
+    ],
+  },
   veilleur_corrompu: {
     key: "veilleur_corrompu", name: "Le Veilleur Corrompu", miniBoss: true,
     desc: "Mi-spectre mi-chevalier, dégâts physiques et magiques, inflige Givre, invoque un esprit errant.",
@@ -151,7 +264,11 @@ export const ENEMIES = {
 // (un ennemi est "jouable" dès qu'il a des stats de combat)
 export const ENEMY_IMG_BASE = "/assets/combat/enemies";
 // Hauteur d'affichage (px) dans l'arène : les images ont des proportions variées
-const SPRITE_HEIGHT = { loup_des_plaines: 150, sanglier_sauvage: 170, bandit_des_routes: 215, cavalier_dechu: 290 };
+const SPRITE_HEIGHT = {
+  loup_des_plaines: 150, sanglier_sauvage: 170, bandit_des_routes: 215, cavalier_dechu: 290,
+  corbeau_charognard: 130, squelette_fermier: 215, epouvantail_hante: 235, epouvantail_ancestral: 305,
+  loup_garou: 240, esprit_errant: 250, chevalier_dechu: 265,
+};
 for (const enemy of Object.values(ENEMIES)) {
   if (enemy.stats) {
     enemy.img = `${ENEMY_IMG_BASE}/${enemy.key}.png`;

@@ -27,7 +27,7 @@ export default function WorldMap({ regions, current, onTravel }) {
               : <span className="wm-pin">{open ? "⚔" : "🔒"}</span>}
             <span className="wm-card">
               <b>{r.name}</b>
-              <i>{r.difficulty}</i>
+              <i>{r.difficulty}{r.levels ? ` · ${r.levels}` : ""}</i>
               <small>{open ? (current === r.key ? "Tu es ici" : "Voyager") : "Bientôt disponible"}</small>
             </span>
           </button>

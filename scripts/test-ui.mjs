@@ -27,7 +27,7 @@ async function waitServer() {
 let passed = 0;
 const step = async (name, fn) => {
   try { await fn(); passed++; console.log(`  ✓ ${name}`); }
-  catch (e) { console.error(`  ✗ ${name}\n    ${e.message.split("\n")[0]}`); throw e; }
+  catch (e) { console.error(`  ✗ ${name}\n    ${e.message.split("\n").slice(0, 6).join("\n    ")}`); throw e; }
 };
 
 let browser;
@@ -130,6 +130,20 @@ try {
     assert.equal(await page.locator(".cb-root").count(), 0, "le combat est fermé");
     assert.equal(await page.locator(".mp-map").count(), 1, "retour à la carte");
     assert.ok((await save()).player.gold > goldBefore, "l'or du butin est enregistré");
+    assert.deepEqual(errors, []);
+  });
+
+  await step("nouvelles régions : Champs Calcinés et Lisière des Ombres s'ouvrent, avec leurs monstres", async () => {
+    for (const [key, name, levels] of [["champs_calcines", "Champs Calcinés", "Niveaux 8 à 14"], ["lisiere_des_ombres", "Lisière des Ombres", "Niveaux 14 à 20"]]) {
+      await tab("Carte").click(); await page.waitForTimeout(500);
+      if (await page.locator(".wm").count() === 0) await page.locator("button", { hasText: "Carte du monde" }).click();
+      const spot = page.locator(".wm-spot", { hasText: name });
+      assert.match(await spot.innerText(), new RegExp(levels, "i"), `${name} : niveaux affichés sur la carte du monde`);
+      await spot.click(); await page.waitForTimeout(1000);
+      assert.equal(await page.locator(".mp-map").count(), 1, `${key} : carte affichée`);
+      assert.ok((await page.locator(".mp-group").count()) >= 10, `${key} : les groupes de monstres sont là`);
+      assert.equal((await save()).world.mapKey, key, `${key} : le héros est bien dans cette région`);
+    }
     assert.deepEqual(errors, []);
   });
 

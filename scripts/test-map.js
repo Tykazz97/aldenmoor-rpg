@@ -2,18 +2,24 @@
 import assert from "node:assert/strict";
 import { MAPS, initialWorld, CITY_KEY, CITY_BUILDINGS, buildingObjects } from "../src/data/maps.js";
 import { ENCOUNTERS } from "../src/data/encounters.js";
+import { encounterOf } from "../src/components/map/mapConstants.js";
+import { ZONES } from "../src/data/zones.js";
 import { NODES } from "../src/data/gathering.js";
 import { findPath, pathToObject, stepMove, canStand, activeGroups, activeNodes, isWalkable, mapWidth, mapHeight, REACH } from "../src/utils/mapPath.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
-const map = MAPS.prairies_sauvages;
+
+// Chaque région a sa carte : mêmes vérifications pour toutes
+for (const region of ZONES.aldenmoor.regions) {
+const map = MAPS[region.key];
+if (!map) continue;      // région pas encore construite
+console.log(`Carte — ${region.name}`);
 const W = mapWidth(map), H = mapHeight(map);
 const objs = [...map.groups, ...map.nodes];
 const blockedAll = new Set(objs.map((o) => `${o.x},${o.y}`));
 const hero = { x: map.start.x + 0.5, y: map.start.y + 0.5 };
 
-console.log("Carte");
 
 test("toutes les lignes ont la même largeur, la carte est assez grande", () => {
   for (const r of map.rows) assert.equal(r.length, W);
@@ -45,14 +51,18 @@ test("tous les objets sont atteignables, les autres étant bloquants", () => {
     assert.ok(Math.hypot(end.x - (o.x + 0.5), end.y - (o.y + 0.5)) <= REACH + 0.6, `${o.id} : arrivée trop loin`);
   }
 });
-test("la carte propose tous les types de nœuds et toutes les rencontres du jeu", () => {
+test("la carte propose tous les types de nœuds et toutes les rencontres de sa région", () => {
   const used = new Set(map.nodes.map((nd) => nd.node));
   for (const id of Object.keys(NODES)) assert.ok(used.has(id), `nœud ${id} absent`);
   const enc = new Set(map.groups.map((g) => g.encounter));
-  for (const e of ENCOUNTERS) assert.ok(enc.has(e.id), `rencontre ${e.id} absente`);
+  const mine = new Set([...region.enemies, region.miniBoss]);
+  const expected = ENCOUNTERS.filter((e) => e.enemies.every((k) => mine.has(k)));
+  assert.ok(expected.length >= 4);
+  for (const e of expected) assert.ok(enc.has(e.id), `rencontre ${e.id} absente`);
+  for (const g of map.groups) assert.ok(encounterOf(g.encounter).enemies.every((k) => mine.has(k)), `${g.id} : ennemi d'une autre région`);
 });
 test("un chemin lissé reste dans les zones libres et esquive les objets", () => {
-  const far = map.groups.find((g) => g.encounter === "cavalier");
+  const far = map.groups.find((g) => encounterOf(g.encounter).boss) || map.groups[map.groups.length - 1];
   const p = pathToObject(map, hero, far, blockedAll);
   assert.ok(p && p.length > 0);
   let prev = hero;
@@ -67,13 +77,13 @@ test("impossible d'aller dans une forêt ou sur un objet", () => {
   assert.equal(findPath(map, hero, { x: map.groups[0].x + 0.5, y: map.groups[0].y + 0.5 }, blockedAll), null);
 });
 test("le déplacement glisse le long d'un mur sans le traverser", () => {
-  let pos = { x: 3.5, y: 15.5 };            // au départ, contre la lisière ouest
+  let pos = { x: map.start.x + 0.5, y: map.start.y + 0.5 };            // au départ, contre la lisière ouest
   for (let i = 0; i < 100; i++) pos = stepMove(map, pos, -0.08, 0.03);
   assert.ok(canStand(map, pos.x, pos.y));
-  assert.ok(pos.y > 15.5, "doit avoir glissé vers le bas");
+  assert.ok(pos.y > map.start.y + 0.5, "doit avoir glissé vers le bas");
 });
 test("un groupe vaincu / un nœud récolté réapparaît après le délai (temps réel)", () => {
-  const w = initialWorld("prairies_sauvages"), t0 = 1_000_000;
+  const w = initialWorld(region.key), t0 = 1_000_000;
   assert.equal(activeGroups(map, w, t0).length, map.groups.length);
   w.cleared[map.groups[0].id] = t0; w.cleared[map.nodes[0].id] = t0;
   assert.equal(activeGroups(map, w, t0 + 1000).length, map.groups.length - 1);
@@ -81,6 +91,7 @@ test("un groupe vaincu / un nœud récolté réapparaît après le délai (temps
   assert.equal(activeGroups(map, w, t0 + map.respawnMs).length, map.groups.length);
   assert.equal(activeNodes(map, w, t0 + map.nodeRespawnMs).length, map.nodes.length);
 });
+}
 
 console.log("Ville");
 const city = MAPS[CITY_KEY];

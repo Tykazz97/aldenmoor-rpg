@@ -1,6 +1,7 @@
 // Garde-fous de l'économie :  node scripts/test-economy.js   (bilan détaillé : node scripts/simulate-economy.js)
 import assert from "node:assert/strict";
 import { allEncounterIncomes, allNodeIncomes, setCosts, GOLD_SHARE_MIN, GOLD_SHARE_MAX } from "../src/utils/economy.js";
+import { ZONES } from "../src/data/zones.js";
 import { BANK_UPGRADES } from "../src/utils/bank.js";
 
 let n = 0;
@@ -11,10 +12,15 @@ test("règle de l'or : dans chaque combat, l'or pur fait 25 à 55 % du revenu (�
   for (const r of allEncounterIncomes()) assert.ok(r.goldShare >= GOLD_SHARE_MIN && r.goldShare <= GOLD_SHARE_MAX, `${r.enc.id} : ${(r.goldShare * 100).toFixed(0)} %`);
 });
 
-test("un boss rapporte nettement plus qu'un combat normal, mais pas plus de 6 fois", () => {
-  const rows = allEncounterIncomes(), normal = rows.filter((r) => !r.enc.boss), bosses = rows.filter((r) => r.enc.boss);
-  const top = Math.max(...normal.map((r) => r.total));
-  for (const b of bosses) assert.ok(b.total > top * 1.5 && b.total < top * 6, `${b.enc.id} : ${b.total.toFixed(0)} vs ${top.toFixed(0)}`);
+test("un boss rapporte nettement plus qu'un combat normal de sa région, mais pas plus de 6 fois", () => {
+  const rows = allEncounterIncomes();
+  for (const region of ZONES.aldenmoor.regions) {
+    const mine = new Set([...region.enemies, region.miniBoss]);
+    const inRegion = rows.filter((r) => r.enc.enemies.every((k) => mine.has(k)));
+    const normal = inRegion.filter((r) => !r.enc.boss), bosses = inRegion.filter((r) => r.enc.boss);
+    const top = Math.max(...normal.map((r) => r.total));
+    for (const b of bosses) assert.ok(b.total > top * 1.5 && b.total < top * 6, `${b.enc.id} : ${b.total.toFixed(0)} vs ${top.toFixed(0)}`);
+  }
 });
 
 test("récolter rapporte de l'or, et les nœuds de niveau supérieur rapportent plus que ceux du niveau 1 de leur métier", () => {

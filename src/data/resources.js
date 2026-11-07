@@ -77,6 +77,100 @@ export const RESOURCES = {
     source: "cavalier_dechu",
   },
 
+  // --- Squelette de fermier ---
+  os_jauni: {
+    id: "os_jauni", name: "Os jaunis", rarity: "commune", value: 9,
+    source: "squelette_fermier",
+  },
+  lame_de_faux_rouillee: {
+    id: "lame_de_faux_rouillee", name: "Lame de faux rouillée", rarity: "peu_commune", value: 35,
+    source: "squelette_fermier",
+  },
+  crane_de_fermier: {
+    id: "crane_de_fermier", name: "Crâne de fermier", rarity: "rare", value: 260,
+    source: "squelette_fermier",
+  },
+
+  // --- Corbeau charognard ---
+  plume_noire: {
+    id: "plume_noire", name: "Plume noire", rarity: "commune", value: 9,
+    source: "corbeau_charognard",
+  },
+  serre_de_corbeau: {
+    id: "serre_de_corbeau", name: "Serre de corbeau", rarity: "peu_commune", value: 35,
+    source: "corbeau_charognard",
+  },
+  oeil_de_charognard: {
+    id: "oeil_de_charognard", name: "Œil de charognard", rarity: "rare", value: 260,
+    source: "corbeau_charognard",
+  },
+
+  // --- Épouvantail hanté ---
+  paille_calcinee: {
+    id: "paille_calcinee", name: "Paille calcinée", rarity: "commune", value: 9,
+    source: "epouvantail_hante",
+  },
+  jute_hantee: {
+    id: "jute_hantee", name: "Jute hantée", rarity: "peu_commune", value: 35,
+    source: "epouvantail_hante",
+  },
+  braise_vivante: {
+    id: "braise_vivante", name: "Braise vivante", rarity: "rare", value: 260,
+    source: "epouvantail_hante",
+  },
+
+  // --- L'Épouvantail Ancestral ---
+  branche_ancestrale: {
+    id: "branche_ancestrale", name: "Branche ancestrale", rarity: "peu_commune", value: 160,
+    source: "epouvantail_ancestral",
+  },
+  coeur_de_braise: {
+    id: "coeur_de_braise", name: "Cœur de braise", rarity: "rare", value: 600,
+    source: "epouvantail_ancestral",
+  },
+
+  // --- Loup-garou ---
+  griffe_de_garou: {
+    id: "griffe_de_garou", name: "Griffe de garou", rarity: "commune", value: 16,
+    source: "loup_garou",
+  },
+  pelage_maudit: {
+    id: "pelage_maudit", name: "Pelage maudit", rarity: "peu_commune", value: 60,
+    source: "loup_garou",
+  },
+  croc_de_pleine_lune: {
+    id: "croc_de_pleine_lune", name: "Croc de pleine lune", rarity: "rare", value: 420,
+    source: "loup_garou",
+  },
+
+  // --- Esprit errant ---
+  ectoplasme: {
+    id: "ectoplasme", name: "Ectoplasme", rarity: "commune", value: 16,
+    source: "esprit_errant",
+  },
+  voile_spectral: {
+    id: "voile_spectral", name: "Voile spectral", rarity: "peu_commune", value: 60,
+    source: "esprit_errant",
+  },
+  larme_d_ame: {
+    id: "larme_d_ame", name: "Larme d'âme", rarity: "rare", value: 420,
+    source: "esprit_errant",
+  },
+
+  // --- Chevalier déchu ---
+  plaque_noircie: {
+    id: "plaque_noircie", name: "Plaque noircie", rarity: "commune", value: 16,
+    source: "chevalier_dechu",
+  },
+  maille_corrompue: {
+    id: "maille_corrompue", name: "Maille corrompue", rarity: "peu_commune", value: 60,
+    source: "chevalier_dechu",
+  },
+  flamme_noire: {
+    id: "flamme_noire", name: "Flamme noire", rarity: "rare", value: 420,
+    source: "chevalier_dechu",
+  },
+
   // --- Ressources RAFFINÉES : on ne les trouve pas, on les fabrique à l'atelier (voir refining.js) ---
   lingot_de_fer: { id: "lingot_de_fer", name: "Lingot de fer", rarity: "commune", value: 16, source: "raffinage" },
   lingot_de_cuivre: { id: "lingot_de_cuivre", name: "Lingot de cuivre", rarity: "peu_commune", value: 62, source: "raffinage" },
