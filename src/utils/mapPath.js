@@ -10,7 +10,7 @@
 //   - stepMove   : avance avec glissement le long des obstacles
 // ============================================================
 
-const BLOCKING = new Set(["#", "~", "r", "T"]);
+const BLOCKING = new Set(["#", "~", "r", "T", "B", "F"]);
 export const HERO_RADIUS = 0.27;
 
 export const mapWidth = (map) => map.rows[0].length;

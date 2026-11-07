@@ -1,6 +1,6 @@
 // Tests de la carte (monde ouvert) :  node scripts/test-map.js
 import assert from "node:assert/strict";
-import { MAPS, initialWorld } from "../src/data/maps.js";
+import { MAPS, initialWorld, CITY_KEY, CITY_BUILDINGS, buildingObjects } from "../src/data/maps.js";
 import { ENCOUNTERS } from "../src/data/encounters.js";
 import { NODES } from "../src/data/gathering.js";
 import { findPath, pathToObject, stepMove, canStand, activeGroups, activeNodes, isWalkable, mapWidth, mapHeight, REACH } from "../src/utils/mapPath.js";
@@ -73,13 +73,44 @@ test("le déplacement glisse le long d'un mur sans le traverser", () => {
   assert.ok(pos.y > 15.5, "doit avoir glissé vers le bas");
 });
 test("un groupe vaincu / un nœud récolté réapparaît après le délai (temps réel)", () => {
-  const w = initialWorld(), t0 = 1_000_000;
+  const w = initialWorld("prairies_sauvages"), t0 = 1_000_000;
   assert.equal(activeGroups(map, w, t0).length, map.groups.length);
   w.cleared[map.groups[0].id] = t0; w.cleared[map.nodes[0].id] = t0;
   assert.equal(activeGroups(map, w, t0 + 1000).length, map.groups.length - 1);
   assert.equal(activeNodes(map, w, t0 + 1000).length, map.nodes.length - 1);
   assert.equal(activeGroups(map, w, t0 + map.respawnMs).length, map.groups.length);
   assert.equal(activeNodes(map, w, t0 + map.nodeRespawnMs).length, map.nodes.length);
+});
+
+console.log("Ville");
+const city = MAPS[CITY_KEY];
+const cityHero = { x: city.start.x + 0.5, y: city.start.y + 0.5 };
+const bObjs = buildingObjects(city);
+const cityBlocked = new Set(bObjs.map((o) => `${o.x},${o.y}`));
+
+test("la ville : rectangulaire, départ praticable, aucun monstre ni ressource", () => {
+  for (const r of city.rows) assert.equal(r.length, city.rows[0].length);
+  assert.ok(canStand(city, cityHero.x, cityHero.y));
+  assert.equal(city.groups.length + city.nodes.length, 0);
+  assert.equal(initialWorld().mapKey, CITY_KEY);
+});
+test("bâtiments : kinds uniques, emprise bloquante, jamais sur le départ", () => {
+  assert.equal(new Set(CITY_BUILDINGS.map((b) => b.kind)).size, CITY_BUILDINGS.length);
+  for (const b of bObjs) {
+    for (let y = b.y - b.fh + 1; y <= b.y; y++) for (let x = b.a; x <= b.a + b.fw - 1; x++) assert.ok(!isWalkable(city, x, y), `${b.id} : tuile ${x},${y} praticable`);
+    assert.ok(Math.hypot(b.x + 0.5 - cityHero.x, b.y + 0.5 - cityHero.y) > 3);
+  }
+});
+test("chaque bâtiment est atteignable à pied depuis le départ", () => {
+  for (const b of bObjs) {
+    const p = pathToObject(city, cityHero, b, cityBlocked);
+    assert.ok(p !== null, `${b.id} inatteignable`);
+  }
+});
+test("le héros ne traverse pas un bâtiment ni la fontaine", () => {
+  const door = bObjs[0];
+  assert.ok(!canStand(city, door.x + 0.5, door.y + 0.5, cityBlocked));
+  assert.ok(!canStand(city, 19.5, 12.5));
 });
 
 console.log(`\n${n} tests passent.`);

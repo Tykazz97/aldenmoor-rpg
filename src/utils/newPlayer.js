@@ -5,6 +5,7 @@ import { ITEMS, ITEM_ORDER } from "../data/items.js";
 import { CLASSES } from "../data/classes.js";
 import { PROFESSION_ORDER } from "../data/professions.js";
 import { emptyProfessions } from "./crafting.js";
+import { emptyBank } from "./bank.js";
 
 export const EMPTY_EQUIPPED = {
   chapeau: null, cape: null, plastron: null, amulette: null,
@@ -36,6 +37,7 @@ export function createPlayer({ name, classKey, gender = "m", testMode = false })
     inventory: testMode ? testInventory() : [],
     gold: 0,
     resources: {},
+    bank: emptyBank(),
     professions: emptyProfessions(PROFESSION_ORDER),
   };
 }

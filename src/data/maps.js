@@ -6,6 +6,7 @@
 //   #  forêt (bloque)            ~  étang (bloque)
 //   r  rochers (bloque)          T  arbre mort (bloque)
 //   S  point d'arrivée (praticable)
+//   P  pavé (ville, praticable)   B  bâtiment (bloque)   F  fontaine (bloque)
 //
 // Les coordonnées (x, y) des groupes et nœuds sont des tuiles. Le
 // héros, lui, se déplace librement (coordonnées décimales).
@@ -104,10 +105,57 @@ export const MAPS = {
   },
 };
 
+// ------------------------------------------------------------
+// VILLE — le hub : pas de monstres ni de ressources, mais des lieux où l'on entre
+// en cliquant dessus (atelier, coffre, marché, panneau de recrutement, portail).
+// Un bâtiment occupe un rectangle de `fw` × `fh` tuiles dont `y` est la rangée du bas ;
+// la porte est la tuile du milieu de cette rangée. `w` = largeur du dessin, en tuiles.
+// ------------------------------------------------------------
+export const CITY_KEY = "aldenmoor_ville";
+export const CITY = { key: CITY_KEY, name: "Aldenmoor", difficulty: "ville", desc: "Le cœur du royaume : atelier, coffre, marché et portail vers les régions." };
+
+export const CITY_BUILDINGS = [
+  { id: "atelier", kind: "atelier", name: "Atelier", hint: "Forger et fabriquer", img: "/assets/map/city/atelier.png", a: 6, y: 7, fw: 4.4, fh: 2, w: 5.6 },
+  { id: "coffre", kind: "coffre", name: "Coffre d'Aldenmoor", hint: "Ranger tes objets et ressources", img: "/assets/map/city/coffre.png", a: 18, y: 7, fw: 4.2, fh: 2, w: 5 },
+  { id: "marche", kind: "marche", name: "Marché", hint: "Acheter et vendre (bientôt)", img: "/assets/map/city/marche.png", a: 28, y: 7, fw: 4.4, fh: 2, w: 5.2 },
+  { id: "panneau", kind: "panneau", name: "Panneau de recrutement", hint: "Trouver un groupe (bientôt)", img: "/assets/map/city/panneau.png", a: 12, y: 16, fw: 2.2, fh: 1, w: 3 },
+  { id: "portail", kind: "portail", name: "Portail des régions", hint: "Voyager vers une région", img: "/assets/map/city/portail.png", a: 18, y: 22, fw: 3.4, fh: 1, w: 4.4 },
+];
+
+// Tuile de la porte d'un bâtiment, et objet prêt à être traité comme un nœud (x, y = la porte)
+export const buildingObjects = (map) => (map.buildings || []).map((b) => ({ ...b, x: b.a + Math.floor(b.fw / 2), y: b.y, cx: b.a + b.fw / 2 }));
+
+function buildCity() {
+  const W = 40, H = 26;
+  const g = Array.from({ length: H }, () => Array(W).fill("."));
+  const rect = (x0, y0, x1, y1, c) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) g[y][x] = c; };
+  rect(0, 0, W - 1, 1, "#"); rect(0, H - 2, W - 1, H - 1, "#"); rect(0, 0, 1, H - 1, "#"); rect(W - 2, 0, W - 1, H - 1, "#");
+  rect(2, 2, 5, 4, "#"); rect(34, 2, 37, 4, "#"); rect(2, 22, 6, 23, "#"); rect(33, 22, 37, 23, "#");
+  rect(10, 8, 29, 21, "P");                       // place pavée
+  rect(2, 14, 9, 15, ":"); rect(30, 14, 37, 15, ":");   // chemins de terre vers l'ouest et l'est
+  rect(19, 12, 20, 13, "F");                      // fontaine
+  [[2, 9], [3, 18], [36, 9], [35, 18], [24, 3], [14, 3], [25, 23], [14, 23]].forEach(([x, y]) => { g[y][x] = "r"; });
+  for (const b of buildingObjects({ buildings: CITY_BUILDINGS })) rect(b.a, b.y - b.fh + 1, b.a + b.fw - 1, b.y, "B");
+  return g.map((r) => r.join(""));
+}
+
+MAPS[CITY_KEY] = {
+  key: CITY_KEY,
+  kind: "city",
+  regionKey: CITY_KEY,
+  rows: buildCity(),
+  start: { x: 20, y: 15 },
+  respawnMs: 0,
+  nodeRespawnMs: 0,
+  groups: [],
+  nodes: [],
+  buildings: CITY_BUILDINGS,
+};
+
 // État du monde (en mémoire pour l'instant) :
 //   pos     position du héros en tuiles (décimales)
 //   cleared { idObjet: horodatage (ms) du moment où il a été vaincu / récolté }
-export function initialWorld(mapKey = "prairies_sauvages") {
+export function initialWorld(mapKey = CITY_KEY) {
   const m = MAPS[mapKey];
   return { mapKey, pos: { x: m.start.x + 0.5, y: m.start.y + 0.5 }, cleared: {} };
 }

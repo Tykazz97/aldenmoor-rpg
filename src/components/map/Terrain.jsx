@@ -8,6 +8,7 @@ const T = 100;
 const GRASS = ["#2d3a29", "#2c3927", "#2f3c2b", "#2b3727", "#2e3b2a"];
 const DIRT = ["#5d4932", "#54432d", "#62503a"];
 const WATER = ["#27475b", "#2f5266"];
+const PAVE = ["#6d675a", "#625c50", "#756f61", "#686254"];
 const TREE_DARK = ["#13221a", "#172a1c", "#1b2f20"];
 const TREE_LIGHT = ["#274a30", "#2d5636", "#24432c"];
 
@@ -35,7 +36,7 @@ function Tree({ cx, cy, r, k }) {
 
 function Terrain({ map }) {
   const W = mapWidth(map), H = mapHeight(map);
-  const grass = [], dirt = [], water = [], decor = [], trees = [];
+  const grass = [], dirt = [], water = [], pave = [], decor = [], trees = [];
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -52,6 +53,27 @@ function Terrain({ map }) {
           const fx = px + 15 + rnd(x, y, 31) * 70, fy = py + 25 + rnd(x, y, 32) * 55;
           decor.push(<circle key={`f${x},${y}`} cx={fx} cy={fy} r="3.2" fill={rnd(x, y, 33) > 0.5 ? "#c9b458" : "#b25a5a"} opacity=".85" />);
         }
+      }
+      if (t === "P" || t === "B" || t === "F") {
+        pave.push(
+          <g key={`p${x},${y}`}>
+            <rect x={px + 1.5} y={py + 1.5} width={T - 3} height={T - 3} rx="9" fill={pick(PAVE, x, y, 6)} />
+            <path d={`M${px + 14} ${py + 30 + rnd(x, y, 7) * 40} h${22 + rnd(x, y, 12) * 20} M${px + 52} ${py + 22 + rnd(x, y, 13) * 50} h${24}`} stroke="rgba(0,0,0,.18)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+          </g>
+        );
+      }
+      if (t === "F" && tileAt(map, x - 1, y) !== "F" && tileAt(map, x, y - 1) !== "F") {
+        decor.push(
+          <g key={`fo${x},${y}`}>
+            <ellipse cx={px + 100} cy={py + 150} rx="92" ry="30" fill="rgba(0,0,0,.4)" />
+            <ellipse cx={px + 100} cy={py + 112} rx="88" ry="52" fill="#8b8576" />
+            <ellipse cx={px + 100} cy={py + 106} rx="74" ry="40" fill="#3d6f87" />
+            <ellipse cx={px + 100} cy={py + 106} rx="74" ry="40" fill="none" stroke="rgba(190,230,245,.35)" strokeWidth="3" />
+            <rect x={px + 90} y={py + 40} width="20" height="66" rx="6" fill="#9a9484" />
+            <ellipse cx={px + 100} cy={py + 40} rx="26" ry="9" fill="#a8a292" />
+            <path d={`M${px + 100} ${py + 34} q-30 -26 -42 8 M${px + 100} ${py + 34} q30 -26 42 8`} stroke="rgba(190,230,245,.7)" strokeWidth="4" fill="none" strokeLinecap="round" />
+          </g>
+        );
       }
       if (t === ":") dirt.push(<rect key={`d${x},${y}`} x={px - 6} y={py - 6} width={T + 12} height={T + 12} rx="30" fill={pick(DIRT, x, y, 2)} />);
       if (t === "~") water.push(<rect key={`w${x},${y}`} x={px - 8} y={py - 8} width={T + 16} height={T + 16} rx="38" fill={pick(WATER, x, y, 3)} />);
@@ -106,6 +128,7 @@ function Terrain({ map }) {
       <g filter="url(#mp-blur)">{grass}</g>
       <g filter="url(#mp-rough)">{dirt}</g>
       <g filter="url(#mp-rough)">{water}</g>
+      <g>{pave}</g>
       <g>{decor}</g>
       <g>{trees.map((t) => t.node)}</g>
       <rect width={W * T} height={H * T} fill="url(#mp-sun)" />

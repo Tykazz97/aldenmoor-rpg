@@ -4,7 +4,7 @@ import { tileAt, mapWidth, mapHeight } from "../../utils/mapPath.js";
 // Mini-carte en coin : relief, groupes (rouge), ressources (vert) et héros (point doré,
 // déplacé à chaque image par MapScreen via `dotRef`).
 const PX = 4;
-const COLORS = { ".": "#33402d", S: "#33402d", ":": "#6a563b", "#": "#14241a", "~": "#2d566e", r: "#5a5a66", T: "#241c28" };
+const COLORS = { ".": "#33402d", S: "#33402d", ":": "#6a563b", "#": "#14241a", "~": "#2d566e", r: "#5a5a66", T: "#241c28", P: "#7a7466", B: "#4a3626", F: "#2d566e" };
 
 export default function Minimap({ map, groups, nodes, dotRef }) {
   const ref = useRef(null);

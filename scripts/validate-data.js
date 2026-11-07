@@ -88,6 +88,7 @@ for (const e of Object.values(ENEMIES)) {
   if (!existsSync(`public${e.img}`)) err(`Ennemi ${e.key} : image absente (${e.img})`);
 }
 import { CLASSES } from "../src/data/classes.js";
+import { CITY_BUILDINGS } from "../src/data/maps.js";
 const checkSpell = (sp) => {
   if (sp.type !== "buff" && !(sp.power > 0)) err(`Sort ${sp.id} : puissance manquante`);
   if (!(sp.pa >= 1 && sp.pa <= 6)) err(`Sort ${sp.id} : coût en PA invalide`);
@@ -111,6 +112,7 @@ for (const c of Object.values(CLASSES)) {
     spellIds.add(sp.id);
   }
 }
+for (const b of CITY_BUILDINGS) if (!existsSync(`public${b.img}`)) err(`Bâtiment ${b.id} : image absente (${b.img})`);
 for (const nd of Object.values(NODES)) {
   if (!existsSync(`public${nd.img}`)) err(`Nœud ${nd.id} : image absente (${nd.img})`);
 }

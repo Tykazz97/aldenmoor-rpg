@@ -4,7 +4,7 @@ import Terrain from "./Terrain.jsx";
 import Minimap from "./Minimap.jsx";
 import WorldMap from "./WorldMap.jsx";
 import { EncounterFight } from "../combat/CombatScreen.jsx";
-import { MAPS } from "../../data/maps.js";
+import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
 import { ENCOUNTERS } from "../../data/encounters.js";
 import { RESOURCES, RESOURCE_RARITIES } from "../../data/resources.js";
@@ -30,7 +30,7 @@ const MOVE_KEYS = {
   ArrowUp: [0, -1], z: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1],
 };
 
-export default function MapScreen({ player, stats, world, setWorld, onRewards, onGather }) {
+export default function MapScreen({ player, stats, world, setWorld, onRewards, onGather, renderBuilding }) {
   const map = MAPS[world.mapKey];
   const W = mapWidth(map), H = mapHeight(map);
   const [fight, setFight] = useState(null);       // { group, enc }
@@ -42,6 +42,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   const [gains, setGains] = useState([]);         // textes flottants "+2 Frêne"
   const [marker, setMarker] = useState(null);     // anneau là où l'on a cliqué
   const [view, setView] = useState("region");   // "region" | "world" (carte du monde)
+  const [building, setBuilding] = useState(null); // lieu ouvert dans la ville (atelier, coffre...)
   const [now, setNow] = useState(() => Date.now());
 
   const viewRef = useRef(null), worldElRef = useRef(null), heroRef = useRef(null), heroAnimRef = useRef(null), dotRef = useRef(null);
@@ -64,18 +65,21 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   const gSig = gAll.map((g) => g.id).join(), nSig = nAll.map((n) => n.id).join();
   const groups = useMemo(() => gAll, [gSig]); // eslint-disable-line react-hooks/exhaustive-deps
   const nodes = useMemo(() => nAll, [nSig]);  // eslint-disable-line react-hooks/exhaustive-deps
-  const blocked = useMemo(() => new Set([...groups, ...nodes].map((o) => key(o.x, o.y))), [groups, nodes]);
+  const buildings = useMemo(() => buildingObjects(map), [map]);
+  const blocked = useMemo(() => new Set([...groups, ...nodes, ...buildings].map((o) => key(o.x, o.y))), [groups, nodes, buildings]);
   const blockedRef = useRef(blocked);
   blockedRef.current = blocked;
-  const objsRef = useRef({ groups, nodes });
-  objsRef.current = { groups, nodes };
-  pausedRef.current = !!(fight || harvest);
+  const objsRef = useRef({ groups, nodes, buildings });
+  objsRef.current = { groups, nodes, buildings };
+  pausedRef.current = !!(fight || harvest || building);
 
   const outfit = heroLook(player, stats);
   const outfitRef = useRef(outfit);
   outfitRef.current = outfit;
   const heroLayout = heroFrameLayout(outfit);
-  const region = ZONES.aldenmoor.regions.find((r) => r.key === map.regionKey);
+  const isCity = map.kind === "city";
+  const region = isCity ? CITY : ZONES.aldenmoor.regions.find((r) => r.key === map.regionKey);
+  const places = useMemo(() => [CITY, ...ZONES.aldenmoor.regions], []);
 
   // précharge les feuilles d'animation de la tenue
   useEffect(() => { for (const a of ["walk", "mine", "chop", "herb"]) { const im = new Image(); im.src = heroSheetUrl(outfit, a); } }, [outfit]);
@@ -120,6 +124,23 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
     facingRef.current = g.x + 0.5 >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
     setPopup(g);
   }, []);
+
+  const openBuilding = useCallback((b) => {
+    facingRef.current = b.cx >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
+    if (b.kind === "portail") setView("world"); else setBuilding(b);
+  }, []);
+
+  // voyage vers une autre carte (région ou ville) depuis la carte du monde
+  const travelTo = useCallback((k) => {
+    const dest = MAPS[k];
+    if (!dest) { showToast("Cette région n'est pas encore accessible."); return; }
+    setView("region");
+    if (k === world.mapKey) return;
+    pathRef.current = null; keysRef.current.clear(); touchRef.current = null; camRef.current = null;
+    posRef.current = { x: dest.start.x + 0.5, y: dest.start.y + 0.5 };
+    setPopup(null); setMarker(null);
+    setWorld((w) => ({ ...w, mapKey: k, pos: { ...posRef.current } }));
+  }, [world.mapKey, setWorld, showToast]);
 
   // marcher jusqu'à un objet (groupe ou nœud), puis agir
   const goToObject = useCallback((o, act) => {
@@ -219,20 +240,20 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
 
         // toucher un objet en marchant au clavier
         if (moving && keys.size) {
-          const { groups: gs, nodes: ns } = objsRef.current;
-          for (const o of [...gs, ...ns]) {
+          const { groups: gs, nodes: ns, buildings: bs } = objsRef.current;
+          for (const o of [...gs, ...ns, ...bs]) {
             if (touchRef.current === o.id) continue;
             if (Math.hypot(o.x + 0.5 - pos.x, o.y + 0.5 - pos.y) < TOUCH) {
               touchRef.current = o.id;
               keys.clear();
-              if (o.encounter) openPopup(o); else startHarvest(o);
+              if (o.kind) openBuilding(o); else if (o.encounter) openPopup(o); else startHarvest(o);
               break;
             }
           }
         }
         if (touchRef.current) {
-          const { groups: gs, nodes: ns } = objsRef.current;
-          const o = [...gs, ...ns].find((e) => e.id === touchRef.current);
+          const { groups: gs, nodes: ns, buildings: bs } = objsRef.current;
+          const o = [...gs, ...ns, ...bs].find((e) => e.id === touchRef.current);
           if (!o || Math.hypot(o.x + 0.5 - pos.x, o.y + 0.5 - pos.y) > 1.7) touchRef.current = null;
         }
       }
@@ -282,7 +303,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [map, W, H, syncPos, openPopup, startHarvest, fight]);
+  }, [map, W, H, syncPos, openPopup, openBuilding, startHarvest, fight]);
 
   // ---------- combat ----------
   if (fight) {
@@ -321,8 +342,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
 
       {view === "world" ? (
         <div className="mp-stage">
-          <WorldMap regions={ZONES.aldenmoor.regions} current={map.regionKey}
-            onTravel={(k) => { if (k === map.regionKey) setView("region"); else showToast("Cette région n'est pas encore accessible."); }} />
+          <WorldMap regions={places} current={map.regionKey} onTravel={travelTo} />
           {toast && <div key={toast.id} className="mp-toast">{toast.text}</div>}
         </div>
       ) : (
@@ -352,6 +372,19 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
                 </button>
               );
             })}
+
+            {/* bâtiments de la ville */}
+            {buildings.map((b) => (
+              <button
+                key={b.id}
+                className="mp-node mp-building"
+                style={{ left: `calc(var(--tile) * ${b.cx})`, top: `calc(var(--tile) * ${b.y + 0.95})`, zIndex: b.y * 10 + 3 }}
+                onClick={(e) => { e.stopPropagation(); goToObject(b, openBuilding); }}
+              >
+                <span className="mp-plate">{b.name}<i>{b.hint}</i></span>
+                <img src={b.img} alt={b.name} draggable={false} style={{ width: `calc(var(--tile) * ${b.w})`, height: "auto" }} />
+              </button>
+            ))}
 
             {/* gains flottants */}
             {gains.map((g) => (
@@ -404,9 +437,32 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
       )}
 
       <div className="mp-foot">
-        <span><b>{groups.length}</b> groupe{groups.length > 1 ? "s" : ""} · <b>{nodes.length}</b> ressource{nodes.length > 1 ? "s" : ""} sur la carte{soonest !== null ? ` · prochain retour dans ${soonest} s` : ""}</span>
-        <span>Clique pour te déplacer, sur un groupe pour l'affronter, sur un arbre / filon / plante pour récolter · flèches ou ZQSD</span>
+        {isCity ? (
+          <>
+            <span>Ville d'Aldenmoor · lieu sûr, aucun combat</span>
+            <span>Clique sur un bâtiment pour y entrer · le portail mène aux régions · flèches ou ZQSD</span>
+          </>
+        ) : (
+          <>
+            <span><b>{groups.length}</b> groupe{groups.length > 1 ? "s" : ""} · <b>{nodes.length}</b> ressource{nodes.length > 1 ? "s" : ""} sur la carte{soonest !== null ? ` · prochain retour dans ${soonest} s` : ""}</span>
+            <span>Clique pour te déplacer, sur un groupe pour l'affronter, sur un arbre / filon / plante pour récolter · flèches ou ZQSD</span>
+          </>
+        )}
       </div>
+
+      {building && (
+        <div className="mp-modal" onClick={() => setBuilding(null)}>
+          <div className="mp-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="mp-modal-head">
+              <span>{building.name}</span>
+              <button className="cb-btn small" onClick={() => setBuilding(null)}>Fermer ✕</button>
+            </div>
+            <div className="mp-modal-body">
+              {renderBuilding ? renderBuilding(building.kind, building) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
 import { applyCraft, addResourcesTo } from "../utils/crafting.js";
 import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
+import { depositItem, withdrawItem, depositResource, withdrawResource } from "../utils/bank.js";
 
 let craftCounter = 0;
 
@@ -45,6 +46,14 @@ export function usePlayer(initial) {
 
   // Apparence cosmétique : null = suit l'équipement
   const setAppearance = useCallback((outfit) => setPlayer((prev) => ({ ...prev, appearance: outfit || null })), []);
+
+  // Coffre
+  const bank = useMemo(() => ({
+    depositItem: (uid) => setPlayer((p) => depositItem(p, uid)),
+    withdrawItem: (uid) => setPlayer((p) => withdrawItem(p, uid)),
+    depositResource: (id, qty) => setPlayer((p) => depositResource(p, id, qty)),
+    withdrawResource: (id, qty) => setPlayer((p) => withdrawResource(p, id, qty)),
+  }), []);
 
   const unequipSlot = useCallback((slotKey) => {
     setPlayer((prev) => {
@@ -101,7 +110,7 @@ export function usePlayer(initial) {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance,
+    craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank,
   };
 }
 

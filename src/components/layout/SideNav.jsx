@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   // Onglet Combat retiré pour l'instant (les combats se lancent depuis la carte).
   // Pour le remettre : { key: "combat", label: "Combat", icon: "⚔" } — l'écran existe toujours dans App.jsx.
   { key: "carte", label: "Carte", icon: "🗺" },
-  { key: "forge", label: "Forge", icon: "🔨" },
+  // La Forge est maintenant l'atelier de la ville.
   { key: "sac", label: "Sac", icon: "🎒" },
   { key: "journal", label: "Journal", icon: "📜" },
 ];
