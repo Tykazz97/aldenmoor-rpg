@@ -11,9 +11,13 @@
 import { bankCapacity, bankUsed, nextUpgradeCost, BANK_START } from "../utils/bank.js";
 import { gearScore, acquireItem } from "./lifeCraft.js";
 import { ITEMS } from "../data/items.js";
+import { RESOURCES } from "../data/resources.js";
+import { SELL_RATE } from "./lifeCraft.js";
 
 export const BAG_RES_DEPOSIT = 30;          // au-delà : le surplus part au coffre
 export const BAG_RES_KEEP = 15;             // ce qu'il garde sur lui
+export const BANK_SELL_KEEP = 150;          // au-delà, le trop-plein du coffre part à l'hôtel des ventes
+export const BANK_MAX_PER_RES = 400;        // au-delà, il brade le reste au marchand (60 %) : l'hôtel des ventes ne peut pas tout absorber
 export const BAG_ITEMS_KEEP = 12;           // équipements de réserve gardés sur lui
 
 export const emptyBank = () => ({ items: [], resources: {}, upgrades: 0 });
@@ -21,6 +25,17 @@ export const bankOfLife = (life) => life.bank || (life.bank = emptyBank());
 const asPlayer = (life) => ({ bank: bankOfLife(life), quests: life.quests });
 export const bankFreeSlots = (life) => bankCapacity(asPlayer(life)) - bankUsed(asPlayer(life));
 export const bankHas = (life, id) => (life.bank?.resources?.[id]) || 0;
+
+// Ressources qu'il peut mettre en vente : son sac au-delà de `bagKeep`, plus le trop-plein de son coffre
+export const bankSurplus = (life, id) => Math.max(0, bankHas(life, id) - BANK_SELL_KEEP);
+export const sellableOf = (life, id, bagKeep) => Math.max(0, (life.bag.res[id] || 0) - bagKeep) + bankSurplus(life, id);
+// Retire `qty` à vendre : d'abord le trop-plein du coffre, puis le sac
+export function takeForSale(life, id, qty) {
+  const fromBank = Math.min(qty, bankSurplus(life, id));
+  if (fromBank > 0) { life.bank.resources[id] -= fromBank; if (life.bank.resources[id] <= 0) delete life.bank.resources[id]; }
+  const rest = qty - fromBank;
+  if (rest > 0) { life.bag.res[id] = (life.bag.res[id] || 0) - rest; if (life.bag.res[id] <= 0) delete life.bag.res[id]; }
+}
 
 // Sort du coffre ce qui manque (`want` : { ressource: quantité } ; modifié : il ne reste que ce que le coffre n'a pas)
 export function drawFromBank(life, want) {
@@ -47,6 +62,7 @@ export function bankStep(life) {
     bank.resources[id] = (bank.resources[id] || 0) + (q - BAG_RES_KEEP);
     life.bag.res[id] = BAG_RES_KEEP;
   }
+  for (const [id, q] of Object.entries(bank.resources)) if (q > BANK_MAX_PER_RES) { life.gold += Math.floor((q - BANK_MAX_PER_RES) * RESOURCES[id].value * SELL_RATE); bank.resources[id] = BANK_MAX_PER_RES; }
   while (life.bag.items.length > BAG_ITEMS_KEEP && bankFreeSlots(life) >= 1) bank.items.push(life.bag.items.shift());
   for (let i = bank.items.length - 1; i >= 0; i--) {
     const id = bank.items[i], it = ITEMS[id];

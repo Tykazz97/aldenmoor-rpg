@@ -15,7 +15,7 @@ import { calcStats } from "../src/utils/calcStats.js";
 import { emptyQuests, questStep, bump, huntTarget } from "../src/sim/lifeQuests.js";
 import { boardFor, progressOf, dayKey, standingOf } from "../src/utils/quests.js";
 import { ENEMIES } from "../src/data/zones.js";
-import { bankStep, drawFromBank, bankFreeSlots, emptyBank, BAG_RES_DEPOSIT, BAG_RES_KEEP, BAG_ITEMS_KEEP } from "../src/sim/lifeBank.js";
+import { bankStep, drawFromBank, bankFreeSlots, emptyBank, sellableOf, takeForSale, BANK_SELL_KEEP, BANK_MAX_PER_RES, BAG_RES_DEPOSIT, BAG_RES_KEEP, BAG_ITEMS_KEEP } from "../src/sim/lifeBank.js";
 import { bankCapacity, bankUsed, BANK_START } from "../src/utils/bank.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { MAX_PROFESSION_LEVEL } from "../src/data/professions.js";
@@ -380,6 +380,20 @@ await test("coffre : après un mois, la plupart des simulés ont un coffre bien 
     if (bankUsed(pl) > 0) withBank++;
   }
   assert.ok(withBank > 120, `${withBank} simulés utilisent leur coffre`);
+});
+
+await test("coffre : seul le trop-plein est vendu (d'abord celui du coffre), et au-delà du plafond le reste est bradé au marchand", () => {
+  const life = initialLife(pop[0], "fresh");
+  life.bag.res = { ortie: 20 }; life.bank = { items: [], resources: { ortie: BANK_SELL_KEEP + 30, bois_de_frene: 100 }, upgrades: 0 };
+  assert.equal(sellableOf(life, "ortie", 8), 12 + 30);
+  assert.equal(sellableOf(life, "bois_de_frene", 8), 0, "sous le seuil : rien à vendre");
+  takeForSale(life, "ortie", 35);
+  assert.equal(life.bank.resources.ortie, BANK_SELL_KEEP, "le coffre est vidé du trop-plein en premier");
+  assert.equal(life.bag.res.ortie, 15);
+  life.bank.resources.bois_de_frene = BANK_MAX_PER_RES + 100; const g = life.gold;
+  bankStep(life);
+  assert.equal(life.bank.resources.bois_de_frene, BANK_MAX_PER_RES);
+  assert.ok(life.gold > g, "le surplus est bradé contre de l'or");
 });
 
 console.log(`\n${n} tests passent.`);

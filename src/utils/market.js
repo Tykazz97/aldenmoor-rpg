@@ -28,7 +28,7 @@ import { getPopulation } from "../sim/population.js";
 import { SIM_START } from "../sim/config.js";
 import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
 import { shoppingList, stash } from "../sim/lifeCraft.js";
-import { drawFromBank } from "../sim/lifeBank.js";
+import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 
@@ -154,12 +154,12 @@ function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
   const cands = [];
   for (const b of getPopulation()) {
     const life = s.sims.lives[b.id];
-    const spare = life ? (life.bag.res[id] || 0) - SIM_SELL_KEEP : 0;
+    const spare = life ? sellableOf(life, id, SIM_SELL_KEEP) : 0;
     if (spare >= lo) cands.push([b, spare]);
   }
   if (cands.length) {
     const b = rng.weighted(cands), life = s.sims.lives[b.id];
-    const qty = Math.min((life.bag.res[id] || 0) - SIM_SELL_KEEP, rng.int(lo, hi));
+    const qty = Math.min(sellableOf(life, id, SIM_SELL_KEEP), rng.int(lo, hi));
     return { seller: b.id, greed: b.greed, qty, life, bot: b };
   }
   if (supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
@@ -230,7 +230,7 @@ function stepListings(s, bucket) {
         if (sims && pick.life) {                                           // le simulé paie la taxe de mise en vente et sort la marchandise de son sac
           const tax = saleTax(qty * unit);
           if (pick.life.gold < tax) ok = false;
-          else { pick.life.gold -= tax; pick.life.bag.res[id] -= qty; if (pick.life.bag.res[id] <= 0) delete pick.life.bag.res[id]; }
+          else { pick.life.gold -= tax; takeForSale(pick.life, id, qty); }
         }
         if (ok) tally(s, bucket, "posted");
         if (ok) s.listings.push({ id: s.nextId++, seller: sims ? pick.seller : bot.id, kind: "res", rid: id, qty, unit, exp: bucket + 144 + rng.int(0, 144) });
