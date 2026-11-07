@@ -8,6 +8,7 @@ import CityChat from "./CityChat.jsx";
 import { generatePopulation } from "../../sim/population.js";
 import { createCityLife, playerSays, pickResponder, queueSay, whereIs } from "../../sim/cityLife.js";
 import { askBot, loadMemory, remember } from "../../sim/brain.js";
+import { SIM_PLAYERS } from "../../sim/config.js";
 import { EncounterFight } from "../combat/CombatScreen.jsx";
 import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
@@ -88,7 +89,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   outfitRef.current = outfit;
   const heroLayout = heroFrameLayout(outfit);
   const isCity = map.kind === "city";
-  const life = useMemo(() => (isCity ? createCityLife({ map, population: POPULATION, seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
+  const life = useMemo(() => (isCity && SIM_PLAYERS ? createCityLife({ map, population: POPULATION, seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
   const addFeed = useCallback((m) => setFeed((f) => [...f, { ...m, key: ++feedKey.current }].slice(-40)), []);
   useEffect(() => {
     setFeed(life ? life.history.map((h) => ({ ...h, key: ++feedKey.current })) : []);
@@ -463,7 +464,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
             {/* héros (position mise à jour à chaque image par la boucle d'animation) */}
             <div className="mp-ent" ref={heroRef}>
               <span className="mp-shadow" />
-              <span className="mp-nick me">{player.name}<i>{player.level}</i></span>
+              {SIM_PLAYERS && <span className="mp-nick me">{player.name}<i>{player.level}</i></span>}
               {heroBubble && <span className="mp-bubble">{heroBubble}</span>}
               <div className="mp-flip" style={{ transform: `scaleX(${facing})` }}>
                 <div ref={heroAnimRef} className={`mp-hero-anim ${harvest || walking ? "" : "idle"}`} role="img" aria-label="Héros"
