@@ -6,6 +6,7 @@ import CombatScreen from "./components/combat/CombatScreen.jsx";
 import MapScreen from "./components/map/MapScreen.jsx";
 import { initialWorld } from "./data/maps.js";
 import BankPanel from "./components/city/BankPanel.jsx";
+import MarketPanel from "./components/city/MarketPanel.jsx";
 import ComingSoonPlace from "./components/city/ComingSoonPlace.jsx";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
@@ -19,6 +20,7 @@ const TAB_TITLES = {
   carte: "Carte du monde",
   forge: "Atelier",
   coffre: "Coffre d'Aldenmoor",
+  marche: "Marché d'Aldenmoor",
   sac: "Sac & Inventaire",
   journal: "Journal de quêtes",
 };
@@ -44,7 +46,7 @@ export default function App() {
 function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank } = usePlayer(initial.player);
+  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank } = usePlayer(initial.player);
 
   // Sauvegarde automatique (un peu différée pour ne pas écrire à chaque changement)
   const latest = useRef({ player, world });
@@ -71,7 +73,7 @@ function Game({ initial, onNewCharacter }) {
   const renderBuilding = (kind) => {
     if (kind === "atelier") return <ForgePanel player={player} onCraft={craft} onTestResources={testAddResources} onTestGold={testAddGold} />;
     if (kind === "coffre") return <BankPanel player={player} bank={bank} />;
-    if (kind === "marche") return <ComingSoonPlace icon="🧺" title="Marché d'Aldenmoor" lines={["Ici, les joueurs mettront en vente leurs ressources et leurs équipements, et achèteront ceux des autres.", "Le marché ouvrira avec l'arrivée des autres aventuriers, pour avoir de vrais vendeurs."]} />;
+    if (kind === "marche") return <MarketPanel player={player} onPlayerChange={setPlayer} />;
     if (kind === "panneau") return <ComingSoonPlace icon="📜" title="Panneau de recrutement" lines={["Un endroit pour trouver un groupe, proposer une chasse ou chercher une guilde.", "Il s'ouvrira avec les autres aventuriers."]} />;
     return null;
   };
@@ -116,13 +118,19 @@ function Game({ initial, onNewCharacter }) {
           <BankPanel player={player} bank={bank} />
         </div>
       )}
+      {activeTab === "marche" && (
+        <div style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
+          <div style={{ fontFamily: font.display, fontSize: 22, color: color.goldBright, marginBottom: 16 }}>Marché d'Aldenmoor</div>
+          <MarketPanel player={player} onPlayerChange={setPlayer} />
+        </div>
+      )}
       {activeTab === "combat" && (
         <CombatScreen player={player} stats={stats} onRewards={applyCombatRewards} />
       )}
       {activeTab === "carte" && (
         <MapScreen player={player} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onGather={gather} renderBuilding={renderBuilding} />
       )}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }

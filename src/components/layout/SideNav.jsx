@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   // Raccourcis vers l'atelier et le coffre de la ville (les mêmes que dans les bâtiments).
   { key: "forge", label: "Atelier", icon: "⚒" },
   { key: "coffre", label: "Coffre", icon: "📦" },
+  { key: "marche", label: "Marché", icon: "⚖" },
   { key: "sac", label: "Sac", icon: "🎒" },
   { key: "journal", label: "Journal", icon: "📜" },
 ];
