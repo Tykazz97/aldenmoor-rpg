@@ -34,7 +34,7 @@ const strike = (st) => {
   return castSpell(st, spell.id, "e0");
 };
 
-test("le boss est complet : stats, 3 phases de jeu, rencontre, groupe sur la carte avec respawn long", () => {
+test("le boss est complet : stats, 3 phases de jeu, rencontre, groupe sur la carte au respawn normal", () => {
   assert.ok(boss.stats && boss.actions.length >= 5 && boss.phases.length === 2);
   assert.deepEqual(boss.phases[0].summon, ["esprit_errant", "esprit_errant"]);
   assert.ok(boss.phases[0].below > boss.phases[1].below && boss.phases[1].atkMult > 1);
@@ -42,10 +42,13 @@ test("le boss est complet : stats, 3 phases de jeu, rencontre, groupe sur la car
   const enc = ENCOUNTERS.find((e) => e.id === "veilleur_boss");
   assert.ok(enc && enc.boss && enc.enemies.length === 1 && enc.enemies[0] === "veilleur_corrompu");
   const g = MAPS.lisiere_des_ombres.groups.find((x) => x.encounter === "veilleur_boss");
-  assert.ok(g && g.respawnMs >= 5 * 60000, "respawn long");
+  assert.ok(g && g.respawnMs === undefined, "pas de délai spécial : il revient comme les autres groupes");
   const world = { cleared: { [g.id]: 1000 } };
-  assert.ok(!activeGroups(MAPS.lisiere_des_ombres, world, 1000 + 60000).includes(g), "toujours absent après 1 min");
-  assert.ok(activeGroups(MAPS.lisiere_des_ombres, world, 1000 + g.respawnMs).includes(g), "de retour après le délai");
+  assert.ok(!activeGroups(MAPS.lisiere_des_ombres, world, 1000 + 1000).includes(g));
+  assert.ok(activeGroups(MAPS.lisiere_des_ombres, world, 1000 + MAPS.lisiere_des_ombres.respawnMs).includes(g));
+  // un groupe peut quand même avoir son propre délai (fonctionnalité conservée)
+  const custom = { respawnMs: 5000, groups: [{ id: "x", respawnMs: 600000 }, { id: "y" }] };
+  assert.deepEqual(activeGroups(custom, { cleared: { x: 0, y: 0 } }, 6000).map((o) => o.id), ["y"]);
 });
 
 test("butin : plus de clé sur le boss (elle se fabrique), une essence, et UNE relique très rare non fabricable", () => {
@@ -215,8 +218,8 @@ test("Bricoleur : fabrique la Clé du Manoir (ingrédients dont l'Essence du Vei
   assert.equal(ITEMS.cle_du_manoir.type, "cle");
   const rich = (extra = {}) => ({ ...createPlayer({ classKey: "guerrier" }), gold: 5000, resources: { ...RECIPES.cle_du_manoir.ingredients }, ...extra });
   const low = rich();
-  assert.ok(canCraft(low, "cle_du_manoir").lacksLevel, "niveau de métier requis");
-  const lvl = { ...low, professions: { ...low.professions, bricoleur: { level: info.minLevel, xp: 0 } } };
+  assert.equal(info.minLevel, 1, "accessible dès le niveau 1, pour pouvoir gagner de l'xp");
+  const lvl = low;
   assert.ok(canCraft(lvl, "cle_du_manoir").ok);
   assert.ok(!canCraft({ ...lvl, resources: { ...lvl.resources, essence_du_veilleur: 2 } }, "cle_du_manoir").ok, "sans assez d'essence : impossible");
   const made = applyCraft(lvl, "cle_du_manoir", "k1", () => 0.99);
@@ -225,12 +228,17 @@ test("Bricoleur : fabrique la Clé du Manoir (ingrédients dont l'Essence du Vei
   assert.equal(made.resources.essence_du_veilleur, undefined);
   assert.equal(made.gold, 5000 - RECIPES.cle_du_manoir.gold);
   assert.ok(made.professions.bricoleur.xp > 0);
-  // à haut niveau, une clé de plus peut sortir (sans rien consommer de plus)
+  // à haut niveau, les ressources peuvent être épargnées (l'or, lui, est toujours dépensé)
   const master = { ...lvl, professions: { ...lvl.professions, bricoleur: { level: 100, xp: 0 } } };
-  assert.equal(applyCraft(master, "cle_du_manoir", "k2", () => 0).inventory.filter((i) => i.id === "cle_du_manoir").length, 2);
-  assert.equal(applyCraft(master, "cle_du_manoir", "k3", () => 0.99).inventory.filter((i) => i.id === "cle_du_manoir").length, 1);
+  const kept = applyCraft(master, "cle_du_manoir", "k2", () => 0);
+  assert.equal(kept.inventory.filter((i) => i.id === "cle_du_manoir").length, 1);
+  assert.deepEqual(kept.resources, master.resources, "ressources intactes");
+  assert.equal(kept.gold, master.gold - RECIPES.cle_du_manoir.gold);
+  assert.equal(applyCraft(master, "cle_du_manoir", "k3", () => 0.99).resources.essence_du_veilleur, undefined, "sinon elles sont consommées");
+  assert.ok(Math.abs(perkLines("bricoleur", 100, 100)[0].now.replace(",", ".").replace(" %", "") - 50) < 0.01, "50 % au niveau 100");
+  assert.equal(perkLines("bricoleur", 1, 100)[0].now, "0 %");
   const lines = perkLines("bricoleur", 5, 100);
-  assert.match(lines[0].label, /clé/);
+  assert.match(lines[0].label, /ressource/);
 });
 
 console.log(`\n${n} tests passent.`);

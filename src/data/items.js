@@ -268,7 +268,7 @@ ITEMS.cle_du_manoir = {
   type: "cle",
   rarity: "epique",
   dungeon: "manoir_englouti",
-  craftLevel: 3,
+  craftLevel: 1,
   img: `${ICON_BASE}/keys/cle_du_manoir.png`,
   desc: "Ouvre le Manoir Englouti",
 };

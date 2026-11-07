@@ -73,7 +73,7 @@ Les trophées des boss donnent des objets communs à toutes les classes, fabriqu
 
 ## Le Veilleur Corrompu (boss de la Lisière)
 
-Tout au bout de la carte de la Lisière des Ombres, dans le coin est. Il met **10 minutes** à réapparaître (`respawnMs` propre au groupe dans `maps.js`). Trois temps de combat :
+Tout au bout de la carte de la Lisière des Ombres, dans le coin est. Il réapparaît au même rythme que les autres groupes (un groupe peut avoir son propre `respawnMs` dans `maps.js`, mais le Veilleur n'en a pas). Trois temps de combat :
 - **Garde** : frappes lourdes qui brisent l'armure (Frappe écrase-garde) et **Regard du néant**, qui retire 2 PA au prochain tour du héros.
 - **Appel**, sous 66 % de vie : il fait venir **2 esprits errants** (nouvelle mécanique `summon` des phases, dans `engine.js`). Ils entrent dans l'ordre de jeu juste après lui, ne rapportent ni xp, ni or, ni butin, et on ne dépasse jamais 3 ennemis.
 - **Rage**, sous 33 % : +40 % d'attaque, et il débloque Feu noir et Souffle putride (actions avec `needsPhase`).
@@ -84,7 +84,7 @@ Butin : l'**Essence du Veilleur** (60 %, 1 à 2) et la **Lanterne du Veilleur**,
 
 ## Le Bricoleur (clés des donjons)
 
-Nouveau métier de fabrication : il ne fait que les **clés de donjon**. Pour l'instant une seule, la **Clé du Manoir Englouti** (métier niveau 3) : 3 Essences du Veilleur, 6 lingots de fer, 3 lingots de cuivre, 5 ectoplasmes et 500 or. La clé est un objet de type `cle` : elle reste dans le sac et ne s'équipe pas (`equipItem` ignore tout objet sans emplacement). Avantage du métier : jusqu'à 25 % de chance de fabriquer une clé en plus sans rien consommer de plus (pas de chef-d'œuvre pour les clés). Les clés des prochains donjons s'ajouteront à `recipes.js`, avec un objet `type: "cle"`.
+Nouveau métier de fabrication : il ne fait que les **clés de donjon**. Pour l'instant une seule, la **Clé du Manoir Englouti** (accessible dès le niveau 1 du métier, pour qu'on puisse y gagner de l'xp) : 3 Essences du Veilleur, 6 lingots de fer, 3 lingots de cuivre, 5 ectoplasmes et 500 or. La clé est un objet de type `cle` : elle reste dans le sac et ne s'équipe pas (`equipItem` ignore tout objet sans emplacement). Avantage du métier : jusqu'à 50 % de chance (au niveau 100) de ne consommer aucune ressource en fabriquant (l'or est dépensé quand même ; pas de chef-d'œuvre pour les clés). Les clés des prochains donjons s'ajouteront à `recipes.js`, avec un objet `type: "cle"`.
 
 ## Raffinage
 

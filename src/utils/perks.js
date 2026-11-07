@@ -3,7 +3,7 @@
 //   Récolte  (bûcheron, mineur, herboriste) : récolte plus rapide, chance de récolte double, chance de trouvaille.
 //   Raffinage (fondeur, scieur, tanneur, tisserand) : chance de produire 1 unité de plus, sans rien consommer de plus.
 //   Fabrication (forgeron, tailleur, maroquinier, menuisier, bijoutier) : chance de « chef-d'œuvre », un objet aux stats +10 %.
-//   Bricoleur (clés de donjon, rien à améliorer) : chance de fabriquer une clé en plus.
+//   Bricoleur (clés de donjon, rien à améliorer) : chance de ne consommer aucune ressource (50 % au niveau 100).
 // Niveau 1 : aucun avantage ; niveau 100 : le maximum (PERK_MAX) ; entre les deux, une courbe qui monte plus vite au début.
 // Tous les tirages prennent un `rng` (0..1) pour pouvoir être testés.
 // ============================================================
@@ -16,7 +16,7 @@ export const PERK_MAX = {
   find: 0.20,         // 20 % de chance de trouvaille
   bonus: 0.40,        // 40 % de chance d'une unité de plus au raffinage
   masterwork: 0.30,   // 30 % de chance de chef-d'œuvre
-  spareKey: 0.25,     // Bricoleur : 25 % de chance de fabriquer une clé en plus
+  savedMaterials: 0.50, // Bricoleur : 50 % de chance de ne consommer aucune ressource
 };
 // Les premiers niveaux comptent plus que les derniers : progression = ((niveau − 1) / (niveau max − 1)) ^ PERK_CURVE
 export const PERK_CURVE = 0.7;
@@ -34,7 +34,7 @@ export function perksFor(professionKey, level) {
   const k = perkProgress(level), kind = kindOf(professionKey);
   if (kind === "gather") return { kind, speed: 1 - PERK_MAX.speed * k, double: PERK_MAX.double * k, find: PERK_MAX.find * k };
   if (kind === "refine") return { kind, bonus: PERK_MAX.bonus * k };
-  if (isKeysmith(professionKey)) return { kind: "keys", spare: PERK_MAX.spareKey * k };
+  if (isKeysmith(professionKey)) return { kind: "keys", saved: PERK_MAX.savedMaterials * k };
   return { kind, masterwork: PERK_MAX.masterwork * k };
 }
 
@@ -49,7 +49,7 @@ export function perkLines(professionKey, level, maxLevel = MAX_PROFESSION_LEVEL)
     row("Chance de trouvaille rare", now.find, nxt?.find),
   ];
   if (now.kind === "refine") return [row("Chance de produire 1 unité de plus", now.bonus, nxt?.bonus)];
-  if (now.kind === "keys") return [row("Chance de fabriquer une clé en plus", now.spare, nxt?.spare)];
+  if (now.kind === "keys") return [row("Chance de ne consommer aucune ressource", now.saved, nxt?.saved)];
   return [row("Chance de chef-d'œuvre (+10 % de stats)", now.masterwork, nxt?.masterwork)];
 }
 
@@ -73,8 +73,8 @@ export function rollRefineBonus(level, professionKey, times, rng = Math.random) 
 
 // Fabrication : l'objet est-il un chef-d'œuvre ?
 export const rollMasterwork = (level, professionKey, rng = Math.random) => rng() < (perksFor(professionKey, level).masterwork || 0);
-// Bricoleur : la clé fabriquée est-elle doublée (sans rien consommer de plus) ?
-export const rollSpareKey = (level, professionKey, rng = Math.random) => rng() < (perksFor(professionKey, level).spare || 0);
+// Bricoleur : les ressources de la clé sont-elles épargnées (l'or est dépensé quand même) ?
+export const rollSavedMaterials = (level, professionKey, rng = Math.random) => rng() < (perksFor(professionKey, level).saved || 0);
 
 const SCALED = ["atk_phys", "atk_magie", "def_phys", "def_magie", "hp", "esquive", "critique"];
 export function makeMasterwork(item) {

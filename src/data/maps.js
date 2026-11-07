@@ -245,8 +245,8 @@ export const MAPS = {
       { id: "lisiere_1", encounter: "lisiere", x: 39, y: 7 },
       { id: "lisiere_2", encounter: "lisiere", x: 32, y: 20 },
       { id: "lisiere_3", encounter: "lisiere", x: 36, y: 17 },
-      // Le Veilleur Corrompu : au bout de la lisière, il met 10 minutes à réapparaître (respawnMs propre au groupe)
-      { id: "veilleur_boss", encounter: "veilleur_boss", x: 46, y: 16, respawnMs: 600000 },
+      // Le Veilleur Corrompu : au bout de la lisière, même délai de retour que les autres groupes
+      { id: "veilleur_boss", encounter: "veilleur_boss", x: 46, y: 16 },
     ],
     nodes: [
       { id: "frene_1", node: "frene", x: 16, y: 8 },

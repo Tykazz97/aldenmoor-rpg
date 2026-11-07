@@ -8,7 +8,7 @@ import { RECIPES } from "../data/recipes.js";
 import { getCraftInfo, xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
 import { REFINING } from "../data/refining.js";
 import { recordCraft } from "./counters.js";
-import { rollRefineBonus, rollMasterwork, rollSpareKey, makeMasterwork } from "./perks.js";
+import { rollRefineBonus, rollMasterwork, rollSavedMaterials, makeMasterwork } from "./perks.js";
 
 // État d'un métier (les saves d'avant les métiers de raffinage n'ont pas ces métiers : niveau 1 par défaut)
 export const professionOf = (player, key) => player.professions?.[key] || { level: 1, xp: 0 };
@@ -63,22 +63,20 @@ export function applyCraft(player, itemId, uid, rng = Math.random) {
 
   const level = professionOf(player, info.profession).level;
   const masterwork = rollMasterwork(level, info.profession, rng);
-  const spare = rollSpareKey(level, info.profession, rng);
+  const saved = rollSavedMaterials(level, info.profession, rng);
   const resources = { ...player.resources };
-  for (const [resId, qty] of Object.entries(recipe.ingredients)) {
-    resources[resId] -= qty;
-    if (resources[resId] <= 0) delete resources[resId];
+  if (!saved) {
+    for (const [resId, qty] of Object.entries(recipe.ingredients)) {
+      resources[resId] -= qty;
+      if (resources[resId] <= 0) delete resources[resId];
+    }
   }
 
   return recordCraft({
     ...player,
     gold: player.gold - recipe.gold,
     resources,
-    inventory: [
-      ...player.inventory,
-      { ...(masterwork ? makeMasterwork(ITEMS[itemId]) : ITEMS[itemId]), uid },
-      ...(spare ? [{ ...ITEMS[itemId], uid: `${uid}-bis` }] : []),
-    ],
+    inventory: [...player.inventory, { ...(masterwork ? makeMasterwork(ITEMS[itemId]) : ITEMS[itemId]), uid }],
     professions: {
       ...player.professions,
       [info.profession]: gainProfessionXp(professionOf(player, info.profession), info.xp),
