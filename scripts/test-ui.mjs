@@ -69,8 +69,30 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("grimoire : points de sort, montée de rang, barre de combat équipable", async () => {
+    const mod = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("aldenmoor:save")); s.player.level = 12; s.player.gold = 5000; return JSON.stringify(s); });
+    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-grimoire")) { sessionStorage.setItem("ui-grimoire", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
+    await page.reload(); await page.waitForTimeout(800);
+    await tab("Personnage").click(); await page.waitForTimeout(300);
+    const sb = page.locator("[data-spellbook]");
+    assert.equal(await sb.locator("[data-points]").innerText(), "11");
+    await sb.locator('[data-spell="parade"] [data-act="rank"]').click();
+    await sb.locator('[data-spell="parade"] [data-act="rank"]').click();
+    assert.equal(await sb.locator('[data-spell="parade"]').getAttribute("data-rank"), "3");
+    assert.equal(await sb.locator("[data-points]").innerText(), "8");
+    await sb.locator('[data-slot="3"]').click();                                   // 4e emplacement…
+    await sb.locator('[data-spell="seisme"] [data-act="place"]').click();          // …remplacé par Séisme
+    assert.match(await sb.locator('[data-spell="seisme"]').innerText(), /dans la barre/);
+    assert.doesNotMatch(await sb.locator('[data-spell="brise_armure"]').innerText(), /dans la barre/);
+    await page.waitForTimeout(500);
+    const book = (await save()).player.spellbook;
+    assert.equal(book.ranks.parade, 3);
+    assert.ok(book.loadout.includes("seisme"));
+    assert.deepEqual(errors, []);
+  });
+
   await step("combat complet : carte → monstres → victoire → butin → retour à la carte", async () => {
-    // on place le héros dans les Prairies, près des loups
+    // on place le héros dans les Prairies, près des loups (et on vérifie que la barre du grimoire est bien celle du combat)
     const mod = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("aldenmoor:save")); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; return JSON.stringify(s); });
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-test")) { sessionStorage.setItem("ui-test", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
     await page.reload(); await page.waitForTimeout(800);
@@ -83,6 +105,10 @@ try {
     });
     await page.locator("button", { hasText: "Combattre" }).click({ timeout: 15000 });
     await page.locator(".cb-spell:not([disabled])").first().waitFor({ timeout: 20000 });
+    assert.equal(await page.locator(".cb-spell").count(), 5, "barre : arme + 4 sorts de classe");
+    assert.match(await page.locator(".cb-spell", { hasText: "Parade" }).innerText(), /★★/, "rang 3 de Parade visible");
+    assert.equal(await page.locator(".cb-spell", { hasText: "Séisme" }).count(), 1, "Séisme équipé");
+    assert.equal(await page.locator(".cb-spell", { hasText: "Brise-Armure" }).count(), 0, "Brise-Armure retiré");
     await page.keyboard.press("1");                                    // raccourci clavier d'un sort
     for (let i = 0; i < 200 && !(await page.locator(".cb-overlay").count()); i++) {
       const sp = page.locator(".cb-spell:not([disabled])");

@@ -46,7 +46,7 @@ export default function App() {
 function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank } = usePlayer(initial.player);
+  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook } = usePlayer(initial.player);
 
   // Sauvegarde automatique (un peu différée pour ne pas écrire à chaque changement)
   const latest = useRef({ player, world });
@@ -102,6 +102,7 @@ function Game({ initial, onNewCharacter }) {
           onSetAppearance={setAppearance}
           onExport={downloadSave}
           onNewCharacter={newCharacter}
+          spellbook={spellbook}
         />
       )}
       {activeTab === "forge" && (

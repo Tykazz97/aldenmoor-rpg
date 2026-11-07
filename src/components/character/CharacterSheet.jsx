@@ -25,7 +25,7 @@ function ResourceBar({ label, value, max, colorFrom, colorTo }) {
 
 const smallBtn = { background: color.panelRaised, color: color.parchmentDim, border, borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontFamily: font.body };
 
-export default function CharacterSheet({ player, stats, onEquipSlotClick, onUnequip, onAddCaracPoint, onEquipItem, onSetAppearance, onExport, onNewCharacter }) {
+export default function CharacterSheet({ player, stats, onEquipSlotClick, onUnequip, onAddCaracPoint, onEquipItem, onSetAppearance, onExport, onNewCharacter, spellbook }) {
   const cls = CLASSES[player.classKey];
   const outfits = availableOutfits(player);
   const current = heroOutfit(player, stats);
@@ -68,7 +68,7 @@ export default function CharacterSheet({ player, stats, onEquipSlotClick, onUneq
         <EquipmentPanel equipped={player.equipped} onEquipSlotClick={onEquipSlotClick} onUnequip={onUnequip} />
         <div style={{ overflowY: "auto" }}>
           <StatsPanel player={player} stats={stats} onAddCaracPoint={onAddCaracPoint} />
-          <SpellsPanel player={player} />
+          <SpellsPanel player={player} spellbook={spellbook} />
         </div>
         <InventoryPanel inventory={player.inventory} onEquip={onEquipItem} />
       </div>

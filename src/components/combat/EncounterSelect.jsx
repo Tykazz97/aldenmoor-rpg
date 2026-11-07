@@ -1,5 +1,6 @@
 import React from "react";
-import { PA_MAX, spellsFor } from "../../combat/engine.js";
+import { PA_MAX } from "../../combat/engine.js";
+import { buildSpellBar } from "../../utils/spellbook.js";
 import { ENEMIES } from "../../data/zones.js";
 import { ENCOUNTERS } from "../../data/encounters.js";
 import { WEAPON_TYPES } from "../../data/weapons.js";
@@ -7,7 +8,7 @@ import { color, font } from "../../styles/theme.js";
 
 // Sélection de la rencontre (liste des adversaires + fiche du héros)
 export default function EncounterSelect({ player, stats, weaponType, heroSrc, onPick }) {
-  const spells = spellsFor(weaponType, player.classKey, player.level);
+  const spells = buildSpellBar(player);
   const weapon = player.equipped.arme;
   return (
     <div className="cb-select">
@@ -51,7 +52,7 @@ export default function EncounterSelect({ player, stats, weaponType, heroSrc, on
         <div style={{ fontSize: 11, color: color.mist, textTransform: "uppercase", letterSpacing: ".08em" }}>Sorts disponibles</div>
         {spells.map((sp) => (
           <div key={sp.id} style={{ fontSize: 12, color: color.parchmentDim, borderLeft: `3px solid ${sp.type === "mag" ? color.mag : sp.type === "buff" ? color.frost : color.phys}`, paddingLeft: 8 }}>
-            <span style={{ color: color.parchment, fontWeight: 600 }}>{sp.name}</span> <span style={{ color: color.gold }}>· {sp.pa} PA</span>
+            <span style={{ color: color.parchment, fontWeight: 600 }}>{sp.name}</span> <span style={{ color: color.gold }}>· {sp.pa} PA</span>{sp.rank > 1 && <span style={{ color: color.goldBright }}> · rang {sp.rank}</span>}
             <div style={{ fontSize: 11 }}>{sp.desc}</div>
           </div>
         ))}

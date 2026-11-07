@@ -46,7 +46,7 @@ export default function CombatHud({ cs, hpView, timeline, ended, busy, myTurn, s
               onMouseEnter={() => onHover(sp.id)}
               onMouseLeave={() => onHover(null)}
             >
-              <div className="nm">{sp.name}</div>
+              <div className="nm">{sp.name}{sp.rank > 1 && <span style={{ color: "#e8c766", fontSize: 10, marginLeft: 5 }}>{"★".repeat(sp.rank - 1)}</span>}</div>
               <div className="sub">{sp.type === "buff" ? "Sur soi" : sp.aoe ? "Tous les ennemis" : sp.type === "mag" ? "Magique" : "Physique"}{sp.effect?.kind === "dot" ? ` · ${sp.applyElement === "feu" ? "Feu" : "Poison"}` : ""}</div>
               <div className="cost" title={discounted ? `Réduit de ${sp.pa - cost} PA par ton set` : ""} style={discounted ? { background: "radial-gradient(circle at 35% 30%, #eaffd0, #6fe08a 60%, #2f8f46)" } : undefined}>{cost}</div>
               <div className="key">{i + 1}</div>

@@ -32,7 +32,7 @@ export default function ResultOverlay({ ended, cs, encounter, player, backLabel,
           ) : <div className="sub">Aucun butin cette fois.</div>}
           {preview.levelsGained > 0 && (
             <div className="cb-levelup">
-              Niveau {preview.player.level} atteint ! +{3 * preview.levelsGained} points de caractéristiques
+              Niveau {preview.player.level} atteint ! +{3 * preview.levelsGained} points de caractéristiques, +{preview.levelsGained} point{preview.levelsGained > 1 ? "s" : ""} de sort
               {newSpells.length > 0 && <div>Nouveau sort : {newSpells.map((sp) => sp.name).join(", ")}</div>}
             </div>
           )}

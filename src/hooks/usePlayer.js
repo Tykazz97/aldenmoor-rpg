@@ -4,6 +4,7 @@ import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
 import { applyCraft, applyRefine, addResourcesTo } from "../utils/crafting.js";
 import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
+import { rankUp, equipSpell, resetRanks } from "../utils/spellbook.js";
 import { depositItem, withdrawItem, depositResource, withdrawResource, upgradeBank } from "../utils/bank.js";
 
 let craftCounter = 0;
@@ -54,6 +55,13 @@ export function usePlayer(initial) {
     depositResource: (id, qty) => setPlayer((p) => depositResource(p, id, qty)),
     withdrawResource: (id, qty) => setPlayer((p) => withdrawResource(p, id, qty)),
     upgrade: () => setPlayer((p) => upgradeBank(p)),
+  }), []);
+
+  // Grimoire : rang d'un sort, emplacement de la barre, remise à zéro des rangs (contre de l'or)
+  const spellbook = useMemo(() => ({
+    rankUp: (id) => setPlayer((p) => rankUp(p, id)),
+    equip: (slot, id) => setPlayer((p) => equipSpell(p, slot, id)),
+    reset: () => setPlayer((p) => resetRanks(p)),
   }), []);
 
   const unequipSlot = useCallback((slotKey) => {
@@ -116,7 +124,7 @@ export function usePlayer(initial) {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank,
+    craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
   };
 }
 

@@ -48,7 +48,8 @@ export function spellsFor(weaponType, classKey = null, level = 1) {
   return [...weaponSpells, ...classSpellsAt(classKey, level)];
 }
 
-export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, seed = Date.now() >>> 0 }) {
+// `spells` : barre de sorts déjà composée (voir buildSpellBar dans utils/spellbook.js). Sans elle, tous les sorts débloqués.
+export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, seed = Date.now() >>> 0 }) {
   const s = { seed: seed >>> 0 };
 
   const bonuses = (stats.setBonuses || []).map((b) => b.bonus);
@@ -71,7 +72,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     pa: 0,
     effects: [],
     flags: { firstCrit, riposte, spellDiscount, discountReady: false, shadowDodge: false, shadowCrit: false },
-    spells: spellsFor(weaponType, classKey, level),
+    spells: spells || spellsFor(weaponType, classKey, level),
     alive: true,
   };
 

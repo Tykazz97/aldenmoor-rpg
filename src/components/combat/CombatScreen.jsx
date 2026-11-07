@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import "./combat.css";
 import { createCombat, advance, castSpell, endTurn, canCast } from "../../combat/engine.js";
 import { ENEMIES } from "../../data/zones.js";
+import { buildSpellBar } from "../../utils/spellbook.js";
 import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { sfx } from "./sfx.js";
 import { HERO_X, HERO_B, HERO_H } from "./stage.js";
@@ -58,7 +59,7 @@ export function EncounterFight({ encounter, player, stats, onRewards, onExit }) 
 // mise en scène dans useFightPlayback, affichage dans les composants.
 // ------------------------------------------------------------
 function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire" }) {
-  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies }), []); // eslint-disable-line
+  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player) }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
   const [speed, setSpeed] = useState(1);

@@ -32,6 +32,13 @@ export const CLASSES = {
         effect: { kind: "weaken", turns: 2, value: 0.25 } },
       { level: 12, id: "bastion", name: "Bastion", pa: 3, type: "buff", exclusive: true, desc: "Posture inébranlable : +30 DEF Physique (3 tours) et contre-attaque puissante",
         selfEffect: { kind: "parade", turns: 3, defUp: 30, counter: 1.0 } },
+      { level: 18, id: "fracasse_crane", name: "Fracasse-Crâne", pa: 4, type: "phys", power: 1.6, armorPen: 0.5, desc: "Gros dégâts physiques, ignore la moitié de la DEF ennemie" },
+      { level: 26, id: "hurlement_de_guerre", name: "Hurlement de Guerre", pa: 4, type: "phys", power: 0.8, aoe: true, desc: "Dégâts légers sur tous les ennemis + retire 2 PA à chacun à son prochain tour",
+        effect: { kind: "paLoss", value: 2 } },
+      { level: 34, id: "jugement", name: "Jugement", pa: 5, type: "phys", power: 1.9, desc: "Dégâts physiques lourds + réduit fortement la DEF Physique de la cible (2 tours)",
+        effect: { kind: "defDown", turns: 2, value: 0.4 } },
+      { level: 42, id: "rempart_eternel", name: "Rempart Éternel", pa: 4, type: "buff", exclusive: true, desc: "Muraille vivante : +45 DEF Physique (3 tours) et contre-attaque dévastatrice",
+        selfEffect: { kind: "parade", turns: 3, defUp: 45, counter: 1.5 } },
     ],
   },
 
@@ -54,6 +61,11 @@ export const CLASSES = {
       { level: 9, id: "execution", name: "Exécution", pa: 5, type: "phys", power: 2.4, critBonus: 25, armorPen: 0.3, desc: "Très gros dégâts, +25% critique, ignore une partie de la DEF" },
       { level: 12, id: "poison_mortel", name: "Poison Mortel", pa: 4, type: "phys", power: 0.6, applyElement: "poison", exclusive: true, desc: "Dégâts faibles + un poison violent (4 tours)",
         effect: { kind: "dot", element: "poison", turns: 4, ratio: 0.5 } },
+      { level: 18, id: "nuage_toxique", name: "Nuage Toxique", pa: 5, type: "phys", power: 0.7, aoe: true, applyElement: "poison", desc: "Dégâts faibles sur tous les ennemis + poison (3 tours)",
+        effect: { kind: "dot", element: "poison", turns: 3, ratio: 0.25 } },
+      { level: 26, id: "coup_dans_le_dos", name: "Coup dans le Dos", pa: 4, type: "phys", power: 2.0, critBonus: 35, desc: "Gros dégâts physiques, +35% critique" },
+      { level: 34, id: "lame_fantome", name: "Lame Fantôme", pa: 5, type: "phys", power: 2.2, armorPen: 0.5, critBonus: 20, desc: "Très gros dégâts, ignore la moitié de la DEF, +20% critique" },
+      { level: 42, id: "danse_macabre", name: "Danse Macabre", pa: 6, type: "phys", power: 1.5, aoe: true, critBonus: 30, armorPen: 0.2, exclusive: true, desc: "Tourbillon de lames sur tous les ennemis, +30% critique, ignore une partie de la DEF" },
     ],
   },
 
@@ -77,11 +89,20 @@ export const CLASSES = {
         effect: { kind: "paLoss", value: 2 } },
       { level: 12, id: "pluie_de_meteores", name: "Pluie de Météores", pa: 6, type: "mag", power: 1.6, aoe: true, applyElement: "feu", exclusive: true, desc: "Dégâts magiques dévastateurs sur tous les ennemis + brûlure (2 tours)",
         effect: { kind: "dot", element: "feu", turns: 2, ratio: 0.3 } },
+      { level: 18, id: "foudre_arcanique", name: "Foudre Arcanique", pa: 4, type: "mag", power: 1.7, armorPen: 0.3, critBonus: 15, desc: "Gros dégâts magiques, ignore une partie de la DEF Magique, +15% critique" },
+      { level: 26, id: "tempete_de_givre", name: "Tempête de Givre", pa: 5, type: "mag", power: 1.0, aoe: true, applyElement: "givre", desc: "Dégâts magiques sur tous les ennemis + givre (leurs dégâts -25%, 2 tours)",
+        effect: { kind: "weaken", turns: 2, value: 0.25 } },
+      { level: 34, id: "siphon_d_ame", name: "Siphon d'Âme", pa: 4, type: "mag", power: 1.3, lifesteal: 0.6, desc: "Dégâts magiques + rend 60% des dégâts infligés en PV" },
+      { level: 42, id: "cataclysme", name: "Cataclysme", pa: 6, type: "mag", power: 2.0, aoe: true, applyElement: "feu", exclusive: true, desc: "Le ciel s'embrase : dégâts magiques colossaux sur tous les ennemis + brûlure (3 tours)",
+        effect: { kind: "dot", element: "feu", turns: 3, ratio: 0.4 } },
     ],
   },
 };
 
 export const CLASS_ORDER = ["guerrier", "assassin", "magicien"];
+
+// Les sorts de classe sont rangés par niveau de déblocage (1, 3, 5, 7, 9, 12, 18, 26, 34, 42 : 10 sorts).
+// Tous ne tiennent pas dans la barre de combat : voir src/utils/spellbook.js (emplacements, rangs).
 
 // Sorts de classe débloqués à ce niveau (dans l'ordre de déblocage)
 export const classSpellsAt = (classKey, level) =>

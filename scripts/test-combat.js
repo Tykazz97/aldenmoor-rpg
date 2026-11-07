@@ -288,7 +288,8 @@ test("l'arme ne donne qu'un seul sort, la classe donne le reste selon le niveau"
   const ids = (weapon, classKey, level) => spellsFor(weapon, classKey, level).map((sp) => sp.id);
   assert.deepEqual(ids("epee", "guerrier", 1), ["taillade", "parade"]);
   assert.deepEqual(ids("epee", "guerrier", 3), ["taillade", "parade", "coup_devastateur"]);
-  assert.equal(ids("epee", "guerrier", 50).length, 1 + 6);
+  assert.equal(ids("epee", "guerrier", 12).length, 1 + 6);
+  assert.equal(ids("epee", "guerrier", 50).length, 1 + 10);
   assert.deepEqual(ids("dague", "assassin", 1), ["laceration", "disparition"]);
   assert.deepEqual(ids("baton", "magicien", 2), ["projectile_arcanique", "brasier"]);
   assert.deepEqual(ids(null, "magicien", 1), ["coup_de_poing", "brasier"]);   // sans arme
