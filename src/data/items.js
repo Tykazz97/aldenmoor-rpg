@@ -259,6 +259,28 @@ export const ITEMS = {
 // Paliers 2 et 3 (voir gearTiers.js)
 Object.assign(ITEMS, TIER_ITEMS);
 
+// ---------------------------------------------------------
+// RELIQUES — butin de boss, non fabricables, très rares. Chaque boss a la sienne (un seul emplacement rempli
+// pour l'instant : relique1 ; les trois autres viendront avec les prochains boss).
+// `passive` : effet spécial lu par le moteur de combat (voir calcStats.passives).
+// ---------------------------------------------------------
+ITEMS.lanterne_du_veilleur = {
+  id: "lanterne_du_veilleur",
+  name: "Lanterne du Veilleur",
+  type: "relique1",
+  rarity: "legendaire",
+  img: `${ICON_BASE}/accessories/lanterne_du_veilleur.png`,
+  hp: 150,
+  def_phys: 15,
+  def_magie: 15,
+  atk_phys: 10,
+  atk_magie: 10,
+  critique: 5,
+  esquive: 3,
+  passive: { lastStand: 0.35 },
+  passiveDesc: "Dernier souffle : une fois par combat, un coup mortel vous laisse à 35 % de vos PV",
+};
+
 export const ITEM_ORDER = Object.keys(ITEMS);
 
 // ============================================================

@@ -21,6 +21,8 @@ const EQUIP_STAT_KEYS = [
 export function calcStats(player) {
   const caracBonus = applyCaracEffects(player.caracs || {});
 
+  // Passifs des reliques (ex. lastStand : un coup fatal laisse X% des PV, une fois par combat)
+  const passives = {};
   const equip = { atk_phys: 0, atk_magie: 0, def_phys: 0, def_magie: 0, hp: 0, esquive: 0, critique: 0, dropBonus: 0, vitesse: 0 };
   const equipped = player.equipped || {};
   for (const item of Object.values(equipped)) {
@@ -28,6 +30,7 @@ export function calcStats(player) {
     for (const key of EQUIP_STAT_KEYS) {
       if (item[key]) equip[key] += item[key];
     }
+    for (const [k, v] of Object.entries(item.passive || {})) passives[k] = Math.max(passives[k] || 0, v);
   }
 
   // Bonus de set (ex: 2/5 pièces du Set Vétéran équipées)
@@ -50,6 +53,7 @@ export function calcStats(player) {
     dropBonus: (caracBonus.dropBonus || 0) + equip.dropBonus,
     vitesse: (caracBonus.vitesse || 10) + equip.vitesse,
     paMax: 6, // base fixe, non modifiable par caracs pour l'instant
+    passives,
     setBonuses, // exposé pour affichage (nom du set, palier atteint)
   };
 }

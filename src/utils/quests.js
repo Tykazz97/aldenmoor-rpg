@@ -6,7 +6,7 @@
 //   - Livraison : la ressource est prise dans le sac à la remise (on peut donc l'acheter au marché).
 //   - La réputation d'Aldenmoor monte avec les quêtes ; chaque niveau améliore les récompenses d'or, et tous les deux niveaux le coffre gagne 5 emplacements.
 // ============================================================
-import { QUEST_TEMPLATES, TOWN, MAX_STANDING, standingXpForLevel, STANDING_TITLES, MAX_ACTIVE_QUESTS, BOARD_SIZE } from "../data/quests.js";
+import { QUEST_TEMPLATES, CHAIN_QUESTS, TOWN, MAX_STANDING, standingXpForLevel, STANDING_TITLES, MAX_ACTIVE_QUESTS, BOARD_SIZE } from "../data/quests.js";
 import { RESOURCES } from "../data/resources.js";
 import { ITEMS } from "../data/items.js";
 import { RECIPES } from "../data/recipes.js";
@@ -21,7 +21,7 @@ import { counterValue } from "./counters.js";
 const KIND = { kill: "kills", gather: "gathered", craft: "crafted" };
 const avg = (a, b) => (a + b) / 2;
 
-export const questsOf = (player) => ({ active: [], done: { day: -1, ids: [] }, rep: {}, ...(player.quests || {}) });
+export const questsOf = (player) => ({ active: [], done: { day: -1, ids: [] }, rep: {}, chain: [], ...(player.quests || {}) });
 
 // Jour local (change à minuit, heure du joueur)
 export const dayKey = (now = Date.now()) => Math.floor((now - new Date(now).getTimezoneOffset() * 60000) / 86400000);
@@ -66,6 +66,12 @@ function build(tpl, day) {
   return { id: `${day}:${tpl.id}`, tpl: tpl.id, day, type: tpl.type, target: tpl.target, qty, title: tpl.title, text: tpl.text, rewards: reward(tpl, tpl.target, qty) };
 }
 
+function buildChain(c) {
+  const base = reward({ type: c.type, id: c.id }, c.target, c.qty);
+  const rewards = c.rewards || { gold: Math.round(base.gold * 1.5), xp: Math.round(base.xp * 1.5), rep: Math.round(base.rep * 1.5) + 10 };
+  return { id: `chain:${c.id}`, tpl: c.id, chain: true, type: c.type, target: c.target, qty: c.qty, title: c.title, text: c.text, rewards };
+}
+
 // Le joueur peut-il faire cette quête ? (niveau de métier, ennemi connu)
 function eligible(player, q) {
   if (q.type === "gather") { const n = nodeFor(q.target); return !!n && (player.professions?.[n.profession]?.level ?? 1) >= n.minLevel; }
@@ -92,7 +98,13 @@ export function boardFor(player, now = Date.now()) {
     picked.push(t); left.splice(left.indexOf(t), 1);
   }
   const q = questsOf(player), taken = new Set([...q.active.map((a) => a.id), ...(q.done.day === day ? q.done.ids : [])]);
-  return picked.map((t) => build(t, day)).filter((x) => !taken.has(x.id) && eligible(player, x));
+  const daily = picked.map((t) => build(t, day)).filter((x) => !taken.has(x.id) && eligible(player, x));
+  // chaîne de quêtes : la prochaine étape non faite, si le joueur a le niveau
+  const doneChain = q.chain || [];
+  const chain = CHAIN_QUESTS
+    .filter((c) => !doneChain.includes(c.id) && (!c.requires || doneChain.includes(c.requires)) && (player.level || 1) >= c.minLevel)
+    .map(buildChain).filter((x) => !taken.has(x.id));
+  return [...chain, ...daily];
 }
 
 // ---------- progression ----------
@@ -132,10 +144,11 @@ export function completeQuest(player, questId, now = Date.now()) {
     if (resources[quest.target] <= 0) delete resources[quest.target];
   }
   const gold = Math.round(quest.rewards.gold * (1 + perksOf(player).goldBonus)), day = dayKey(now);
-  const done = q.done.day === day ? { day, ids: [...q.done.ids, quest.id] } : { day, ids: [quest.id] };
+  const done = quest.chain ? q.done : q.done.day === day ? { day, ids: [...q.done.ids, quest.id] } : { day, ids: [quest.id] };
+  const chain = quest.chain ? [...(q.chain || []), quest.tpl] : q.chain || [];
   let next = {
     ...player, resources, gold: player.gold + gold,
-    quests: { ...q, active: q.active.filter((a) => a.id !== quest.id), done, rep: { ...q.rep, [TOWN.id]: (q.rep[TOWN.id] || 0) + quest.rewards.rep } },
+    quests: { ...q, chain, active: q.active.filter((a) => a.id !== quest.id), done, rep: { ...q.rep, [TOWN.id]: (q.rep[TOWN.id] || 0) + quest.rewards.rep } },
   };
   const g = gainXp(next, quest.rewards.xp);
   next = g.player;

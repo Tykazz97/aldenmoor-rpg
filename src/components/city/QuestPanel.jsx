@@ -73,7 +73,7 @@ function BoardRow({ q, player, full, onAccept }) {
     <div data-quest={q.id} data-tpl={q.tpl} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: color.panel, border, borderRadius: radius.md }}>
       <span style={{ fontSize: 18 }}>{TYPE_ICON[q.type]}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: color.parchment }}>{q.title}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: color.parchment }}>{q.title}{q.chain && <span style={{ marginLeft: 8, fontSize: 10, color: GOLD, border: `1px solid ${GOLD}66`, borderRadius: 4, padding: "1px 5px" }}>Chaîne de la Lisière</span>}</div>
         <div style={{ fontSize: 12, color: color.parchmentDim }}>{questLabel(q)}</div>
         <div style={{ fontSize: 11, color: color.mist, fontStyle: "italic" }}>{q.text}</div>
         <Rewards r={q.rewards} bonus={bonus} />

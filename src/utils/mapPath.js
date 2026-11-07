@@ -119,5 +119,5 @@ export function stepMove(map, pos, dx, dy, blocked = new Set()) {
 
 // ---- objets présents sur la carte (respawn en temps réel) ----
 const alive = (cleared, id, delay, now) => cleared[id] === undefined || now - cleared[id] >= delay;
-export const activeGroups = (map, world, now = Date.now()) => map.groups.filter((g) => alive(world.cleared, g.id, map.respawnMs, now));
+export const activeGroups = (map, world, now = Date.now()) => map.groups.filter((g) => alive(world.cleared, g.id, g.respawnMs ?? map.respawnMs, now));
 export const activeNodes = (map, world, now = Date.now()) => (map.nodes || []).filter((n) => alive(world.cleared, n.id, map.nodeRespawnMs, now));

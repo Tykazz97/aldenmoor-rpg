@@ -37,4 +37,6 @@ export const ENCOUNTERS = [
     desc: "D'anciens soldats corrompus. Leur feu noir brûle longtemps." },
   { id: "lisiere", name: "La lisière hantée", level: "Difficile", enemies: ["loup_garou", "esprit_errant", "chevalier_dechu"],
     desc: "Un peu de tout ce que la forêt sombre cache." },
+  { id: "veilleur_boss", name: "Le Veilleur Corrompu", level: "Mini-boss", enemies: ["veilleur_corrompu"],
+    desc: "Le gardien de la lisière : garde écrasante, regard qui vole des PA, deux esprits à mi-vie, puis une rage de feu noir et de poison.", boss: true },
 ];

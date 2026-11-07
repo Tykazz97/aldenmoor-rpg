@@ -75,7 +75,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
   }, []);
 
   const pb = useFightPlayback({ initial, csRef, speed, onIdle: keepTarget });
-  const { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef } = pb;
+  const { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef } = pb;
 
   // Fait jouer les ennemis (dans l'ordre d'initiative, fixé au début du combat) jusqu'au tour du joueur
   const step = useCallback(() => {
@@ -158,6 +158,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
 
           {/* Ennemis */}
           {cs.enemies.map((en, i) => {
+            if (en.summoned && !appeared[en.id]) return null;   // le renfort apparaît quand l'animation l'annonce
             const sl = slots[i];
             const isTarget = myTurn && currentTarget === en.id && !hasAoeHover;
             return (

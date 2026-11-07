@@ -107,7 +107,7 @@ export function evaluate(classKey, level, enc, n = N) {
 export const PLAN = {
   loups: [1, 4, 8], sangliers: [1, 4, 8], bandits: [3, 6, 9], prairie: [4, 7, 10], cavalier: [6, 9, 12],
   squelettes: [8, 11, 14], corbeaux: [8, 11, 14], epouvantails: [8, 11, 14], champs: [9, 12, 15], epouvantail_boss: [10, 12, 14],
-  garous: [14, 17, 20], esprits: [14, 17, 20], chevaliers: [14, 17, 20], lisiere: [16, 18, 20],
+  garous: [14, 17, 20], esprits: [14, 17, 20], chevaliers: [14, 17, 20], lisiere: [16, 18, 20], veilleur_boss: [18, 20, 22],
 };
 
 if (process.argv[1].endsWith("simulate-zones.js")) {

@@ -44,6 +44,20 @@ export const QUEST_TEMPLATES = [
   { id: "craft_ceinture_apprenti", type: "craft", target: "ceinture_apprenti", qty: [1, 1], title: "Ceinture d'érudit", text: "L'académie commande une ceinture d'Apprenti.", weight: 1 },
 ];
 
+// Chaîne de quêtes de la Lisière des Ombres : toujours au tableau (pas tirée au hasard), une seule fois,
+// dans l'ordre. Elle apparaît à partir de `minLevel` et la suivante s'ouvre quand la précédente est rendue.
+// `rewards` fixe l'or, l'xp et la réputation (sinon calculés comme une quête de chasse, ×1,5).
+// La relique du Veilleur n'est PAS une récompense : elle ne tombe que sur le boss, très rarement.
+export const CHAIN_QUESTS = [
+  { id: "chain_esprits", type: "kill", target: "esprit_errant", qty: 8, minLevel: 14, title: "Les murmures de la lisière",
+    text: "Des esprits errants rôdent à la lisière et glacent les voyageurs. Fais taire huit de ces spectres." },
+  { id: "chain_chevaliers", type: "kill", target: "chevalier_dechu", qty: 6, minLevel: 14, requires: "chain_esprits", title: "Les chevaliers sans repos",
+    text: "Derrière les esprits, d'anciens soldats marchent encore, le feu noir aux mains. Mets six d'entre eux au repos." },
+  { id: "chain_veilleur", type: "kill", target: "veilleur_corrompu", qty: 1, minLevel: 14, requires: "chain_chevaliers", title: "Le Veilleur Corrompu",
+    text: "Au fond de la lisière, un gardien d'avant la corruption veille sur la route du Manoir Englouti. Brise sa garde.",
+    rewards: { gold: 600, xp: 700, rep: 40 } },
+];
+
 // Réputation : de quoi passer du niveau n au niveau n+1, et titre de chaque niveau
 export const MAX_STANDING = 10;
 export const standingXpForLevel = (level) => 80 + 40 * level;

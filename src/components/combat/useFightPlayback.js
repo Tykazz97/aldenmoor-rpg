@@ -21,6 +21,7 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
   const [ghost, setGhost] = useState(() => Object.fromEntries([initial.player, ...initial.enemies].map((a) => [a.id, a.hp])));
   const [dead, setDead] = useState({});
   const [enraged, setEnraged] = useState({});
+  const [appeared, setAppeared] = useState({});   // renforts déjà montrés à l'écran
   const [floats, setFloats] = useState([]);
   const [fxs, setFxs] = useState([]);
   const [banner, setBanner] = useState(null);
@@ -162,6 +163,28 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
           pulse(e.id, "rage"); shake(true); sfx.roar();
           await sleep(1000);
           break;
+        case "summon":
+          showBanner("Des esprits surgissent !", "rage small", 1400);
+          sfx.roar();
+          setHpView((v) => ({ ...v, ...Object.fromEntries(e.enemies.map((a) => [a.id, a.hp])) }));
+          setGhost((v) => ({ ...v, ...Object.fromEntries(e.enemies.map((a) => [a.id, a.hp])) }));
+          setAppeared((a) => ({ ...a, ...Object.fromEntries(e.enemies.map((x) => [x.id, true])) }));
+          setTimeline((tl) => {
+            const at = tl.order.indexOf(e.from) + 1;
+            const order = [...tl.order]; order.splice(at, 0, ...e.enemies.map((x) => x.id));
+            return { ...tl, order };
+          });
+          await sleep(900);
+          break;
+        case "lastStand":
+          setHpView((v) => ({ ...v, [e.id]: e.hpAfter }));
+          setGhost((v) => ({ ...v, [e.id]: e.hpAfter }));
+          showBanner("Dernier souffle !", "small", 1400);
+          addFx(e.id, "heal");
+          addFloat(e.id, "Dernier souffle", "heal", 70);
+          sfx.heal();
+          await sleep(700);
+          break;
         case "round":
           setTimeline({ n: e.n, order: e.order });
           if (e.n > 1) { showBanner(`Tour ${e.n}`, "small", 700); await sleep(350); }
@@ -199,5 +222,5 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
     else if (ph === "playerTurn") onIdleRef.current?.();
   }, [playGroup, csRef]);
 
-  return { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef };
+  return { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef };
 }

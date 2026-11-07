@@ -190,7 +190,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
 
   // prochain retour d'un groupe / d'une ressource
   const waits = [];
-  for (const o of map.groups) if (world.cleared[o.id] !== undefined && !groups.includes(o)) waits.push(map.respawnMs - (now - world.cleared[o.id]));
+  for (const o of map.groups) if (world.cleared[o.id] !== undefined && !groups.includes(o)) waits.push((o.respawnMs ?? map.respawnMs) - (now - world.cleared[o.id]));
   for (const o of map.nodes) if (world.cleared[o.id] !== undefined && !nodes.includes(o)) waits.push(map.nodeRespawnMs - (now - world.cleared[o.id]));
   const soonest = waits.length ? Math.max(1, Math.ceil(Math.min(...waits) / 1000)) : null;
 

@@ -59,6 +59,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
   const thorns = Math.max(0, ...bonuses.map((b) => b.thorns || 0));          // part des dégâts reçus renvoyée en feu noir
   const lifesteal = Math.max(0, ...bonuses.map((b) => b.lifesteal || 0));    // part des dégâts infligés rendue en PV
   const armorPen = Math.max(0, ...bonuses.map((b) => b.armorPen || 0));      // part de DEF ignorée par tous les sorts
+  const lastStand = (stats.passives && stats.passives.lastStand) || 0;       // relique : un coup fatal laisse ce % de PV (une fois par combat)
 
   const player = {
     id: "player",
@@ -74,7 +75,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     dropBonus: stats.dropBonus || 0,
     pa: 0,
     effects: [],
-    flags: { firstCrit, riposte, spellDiscount, thorns, lifesteal, armorPen, discountReady: false, shadowDodge: false, shadowCrit: false },
+    flags: { firstCrit, riposte, spellDiscount, thorns, lifesteal, armorPen, lastStand, lastStandUsed: false, discountReady: false, shadowDodge: false, shadowCrit: false },
     spells: spells || spellsFor(weaponType, classKey, level),
     alive: true,
   };
@@ -128,6 +129,16 @@ function buildOrder(s) {
     .map((x) => x.id);
 }
 
+// Dernier souffle (relique) : un coup mortel laisse le héros à une part de ses PV, une seule fois par combat
+function survivesFatal(events, target) {
+  const f = target.flags;
+  if (!target.isPlayer || !f || !(f.lastStand > 0) || f.lastStandUsed) return false;
+  f.lastStandUsed = true;
+  target.hp = Math.max(1, Math.round(target.maxHp * f.lastStand));
+  events.push({ type: "lastStand", id: target.id, hpAfter: target.hp });
+  return true;
+}
+
 function effectiveDef(actor, type, armorPen = 0) {
   let def = type === "mag" ? actor.stats.defMagie : actor.stats.defPhys;
   def *= 1 - maxEffect(actor, "defDown");
@@ -161,11 +172,13 @@ function attack(s, events, attacker, target, opts) {
 
   const weaken = 1 - maxEffect(attacker, "weaken");   // Givre : l'attaquant fait moins de dégâts
   const damage = Math.max(1, Math.round(atk * power * variance * reduction * weaken * (crit ? CRIT_MULT : 1)));
+  const fatal = target.hp - damage <= 0;
   target.hp = Math.max(0, target.hp - damage);
   events.push({
     type: "hit", from: attacker.id, to: target.id, amount: damage, crit,
     hpAfter: target.hp, spellId, label, element, dmgType: type,
   });
+  if (fatal) survivesFatal(events, target);
 
   if (target.hp <= 0) {
     target.alive = false;
@@ -198,6 +211,25 @@ function attack(s, events, attacker, target, opts) {
   return { hit: true, damage, crit };
 }
 
+// Appel de renforts : les nouveaux ennemis rejoignent le combat, juste après l'invocateur dans l'ordre de jeu
+const MAX_ENEMIES = 3;
+function summonEnemies(s, events, summoner, keys) {
+  const room = MAX_ENEMIES - aliveEnemies(s).length;
+  const added = [];
+  for (const key of keys.slice(0, Math.max(0, room))) {
+    const def = ENEMIES[key];
+    const id = `e${s.enemies.length}`;
+    const en = { id, key, name: def.name, miniBoss: false, hp: def.stats.hp, maxHp: def.stats.hp, stats: { ...def.stats }, effects: [], alive: true, phasesDone: [], summoned: true };
+    s.enemies.push(en);
+    added.push({ id, key, name: en.name, hp: en.hp, maxHp: en.maxHp });
+  }
+  if (!added.length) return;
+  const at = s.order.indexOf(summoner.id) + 1;
+  s.order.splice(at, 0, ...added.map((a) => a.id));
+  if (at < s.cursor) s.cursor += added.length;   // l'invocateur a déjà joué ce tour : le curseur garde sa place
+  events.push({ type: "summon", from: summoner.id, enemies: added });
+}
+
 // Phase de rage des mini-boss quand leurs PV passent sous un seuil
 function checkPhases(s, events, enemy) {
   const def = ENEMIES[enemy.key];
@@ -207,6 +239,7 @@ function checkPhases(s, events, enemy) {
       enemy.phasesDone.push(i);
       if (ph.atkMult) { enemy.stats.atkPhys *= ph.atkMult; enemy.stats.atkMagie *= ph.atkMult; }
       events.push({ type: "phase", id: enemy.id, text: ph.announce });
+      if (ph.summon) summonEnemies(s, events, enemy, ph.summon);
     }
   });
 }
@@ -239,8 +272,10 @@ function applyEffect(s, events, source, target, effect, atkType = "phys") {
 function startTurn(s, events, actor) {
   for (const e of actor.effects.filter((x) => x.kind === "dot")) {
     if (!actor.alive) break;
+    const fatal = actor.hp - e.damage <= 0;
     actor.hp = Math.max(0, actor.hp - e.damage);
     events.push({ type: "dot", id: actor.id, amount: e.damage, element: e.element, hpAfter: actor.hp });
+    if (fatal) survivesFatal(events, actor);
     if (actor.hp <= 0) {
       actor.alive = false;
       events.push({ type: "death", id: actor.id });
@@ -257,6 +292,7 @@ function rollRewards(s) {
   const rewards = { xp: 0, gold: 0, resources: {}, items: [], kills: {} };
   const mult = 1 + (s.player.dropBonus || 0) / 100;
   for (const e of s.enemies) {
+    if (e.summoned) continue;   // les renforts appelés en combat ne rapportent rien
     const def = ENEMIES[e.key];
     rewards.xp += def.xp || 0;
     rewards.kills[e.key] = (rewards.kills[e.key] || 0) + 1;
@@ -305,7 +341,7 @@ function enemyAct(s, events, enemy, budget) {
   let pa = budget;
   const all = ENEMIES[enemy.key].actions;
   while (pa > 0 && enemy.alive && s.phase === "running") {
-    const options = all.filter((a) => (a.pa ?? ACTION_PA) <= pa);
+    const options = all.filter((a) => (a.pa ?? ACTION_PA) <= pa && (a.needsPhase == null || enemy.phasesDone.includes(a.needsPhase)));
     if (!options.length) break;
     const action = chooseAction(s, options);
     pa -= action.pa ?? ACTION_PA;

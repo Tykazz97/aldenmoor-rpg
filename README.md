@@ -61,7 +61,7 @@ Chaque niveau donne **1 point de sort**. Un sort monte du rang 1 au rang 5 : pas
 
 ## Les trois régions (niveaux 1 à 20)
 
-Zone 1 est découpée en trois cartes de difficulté croissante, chacune avec ses monstres, son butin et sa propre ambiance visuelle (`theme` dans `src/data/maps.js`) : **Prairies Sauvages** (niveaux 1 à 8), **Champs Calcinés** (8 à 14, squelettes de fermiers, corbeaux, épouvantails et leur mini-boss l'Épouvantail Ancestral) et **Lisière des Ombres** (14 à 20, loups-garous, esprits errants, chevaliers déchus ; son mini-boss, le Veilleur Corrompu, arrive avec l'étape suivante). Les ennemis sont dans `src/data/zones.js`, les groupes dans `src/data/encounters.js`.
+Zone 1 est découpée en trois cartes de difficulté croissante, chacune avec ses monstres, son butin et sa propre ambiance visuelle (`theme` dans `src/data/maps.js`) : **Prairies Sauvages** (niveaux 1 à 8), **Champs Calcinés** (8 à 14, squelettes de fermiers, corbeaux, épouvantails et leur mini-boss l'Épouvantail Ancestral) et **Lisière des Ombres** (14 à 20, loups-garous, esprits errants, chevaliers déchus ; son mini-boss est le Veilleur Corrompu, voir plus bas). Les ennemis sont dans `src/data/zones.js`, les groupes dans `src/data/encounters.js`.
 
 `node scripts/simulate-zones.js 100 squelettes,garous` fait jouer un joueur automatique de chaque classe contre les rencontres, à plusieurs niveaux (le niveau conseillé et trois niveaux plus bas), et affiche le taux de victoire et les PV restants. Objectifs : un groupe ordinaire gagné ≥ 85 % avec 35 à 70 % des PV restants au niveau conseillé, un mini-boss gagné 50 à 80 %, et trop dur trois niveaux plus bas. La simulation équipe le joueur de son palier d'équipement (palier 1 jusqu'au niveau 9, palier 2 de 10 à 15, palier 3 à partir de 16), sans la cape, les amulettes ni l'anneau : ces objets sont donc une marge de sécurité en plus.
 
@@ -69,7 +69,18 @@ Zone 1 est découpée en trois cartes de difficulté croissante, chacune avec se
 
 Chaque région a son équipement, fabriqué avec ses drops (`src/data/gearTiers.js`). **Palier 1** (Prairies) : Vétéran, Apprenti, Traqueur. **Palier 2** (Champs Calcinés) : Plates du Fossoyeur (guerrier), Plumage du Charognard (assassin), Atours du Brasier (magicien). **Palier 3** (Lisière) : Harnois du Chevalier Déchu, Pelage du Loup-Garou, Mante de l'Esprit Errant. Chaque set a 5 pièces, une arme de la classe (et un bouclier pour le guerrier) ; les stats valent environ ×1,35 (palier 2) et ×1,9 (palier 3) celles du palier 1. Les nouveaux bonus de 5 pièces : riposte plus forte et épines (renvoi de 20 % des dégâts en feu noir), vol de vie, sorts qui ignorent une part de la défense (voir `src/combat/engine.js`).
 
-Les trophées des boss donnent des objets communs à toutes les classes, fabriqués par le **Bijoutier** (nouveau métier : anneau du Cavalier Déchu, amulette de l'Armure Maudite, amulette du Cœur de Braise) et le Tailleur (cape de l'Épouvantail Ancestral). Un set de palier supérieur demande un niveau de métier plus élevé (+3 au palier 2, +6 au palier 3, voir `professions.js`). Les emplacements de reliques restent vides : ils viendront avec le Veilleur Corrompu. `test-gear.js` vérifie les paliers (stats croissantes, métiers, effets de combat).
+Les trophées des boss donnent des objets communs à toutes les classes, fabriqués par le **Bijoutier** (nouveau métier : anneau du Cavalier Déchu, amulette de l'Armure Maudite, amulette du Cœur de Braise) et le Tailleur (cape de l'Épouvantail Ancestral). Un set de palier supérieur demande un niveau de métier plus élevé (+3 au palier 2, +6 au palier 3, voir `professions.js`). Les emplacements de reliques sont réservés au butin des boss (voir « Le Veilleur Corrompu »). `test-gear.js` vérifie les paliers (stats croissantes, métiers, effets de combat).
+
+## Le Veilleur Corrompu (boss de la Lisière)
+
+Tout au bout de la carte de la Lisière des Ombres, dans le coin est. Il met **10 minutes** à réapparaître (`respawnMs` propre au groupe dans `maps.js`). Trois temps de combat :
+- **Garde** : frappes lourdes qui brisent l'armure (Frappe écrase-garde) et **Regard du néant**, qui retire 2 PA au prochain tour du héros.
+- **Appel**, sous 66 % de vie : il fait venir **2 esprits errants** (nouvelle mécanique `summon` des phases, dans `engine.js`). Ils entrent dans l'ordre de jeu juste après lui, ne rapportent ni xp, ni or, ni butin, et on ne dépasse jamais 3 ennemis.
+- **Rage**, sous 33 % : +40 % d'attaque, et il débloque Feu noir et Souffle putride (actions avec `needsPhase`).
+
+Butin : la **Clé du Manoir Englouti** tombe à coup sûr (elle ouvrira le donjon de la Dame en Deuil), et la **Lanterne du Veilleur** tombe à **5 %** seulement. C'est la première relique : emplacement `relique1`, non fabricable, stats très au-dessus des accessoires de boss, et le passif **Dernier souffle** (une fois par combat, un coup mortel laisse 35 % des PV ; passifs d'objets via `passive` → `calcStats().passives` → drapeaux du moteur). Les trois autres emplacements de reliques attendent les prochains boss.
+
+**Chaîne de quêtes** au tableau d'Aldenmoor (`CHAIN_QUESTS` dans `quests.js`, à partir du niveau 14, dans l'ordre, une seule fois) : faire taire 8 esprits errants, mettre 6 chevaliers déchus au repos, puis vaincre le Veilleur. Elles paient or, xp et réputation, jamais la relique. `test-boss.js` vérifie le boss, l'appel, la rage, la relique et la chaîne.
 
 ## Raffinage
 

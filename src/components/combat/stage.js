@@ -10,11 +10,22 @@ export const RANGED = new Set(["tir_rapide", "tir_percant", "pluie_de_fleches"])
 export const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, paLoss: "PA retirés", weaken: "Affaibli", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
 export const BADGE = { feu: "🔥", poison: "☠️", weaken: "❄️", defDown: "💔", parade: "🛡️", paLoss: "🔻", shadow: "🌑" };
 
+// Renforts que les ennemis du combat peuvent appeler (phases avec `summon`), dans l'ordre d'apparition
+export function plannedSummons(list) {
+  return list.flatMap((e) => (ENEMIES[e.key].phases || []).flatMap((ph) => ph.summon || []));
+}
+
+// Emplacements des renforts : devant le boss, entre lui et le héros
+const SUMMON_POS = [{ x: 40, b: 78 }, { x: 53, b: 44 }];
+
+// Un emplacement par ennemi du combat, puis un par renfort prévu
 export function enemySlots(list) {
   const n = list.length;
   const xs = n === 1 ? [72] : n === 2 ? [62, 82] : [57, 72, 87];
   const bs = n === 3 ? [78, 52, 78] : n === 2 ? [66, 66] : [60];
-  return list.map((e, i) => ({ x: xs[i], b: bs[i], h: ENEMIES[e.key].spriteHeight || 200 }));
+  const base = list.map((e, i) => ({ x: xs[i], b: bs[i], h: ENEMIES[e.key].spriteHeight || 200 }));
+  const extra = plannedSummons(list).slice(0, SUMMON_POS.length).map((key, i) => ({ ...SUMMON_POS[i], h: ENEMIES[key].spriteHeight || 200 }));
+  return [...base, ...extra];
 }
 
 // Animations des sprites (Web Animations API : pas de remontage du DOM)

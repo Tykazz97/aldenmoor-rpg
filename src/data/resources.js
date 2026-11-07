@@ -171,6 +171,13 @@ export const RESOURCES = {
     source: "chevalier_dechu",
   },
 
+  // --- Le Veilleur Corrompu (boss de la Lisière) ---
+  // Clé du Manoir Englouti : tombe à coup sûr, ouvre le donjon de la Dame en Deuil (à venir).
+  cle_du_manoir: {
+    id: "cle_du_manoir", name: "Clé du Manoir Englouti", rarity: "rare", value: 300,
+    source: "veilleur_corrompu",
+  },
+
   // --- Ressources RAFFINÉES : on ne les trouve pas, on les fabrique à l'atelier (voir refining.js) ---
   lingot_de_fer: { id: "lingot_de_fer", name: "Lingot de fer", rarity: "commune", value: 16, source: "raffinage" },
   lingot_de_cuivre: { id: "lingot_de_cuivre", name: "Lingot de cuivre", rarity: "peu_commune", value: 62, source: "raffinage" },

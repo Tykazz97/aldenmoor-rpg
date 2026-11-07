@@ -250,7 +250,26 @@ export const ENEMIES = {
   },
   veilleur_corrompu: {
     key: "veilleur_corrompu", name: "Le Veilleur Corrompu", miniBoss: true,
-    desc: "Mi-spectre mi-chevalier, dégâts physiques et magiques, inflige Givre, invoque un esprit errant.",
+    desc: "Gardien d'avant la corruption, mi-spectre mi-chevalier. Sa garde brise l'armure et son regard retire des PA ; sous 66 % de vie il appelle deux esprits errants, sous 33 % il entre en rage (feu noir et poison).",
+    stats: { hp: 2200, atkPhys: 31, atkMagie: 27, defPhys: 30, defMagie: 22, esquive: 0, critique: 8, vitesse: 11, pa: 6 },
+    xp: 700,
+    actions: [
+      { id: "coup_de_garde", name: "Coup de garde", pa: 3, type: "phys", power: 1.0, weight: 3 },
+      { id: "frappe_ecrase_garde", name: "Frappe écrase-garde", pa: 5, type: "phys", power: 1.7, weight: 2, effect: { kind: "defDown", turns: 2, value: 0.3 } },
+      { id: "regard_du_neant", name: "Regard du néant", pa: 4, type: "mag", power: 1.2, weight: 2, effect: { kind: "paLoss", value: 2 } },
+      // actions de la phase de rage (needsPhase = indice de la phase qui les débloque)
+      { id: "feu_noir_veilleur", name: "Feu noir", pa: 5, type: "mag", power: 1.5, weight: 2, needsPhase: 1, effect: { kind: "dot", element: "feu", turns: 3, ratio: 0.3 } },
+      { id: "souffle_putride", name: "Souffle putride", pa: 4, type: "mag", power: 1.2, weight: 2, needsPhase: 1, effect: { kind: "dot", element: "poison", turns: 3, ratio: 0.3 } },
+    ],
+    phases: [
+      { below: 0.66, summon: ["esprit_errant", "esprit_errant"], announce: "Le Veilleur appelle les esprits de la lisière !" },
+      { below: 0.33, atkMult: 1.4, announce: "Le Veilleur Corrompu se déchaîne !" },
+    ],
+    gold: [200, 300],
+    drops: [
+      { type: "resource", id: "cle_du_manoir", chance: 1, min: 1, max: 1 },
+      { type: "item", id: "lanterne_du_veilleur", chance: 0.05, min: 1, max: 1 },
+    ],
   },
 
   // --- Donjon : Le Manoir Englouti ---
@@ -267,7 +286,7 @@ export const ENEMY_IMG_BASE = "/assets/combat/enemies";
 const SPRITE_HEIGHT = {
   loup_des_plaines: 150, sanglier_sauvage: 170, bandit_des_routes: 215, cavalier_dechu: 290,
   corbeau_charognard: 130, squelette_fermier: 215, epouvantail_hante: 235, epouvantail_ancestral: 305,
-  loup_garou: 240, esprit_errant: 250, chevalier_dechu: 265,
+  loup_garou: 240, esprit_errant: 250, chevalier_dechu: 265, veilleur_corrompu: 330,
 };
 for (const enemy of Object.values(ENEMIES)) {
   if (enemy.stats) {
