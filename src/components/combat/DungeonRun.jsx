@@ -1,17 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Fight } from "./CombatScreen.jsx";
+import RoomScene from "./RoomScene.jsx";
 import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { roomEncounter } from "../../utils/dungeon.js";
+import { drinkPotion, consumePotion } from "../../utils/potions.js";
+import { buildAllies } from "../../sim/partyBots.js";
+import { getLivePopulation } from "../../sim/simWorld.js";
 
 // ------------------------------------------------------------
-// Une expédition : les salles à la suite, PV reportés de l'une à l'autre (pas de soin), butin récupéré à chaque salle gagnée.
+// Une expédition : à chaque salle, le groupe arrive d'abord dans la salle (décor, monstres, PV, potions à volonté), puis on lance le combat.
+// Les PV se reportent d'une salle à l'autre ; seules les potions soignent. Le groupe est formé une fois pour toute l'expédition.
 // La clé a déjà été consommée à l'entrée. `onDone(cleared)` quand on sort (victoire sur la dernière salle, défaite ou abandon).
 // ------------------------------------------------------------
-export default function DungeonRun({ dungeon, player, stats, onRewards, onDone }) {
+export default function DungeonRun({ dungeon, player, stats, onRewards, onPlayerChange, onDone }) {
   const [room, setRoom] = useState(0);
-  const [carry, setCarry] = useState(null);
+  const [fighting, setFighting] = useState(false);
+  const allySpecs = useMemo(() => buildAllies(player, player.companions, getLivePopulation(player)), []); // eslint-disable-line
+  const looks = useMemo(() => [heroSpriteUrl(heroLook(player, stats)), ...allySpecs.map((a) => heroSpriteUrl(a.look))], []); // eslint-disable-line
+  const [party, setParty] = useState(() => [
+    { name: player.name || "Toi", hp: stats.maxHp, maxHp: stats.maxHp },
+    ...allySpecs.map((a, i) => ({ name: a.name || `Allié ${i + 1}`, hp: a.stats.maxHp, maxHp: a.stats.maxHp })),
+  ]);
   const weaponType = player.equipped.arme?.weaponType || null;
-  const heroSrc = heroSpriteUrl(heroLook(player, stats));
+
+  const drink = (index, potionId) => {
+    const r = drinkPotion(player, party, index, potionId);
+    if (!r.drunk) return;
+    setParty(r.party);
+    onPlayerChange?.((p) => consumePotion(p, potionId));
+  };
+
+  if (!fighting) {
+    return (
+      <RoomScene
+        key={room}
+        dungeon={dungeon}
+        index={room}
+        player={player}
+        party={party.map((h, i) => ({ ...h, src: looks[i] }))}
+        onDrink={drink}
+        onFight={() => setFighting(true)}
+        onLeave={() => onDone(false)}
+      />
+    );
+  }
   return (
     <Fight
       key={room}
@@ -19,17 +51,19 @@ export default function DungeonRun({ dungeon, player, stats, onRewards, onDone }
       player={player}
       stats={stats}
       weaponType={weaponType}
-      heroSrc={heroSrc}
+      heroSrc={looks[0]}
       party
-      carry={carry}
+      allySpecs={allySpecs}
+      carry={{ player: party[0].hp, allies: party.slice(1).map((h) => h.hp) }}
       dungeon={{ index: room, total: dungeon.rooms.length }}
       onRewards={onRewards}
       onRestart={() => {}}
       onExit={(victory, end) => {
         if (!victory) { onDone(false); return; }
         if (room + 1 >= dungeon.rooms.length) { onDone(true); return; }
-        setCarry({ player: end.player, allies: end.allies });
+        setParty((ps) => ps.map((h, i) => ({ ...h, hp: i === 0 ? end.player : end.allies[i - 1] })));
         setRoom(room + 1);
+        setFighting(false);
       }}
       backLabel="Sortir du manoir"
     />

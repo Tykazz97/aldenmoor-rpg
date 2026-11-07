@@ -210,3 +210,7 @@
 .cb-actor.active .cb-shadow { background: radial-gradient(ellipse, rgba(255,210,110,.75), transparent 70%); height: 22px; }
 .cb-turnbar { height: 10px; border-radius: 5px; background: #0a0a0f; border: 1px solid #2a2a3d; transition: all .25s; }
 .cb-turnbar.mine { background: linear-gradient(90deg, #6b5a1f, #e8c768); border-color: #b8923f; box-shadow: 0 0 12px rgba(232,199,104,.6); }
+
+/* ---- Salles de donjon : décor peint à la place de la prairie ---- */
+.cb-room-bg { position: absolute; inset: 0; background-size: cover; background-position: center bottom; }
+.cb-room-shade { position: absolute; inset: 0; background: linear-gradient(180deg, #0006 0%, #0000 35%, #0008 100%); pointer-events: none; }

@@ -226,6 +226,15 @@ try {
     for (const w of ["Hall inondé", "Chapelle ardente", "Niveaux 20 à 26"]) assert.ok(pop.includes(w.toLowerCase()), w);
     assert.equal(await page.locator("button", { hasText: "Combattre seul" }).count(), 0, "pas de solo dans un donjon");
     await page.locator("button", { hasText: "Entrer avec mon groupe" }).click();
+    await page.locator('[data-room-scene="hall"]').waitFor({ timeout: 15000 });
+    assert.equal(await page.locator("[data-room-enemies] img").count(), 3, "le groupe de monstres de la salle est visible");
+    assert.equal(await page.locator("[data-room-hero]").count(), 3, "trois héros avec leurs PV");
+    assert.ok((await page.locator('[data-drink^="0:"]').count()) >= 1, "des potions sont proposées (sac de test)");
+    assert.equal(await page.locator('[data-drink^="0:"]:not([disabled])').count(), 0, "PV pleins : rien à boire");
+    await page.waitForTimeout(1500);
+    assert.equal(keys(await save()), k0 - 1, "une clé est consommée dès l'arrivée dans le manoir");
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });   // coup d'œil à la main : SHOT=/chemin.png npm run test:ui
+    await page.locator("[data-room-fight]").click();
     await page.locator(".cb-tl.ally").first().waitFor({ timeout: 30000 });
     assert.equal(await page.locator(".cb-tl.ally").count(), 2, "trois héros dans le donjon");
     await page.waitForTimeout(1500);

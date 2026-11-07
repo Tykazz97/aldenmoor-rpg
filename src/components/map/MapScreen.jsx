@@ -197,6 +197,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
         player={player}
         stats={stats}
         onRewards={onRewards}
+        onPlayerChange={onPlayerChange}
         onDone={(cleared) => {
           setWorld((w) => ({ ...w, pos: { ...posRef.current } }));
           showToast(cleared ? `${run.dungeon.name} : expédition réussie !` : `${run.dungeon.name} : expédition perdue.`);

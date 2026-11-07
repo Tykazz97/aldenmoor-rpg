@@ -102,6 +102,10 @@ Un donjon de **4 salles pour un groupe de 3** (`src/data/dungeons.js`, logique d
 
 Nouveau métier de fabrication : il ne fait que les **clés de donjon**. Pour l'instant une seule, la **Clé du Manoir Englouti** (accessible dès le niveau 1 du métier, pour qu'on puisse y gagner de l'xp) : 3 Essences du Veilleur, 6 lingots de fer, 3 lingots de cuivre, 5 ectoplasmes et 500 or. La clé est un objet de type `cle` : elle reste dans le sac et ne s'équipe pas (`equipItem` ignore tout objet sans emplacement). Avantage du métier : jusqu'à 50 % de chance (au niveau 100) de ne consommer aucune ressource en fabriquant (l'or est dépensé quand même ; pas de chef-d'œuvre pour les clés). Les clés des prochains donjons s'ajouteront à `recipes.js`, avec un objet `type: "cle"`.
 
+## Entre les salles du donjon : arrivée et potions
+
+À chaque salle, le groupe **arrive d'abord dans la salle** (`components/combat/RoomScene.jsx`) : décor peint de la salle (`public/assets/dungeons/<donjon>/<salle>.webp`, champ `bg` dans `data/dungeons.js`, repris comme décor du combat), ton groupe à gauche, le **groupe de monstres de la salle** à droite, les PV de chacun. On y boit des **potions à volonté** (`utils/potions.js`) : aucune limite de nombre ni de coût, la potion est simplement retirée du sac. Une potion de soin rend une part des PV max à un héros vivant et blessé, l'élixir de rappel relève un héros tombé à 40 % (sans lui, un tombé se relève à 20 % à la salle suivante). Puis « Lancer le combat ». Pas de potion pendant le combat. Le groupe de compagnons est formé une fois pour toute l'expédition.
+
 ## L'Alchimiste (potions de soin)
 
 Un métier de plus à l'atelier (`src/data/alchemy.js`, logique `canBrew` / `applyBrew` / `maxBrew` dans `utils/crafting.js`). Il distille des **potions**, des ressources empilables (elles se rangent au sac et au coffre, se vendent et s'achètent au marché, mais le colporteur n'en vend jamais : seuls les joueurs en produisent). Chaque potion coûte des herbes de la récolte (ortie, sauge) et, plus haut, des trophées de la Lisière : jamais de ressource de donjon.
@@ -113,7 +117,7 @@ Un métier de plus à l'atelier (`src/data/alchemy.js`, logique `canBrew` / `app
 | Grande potion de soin | 16 | 80 % des PV | 4 sauges, 2 ectoplasmes, 1 voile spectral | 80 |
 | Élixir de rappel | 24 | relève un héros tombé à 40 % | 5 sauges, 2 voiles spectraux, 1 pelage maudit | 200 |
 
-Avantage du métier : jusqu'à **40 %** de chance de distiller une potion de plus (comme le raffinage, sans rien consommer de plus). Les potions n'ont **pas encore d'usage** : la pause de soin entre les salles du donjon, leur emploi par les simulés et le rééquilibrage du donjon viendront ensuite.
+Avantage du métier : jusqu'à **40 %** de chance de distiller une potion de plus (comme le raffinage, sans rien consommer de plus). Elles servent **entre les salles du donjon** (voir « Le Manoir Englouti ») ; leur emploi par les simulés et le rééquilibrage du donjon viendront ensuite.
 
 ## Raffinage
 

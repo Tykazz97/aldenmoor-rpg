@@ -61,9 +61,9 @@ export function EncounterFight({ encounter, player, stats, party = false, onRewa
 // mise en scène dans useFightPlayback, affichage dans les composants.
 // ------------------------------------------------------------
 // `carry` / `dungeon` : salle d'un donjon (PV reportés de la salle précédente, pas de relance en cas de défaite)
-export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null }) {
+export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null, allySpecs: givenAllies = null }) {
   // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
-  const allySpecs = useMemo(() => (party ? buildAllies(player, player.companions, getLivePopulation(player)) : []), []); // eslint-disable-line
+  const allySpecs = useMemo(() => givenAllies || (party ? buildAllies(player, player.companions, getLivePopulation(player)) : []), []); // eslint-disable-line
   const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, heroSpriteUrl(a.look)])), [allySpecs]);
   const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
@@ -147,7 +147,7 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
       {/* ---------- ARÈNE ---------- */}
       <div className="cb-arena">
         <div className="cb-shaker" ref={shakeRef}>
-          <Backdrop />
+          <Backdrop image={encounter.bg} />
 
           {/* Héros */}
           <div className={`cb-actor ${ended === "defeat" ? "hero-dead" : ""} ${activeId === "player" ? "active" : ""}`} style={{ left: `${HERO_X}%`, bottom: HERO_B, zIndex: 5 }}>

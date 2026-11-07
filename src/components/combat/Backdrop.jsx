@@ -5,7 +5,9 @@ import React from "react";
 // ------------------------------------------------------------
 const EMBERS = Array.from({ length: 16 }, (_, i) => ({ left: (i * 37) % 100, delay: (i * 1.7) % 9, dur: 7 + ((i * 13) % 6), dx: ((i * 29) % 80) - 40 }));
 
-export default function Backdrop() {
+// `image` : décor d'une salle de donjon (à la place de la prairie)
+export default function Backdrop({ image = null }) {
+  if (image) return (<><div className="cb-room-bg" style={{ backgroundImage: `url(${image})` }} /><div className="cb-room-shade" /></>);
   return (
     <>
       <div className="cb-sky" />

@@ -21,7 +21,7 @@ export function roomEncounter(dungeon, index) {
   const room = dungeon.rooms[index];
   return {
     id: `${dungeon.key}:${room.id}`, name: room.name, level: `Salle ${index + 1}/${dungeon.rooms.length}`, enemies: room.enemies, desc: room.desc,
-    boss: !!room.boss, banner: `Salle ${index + 1} — ${room.name}`,
+    boss: !!room.boss, bg: room.bg, banner: `Salle ${index + 1} — ${room.name}`,
   };
 }
 
