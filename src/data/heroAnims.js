@@ -3,20 +3,22 @@
 // assemblées par scripts/build-hero-anims.py).
 //   walk  marche            mine  coups de pioche
 //   chop  coups de hache    herb  cueillette
-// Une feuille par tenue et par action : /assets/hero/<tenue>/<action>.webp
+// Une feuille par corps, tenue et action : /assets/hero/<corps>/<tenue>/<action>.webp
 // ============================================================
 import ANIMS from "./heroAnims.json";
-import { HERO_OUTFITS } from "./heroSprites.js";
 
 export const HERO_ACTION_FOR_PROFESSION = { bucheron: "chop", mineur: "mine", herboriste: "herb" };
 export const HERO_HEIGHT_CQ = 10.5;   // hauteur du héros à l'écran (unités de sprite : 6.25 = une tuile)
 
-export const heroAnimMeta = (outfit) => ANIMS[HERO_OUTFITS.includes(outfit) && ANIMS[outfit] ? outfit : "base"];
-export const heroSheetUrl = (outfit, action) => `/assets/hero/${ANIMS[outfit] ? outfit : "base"}/${action}.webp`;
+// `look` = "<corps>/<tenue>" (ex. "m/veteran"). Si les feuilles du look n'existent pas
+// encore (corps féminin), on retombe sur le corps masculin.
+const resolveLook = (look) => (ANIMS[look] ? look : ANIMS[`m/${String(look).split("/")[1]}`] ? `m/${String(look).split("/")[1]}` : "m/base");
+export const heroAnimMeta = (look) => ANIMS[resolveLook(look)];
+export const heroSheetUrl = (look, action) => `/assets/hero/${resolveLook(look)}/${action}.webp`;
 
 // Taille d'affichage d'une frame et position du point d'appui (en unités de sprite)
-export function heroFrameLayout(outfit) {
-  const m = heroAnimMeta(outfit);
+export function heroFrameLayout(look) {
+  const m = heroAnimMeta(look);
   const k = HERO_HEIGHT_CQ / m.pngH / m.scale;       // unités de sprite par pixel de feuille
   return { w: m.w * k, h: m.h * k, ax: m.anchor[0] * k, ay: m.anchor[1] * k };
 }

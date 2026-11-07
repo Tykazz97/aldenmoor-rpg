@@ -11,7 +11,7 @@ import { RESOURCES, RESOURCE_RARITIES } from "../../data/resources.js";
 import { ITEMS } from "../../data/items.js";
 import { NODES } from "../../data/gathering.js";
 import { PROFESSIONS } from "../../data/professions.js";
-import { heroOutfitFor } from "../../data/heroSprites.js";
+import { heroLook } from "../../data/heroSprites.js";
 import { heroAnimMeta, heroSheetUrl, heroFrameLayout, frameBackground, HERO_ACTION_FOR_PROFESSION } from "../../data/heroAnims.js";
 import { canGather, rollYield } from "../../utils/gathering.js";
 import { findPath, pathToObject, stepMove, canStand, activeGroups, activeNodes, mapWidth, mapHeight } from "../../utils/mapPath.js";
@@ -71,7 +71,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
   objsRef.current = { groups, nodes };
   pausedRef.current = !!(fight || harvest);
 
-  const outfit = heroOutfitFor(stats.setBonuses);
+  const outfit = heroLook(player, stats);
   const outfitRef = useRef(outfit);
   outfitRef.current = outfit;
   const heroLayout = heroFrameLayout(outfit);

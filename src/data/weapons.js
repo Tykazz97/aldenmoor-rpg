@@ -1,6 +1,7 @@
 // ============================================================
-// ARMES — chaque arme équipée donne accès à 3 sorts fixes.
-// C'est l'arme (pas une "classe") qui définit le style de jeu.
+// ARMES — chaque arme équipée donne UN seul sort, propre à son type.
+// Tous les autres sorts viennent de la classe du personnage et se
+// débloquent avec le niveau (voir classes.js).
 //
 // Champs de combat d'un sort (lus par src/combat/engine.js) :
 //   pa          coût en points d'action (le joueur en a 6 par tour)
@@ -40,13 +41,7 @@ export const WEAPON_TYPES = {
     icon: "🗡️",
     style: "Assassin — critique, poison, esquive",
     damageType: "phys",
-    spells: [
-      { id: "laceration", name: "Lacération", pa: 2, type: "phys", power: 0.9, desc: "Dégâts physiques faibles, +30% critique sur ce coup", critBonus: 30 },
-      { id: "frappe_empoisonnee", name: "Frappe Empoisonnée", pa: 3, type: "phys", power: 0.8, desc: "Dégâts physiques + applique Poison (3 tours)", applyElement: "poison",
-        effect: { kind: "dot", element: "poison", turns: 3, ratio: 0.3 } },
-      { id: "disparition", name: "Disparition", pa: 4, type: "buff", desc: "Esquive garantie la prochaine attaque + prochain coup porté = critique auto",
-        selfEffect: { kind: "shadow" } },
-    ],
+    spell: { id: "laceration", name: "Lacération", pa: 2, type: "phys", power: 0.9, desc: "Dégâts physiques faibles, +30% critique sur ce coup", critBonus: 30 },
   },
   epee: {
     key: "epee",
@@ -54,12 +49,7 @@ export const WEAPON_TYPES = {
     icon: "⚔️",
     style: "Guerrier — équilibré, défense/attaque",
     damageType: "phys",
-    spells: [
-      { id: "taillade", name: "Taillade", pa: 2, type: "phys", power: 1.0, desc: "Dégâts physiques standards, fiable" },
-      { id: "parade", name: "Parade", pa: 2, type: "buff", desc: "+DEF Physique temporaire (2 tours) + contre-attaque légère si touché",
-        selfEffect: { kind: "parade", turns: 2, defUp: 15, counter: 0.5 } },
-      { id: "coup_devastateur", name: "Coup Dévastateur", pa: 5, type: "phys", power: 2.2, desc: "Gros dégâts physiques, ignore une partie de la DEF ennemie", armorPen: 0.4 },
-    ],
+    spell: { id: "taillade", name: "Taillade", pa: 2, type: "phys", power: 1.0, desc: "Dégâts physiques standards, fiable" },
   },
   baton: {
     key: "baton",
@@ -67,12 +57,7 @@ export const WEAPON_TYPES = {
     icon: "🪄",
     style: "Mage — dégâts magiques, zone, feu",
     damageType: "mag",
-    spells: [
-      { id: "projectile_arcanique", name: "Projectile Arcanique", pa: 2, type: "mag", power: 1.0, desc: "Dégâts magiques standards" },
-      { id: "brasier", name: "Brasier", pa: 3, type: "mag", power: 0.8, desc: "Dégâts magiques + applique Feu (3 tours)", applyElement: "feu",
-        effect: { kind: "dot", element: "feu", turns: 3, ratio: 0.3 } },
-      { id: "explosion_arcanique", name: "Explosion Arcanique", pa: 5, type: "mag", power: 1.3, desc: "Gros dégâts magiques sur tous les ennemis", aoe: true },
-    ],
+    spell: { id: "projectile_arcanique", name: "Projectile Arcanique", pa: 2, type: "mag", power: 1.0, desc: "Dégâts magiques standards" },
   },
   arc: {
     key: "arc",
@@ -80,12 +65,7 @@ export const WEAPON_TYPES = {
     icon: "🏹",
     style: "Rôdeur — distance, précision, zone",
     damageType: "phys",
-    spells: [
-      { id: "tir_rapide", name: "Tir Rapide", pa: 2, type: "phys", power: 0.8, desc: "Dégâts physiques faibles, ignore une partie de l'esquive ennemie", ignoreEsquive: 0.6 },
-      { id: "tir_percant", name: "Tir Perçant", pa: 3, type: "phys", power: 1.1, desc: "Dégâts physiques moyens + réduit la DEF Physique de la cible (2 tours)",
-        effect: { kind: "defDown", turns: 2, value: 0.3 } },
-      { id: "pluie_de_fleches", name: "Pluie de Flèches", pa: 5, type: "phys", power: 1.0, desc: "Dégâts physiques sur tous les ennemis, réduits par cible", aoe: true },
-    ],
+    spell: { id: "tir_rapide", name: "Tir Rapide", pa: 2, type: "phys", power: 0.8, desc: "Dégâts physiques faibles, ignore une partie de l'esquive ennemie", ignoreEsquive: 0.6 },
   },
   marteau: {
     key: "marteau",
@@ -93,13 +73,7 @@ export const WEAPON_TYPES = {
     icon: "🔨",
     style: "Berserker — dégâts bruts, contrôle",
     damageType: "phys",
-    spells: [
-      { id: "ecrasement", name: "Écrasement", pa: 3, type: "phys", power: 1.8, desc: "Gros dégâts physiques, coup lent mais puissant" },
-      { id: "choc_sonnant", name: "Choc Sonnant", pa: 4, type: "phys", power: 1.1, desc: "Dégâts physiques moyens + retire 3 PA à la cible à son prochain tour",
-        effect: { kind: "paLoss", value: 3 } },
-      { id: "seisme", name: "Séisme", pa: 6, type: "phys", power: 1.2, desc: "Dégâts physiques sur tous les ennemis + affaiblit leurs attaques de 25% (2 tours)", aoe: true, applyElement: "givre",
-        effect: { kind: "weaken", turns: 2, value: 0.25 } },
-    ],
+    spell: { id: "ecrasement", name: "Écrasement", pa: 3, type: "phys", power: 1.8, desc: "Gros dégâts physiques, coup lent mais puissant" },
   },
   faux: {
     key: "faux",
@@ -107,12 +81,7 @@ export const WEAPON_TYPES = {
     icon: "🩸",
     style: "Nécromancien — hybride, drain, ombre",
     damageType: "mag",
-    spells: [
-      { id: "fauchaison", name: "Fauchaison", pa: 3, type: "phys", power: 0.9, desc: "Dégâts physiques sur tous les ennemis en ligne", aoe: true },
-      { id: "vol_de_vie", name: "Vol de Vie", pa: 3, type: "mag", power: 1.0, desc: "Dégâts magiques + soigne le joueur d'un % des dégâts infligés", lifesteal: 0.4 },
-      { id: "etreinte_glaciale", name: "Étreinte Glaciale", pa: 4, type: "mag", power: 1.1, desc: "Dégâts magiques + applique Givre (ses dégâts -30%, 2 tours)", applyElement: "givre",
-        effect: { kind: "weaken", turns: 2, value: 0.3 } },
-    ],
+    spell: { id: "vol_de_vie", name: "Vol de Vie", pa: 3, type: "mag", power: 1.0, desc: "Dégâts magiques + soigne le joueur d'un % des dégâts infligés", lifesteal: 0.4 },
   },
 };
 

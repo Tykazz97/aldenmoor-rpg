@@ -7,6 +7,7 @@
 // ============================================================
 
 import { ITEMS, SETS } from "../src/data/items.js";
+import { CLASSES } from "../src/data/classes.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { createCombat, advance, castSpell, endTurn } from "../src/combat/engine.js";
 
@@ -18,13 +19,20 @@ function gear(ids) {
   return equipped;
 }
 
+// Niveau en argument (3e) : node scripts/simulate-combat.js 300 5
+const LEVEL = Number(process.argv[3]) || 1;
 const LOADOUTS = {
-  "À mains nues": { items: [], weapon: null },
-  "Vétéran + Épée + Bouclier": { items: [...SETS.veteran.pieces, "epee_milicien", "bouclier_milicien"], weapon: "epee" },
-  "Apprenti + Bâton": { items: [...SETS.apprenti.pieces, "baton_noueux"], weapon: "baton" },
-  "Traqueur + Dague": { items: [...SETS.traqueur.pieces, "dague_ebrechee"], weapon: "dague" },
-  "Traqueur + Arc": { items: [...SETS.traqueur.pieces, "arc_chasse"], weapon: "arc" },
-  "Vétéran + Masse": { items: [...SETS.veteran.pieces, "masse_rouillee"], weapon: "marteau" },
+  "Guerrier arme seule (épée)": { items: ["epee_milicien"], weapon: "epee", cls: "guerrier" },
+  "Assassin arme seule (dague)": { items: ["dague_ebrechee"], weapon: "dague", cls: "assassin" },
+  "Magicien arme seule (bâton)": { items: ["baton_noueux"], weapon: "baton", cls: "magicien" },
+  "Guerrier DÉPART RÉEL": { items: ["epee_milicien", ...SETS.veteran.pieces.slice(0, 2)], weapon: "epee", cls: "guerrier" },
+  "Assassin DÉPART RÉEL": { items: ["dague_ebrechee", ...SETS.traqueur.pieces.slice(0, 2)], weapon: "dague", cls: "assassin" },
+  "Magicien DÉPART RÉEL": { items: ["baton_noueux", ...SETS.apprenti.pieces.slice(0, 2)], weapon: "baton", cls: "magicien" },
+  "Guerrier Vétéran+Épée+Bouc.": { items: [...SETS.veteran.pieces, "epee_milicien", "bouclier_milicien"], weapon: "epee", cls: "guerrier" },
+  "Guerrier Vétéran+Masse": { items: [...SETS.veteran.pieces, "masse_rouillee"], weapon: "marteau", cls: "guerrier" },
+  "Assassin Traqueur+Dague": { items: [...SETS.traqueur.pieces, "dague_ebrechee"], weapon: "dague", cls: "assassin" },
+  "Assassin Traqueur+Arc": { items: [...SETS.traqueur.pieces, "arc_chasse"], weapon: "arc", cls: "assassin" },
+  "Magicien Apprenti+Bâton": { items: [...SETS.apprenti.pieces, "baton_noueux"], weapon: "baton", cls: "magicien" },
 };
 
 const GROUPS = {
@@ -46,8 +54,8 @@ function pickSpell(state) {
   return best;
 }
 
-function fight(stats, weapon, enemyKeys, seed) {
-  let state = createCombat({ stats, weaponType: weapon, enemyKeys, seed });
+function fight(stats, lo, enemyKeys, seed) {
+  let state = createCombat({ stats, weaponType: lo.weapon, classKey: lo.cls, level: LEVEL, enemyKeys, seed });
   let guard = 0;
   while (state.phase !== "victory" && state.phase !== "defeat" && guard++ < 20000) {
     if (state.phase === "running") { state = advance(state).state; continue; }
@@ -60,15 +68,15 @@ function fight(stats, weapon, enemyKeys, seed) {
 }
 
 const pad = (s, n) => String(s).padEnd(n);
-console.log(`\nSimulation : ${N} combats par case, joueur niveau 1, sans points de caractéristiques.\n`);
+console.log(`\nSimulation : ${N} combats par case, joueur niveau ${LEVEL} (sorts de classe débloqués), caractéristiques de départ de la classe seulement.\n`);
 console.log(pad("", 28) + Object.keys(GROUPS).map((g) => pad(g, 20)).join(""));
 
 for (const [name, lo] of Object.entries(LOADOUTS)) {
-  const stats = calcStats({ caracs: {}, baseHp: 100, baseMana: 30, equipped: gear(lo.items) });
+  const stats = calcStats({ caracs: CLASSES[lo.cls].startCaracs, baseHp: 100, equipped: gear(lo.items) });
   const cells = Object.values(GROUPS).map((keys) => {
     let wins = 0, hpLeft = 0, turns = 0;
     for (let seed = 1; seed <= N; seed++) {
-      const end = fight(stats, lo.weapon, keys, seed);
+      const end = fight(stats, lo, keys, seed);
       if (end.phase === "victory") { wins++; hpLeft += end.player.hp / end.player.maxHp; }
       turns += end.turns;
     }

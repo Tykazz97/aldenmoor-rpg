@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import AppShell from "./components/layout/AppShell.jsx";
 import CharacterSheet from "./components/character/CharacterSheet.jsx";
 import ForgePanel from "./components/forge/ForgePanel.jsx";
@@ -6,7 +6,10 @@ import CombatScreen from "./components/combat/CombatScreen.jsx";
 import MapScreen from "./components/map/MapScreen.jsx";
 import { initialWorld } from "./data/maps.js";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
+import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
+import { createPlayer } from "./utils/newPlayer.js";
+import { loadSave, writeSave, clearSave, exportSave, parseSave } from "./utils/save.js";
 
 const TAB_TITLES = {
   combat: "Combat",
@@ -16,10 +19,53 @@ const TAB_TITLES = {
   journal: "Journal de quêtes",
 };
 
+// Sans sauvegarde : création du personnage. Avec : le jeu, sauvegardé automatiquement.
 export default function App() {
+  const [save, setSave] = useState(loadSave);
+  const [gameKey, setGameKey] = useState(0);
+
+  const start = (data) => { writeSave(data.player, data.world); setSave(data); setGameKey((k) => k + 1); };
+
+  if (!save) {
+    return (
+      <CharacterCreator
+        onCreate={(opts) => start({ player: createPlayer(opts), world: initialWorld() })}
+        onImport={(text) => { const d = parseSave(text); if (d) start(d); else window.alert("Fichier de sauvegarde invalide."); }}
+      />
+    );
+  }
+  return <Game key={gameKey} initial={save} onNewCharacter={() => { clearSave(); setSave(null); }} />;
+}
+
+function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
-  const [world, setWorld] = useState(initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, gather, testAddResources, testAddGold } = usePlayer();
+  const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
+  const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance } = usePlayer(initial.player);
+
+  // Sauvegarde automatique (un peu différée pour ne pas écrire à chaque changement)
+  const latest = useRef({ player, world });
+  latest.current = { player, world };
+  useEffect(() => {
+    const t = setTimeout(() => writeSave(player, world), 400);
+    return () => clearTimeout(t);
+  }, [player, world]);
+  useEffect(() => {
+    const flush = () => writeSave(latest.current.player, latest.current.world);
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, []);
+
+  const downloadSave = () => {
+    const blob = new Blob([exportSave(player, world)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `aldenmoor-${player.name}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  const newCharacter = () => {
+    if (window.confirm("Recommencer avec un nouveau personnage ? Le personnage actuel sera effacé (pense à exporter ta sauvegarde si tu veux le garder).")) onNewCharacter();
+  };
 
   // Pour l'instant, cliquer sur un slot vide ne fait rien — l'équipement
   // se fait depuis le sac (InventoryPanel). Sera étendu plus tard pour
@@ -38,6 +84,9 @@ export default function App() {
           onUnequip={unequipSlot}
           onAddCaracPoint={addCaracPoint}
           onEquipItem={equipItem}
+          onSetAppearance={setAppearance}
+          onExport={downloadSave}
+          onNewCharacter={newCharacter}
         />
       )}
       {activeTab === "forge" && (

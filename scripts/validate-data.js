@@ -87,17 +87,35 @@ for (const e of Object.values(ENEMIES)) {
   for (const a of e.actions || []) if (!(a.power > 0 && a.weight > 0 && a.pa >= 1)) err(`Ennemi ${e.key} : action invalide ${a.id}`);
   if (!existsSync(`public${e.img}`)) err(`Ennemi ${e.key} : image absente (${e.img})`);
 }
+import { CLASSES } from "../src/data/classes.js";
+const checkSpell = (sp) => {
+  if (sp.type !== "buff" && !(sp.power > 0)) err(`Sort ${sp.id} : puissance manquante`);
+  if (!(sp.pa >= 1 && sp.pa <= 6)) err(`Sort ${sp.id} : coût en PA invalide`);
+};
+const spellIds = new Set();
 for (const w of Object.values(WEAPON_TYPES)) {
-  for (const sp of w.spells) {
-    if (sp.type !== "buff" && !(sp.power > 0)) err(`Sort ${sp.id} : puissance manquante`);
-    if (!(sp.pa >= 1 && sp.pa <= 6)) err(`Sort ${sp.id} : coût en PA invalide`);
+  if (!w.spell) err(`Arme ${w.key} : sort manquant`);
+  else { checkSpell(w.spell); spellIds.add(w.spell.id); }
+}
+for (const c of Object.values(CLASSES)) {
+  if (!ITEMS[c.startWeapon]) err(`Classe ${c.key} : arme de départ inconnue`);
+  for (const id of c.startGear) if (!ITEMS[id]) err(`Classe ${c.key} : pièce de départ inconnue ${id}`);
+  if (!HERO_OUTFITS.includes(c.outfit)) err(`Classe ${c.key} : tenue inconnue`);
+  if (!c.spells.some((sp) => sp.level === 1)) err(`Classe ${c.key} : aucun sort au niveau 1`);
+  let last = 0;
+  for (const sp of c.spells) {
+    checkSpell(sp);
+    if (sp.level < last) err(`Classe ${c.key} : sorts pas dans l'ordre des niveaux (${sp.id})`);
+    last = sp.level;
+    if (spellIds.has(sp.id)) err(`Sort ${sp.id} : identifiant en double`);
+    spellIds.add(sp.id);
   }
 }
 for (const nd of Object.values(NODES)) {
   if (!existsSync(`public${nd.img}`)) err(`Nœud ${nd.id} : image absente (${nd.img})`);
 }
 for (const o of HERO_OUTFITS) {
-  if (!existsSync(`public/assets/combat/hero/${o}.png`)) err(`Tenue du héros absente : ${o}`);
+  if (!existsSync(`public/assets/combat/hero/m/${o}.png`)) err(`Tenue du héros absente : ${o}`);
 }
 
 // Ressources jamais utilisées dans une recette (information)

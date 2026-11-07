@@ -1,5 +1,5 @@
 {
- "base": {
+ "m/base": {
   "w": 227,
   "h": 304,
   "box": [
@@ -41,7 +41,7 @@
   },
   "pngH": 392
  },
- "veteran": {
+ "m/veteran": {
   "w": 268,
   "h": 266,
   "box": [
@@ -83,7 +83,7 @@
   },
   "pngH": 384
  },
- "apprenti": {
+ "m/apprenti": {
   "w": 269,
   "h": 277,
   "box": [
@@ -125,7 +125,7 @@
   },
   "pngH": 392
  },
- "traqueur": {
+ "m/traqueur": {
   "w": 245,
   "h": 280,
   "box": [

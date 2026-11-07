@@ -1,46 +1,14 @@
 import { useState, useMemo, useCallback } from "react";
 import { calcStats } from "../utils/calcStats.js";
-import { ITEMS, ITEM_ORDER } from "../data/items.js";
-import { PROFESSION_ORDER } from "../data/professions.js";
 import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
-import { applyCraft, addResourcesTo, emptyProfessions } from "../utils/crafting.js";
+import { applyCraft, addResourcesTo } from "../utils/crafting.js";
 import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
 
 let craftCounter = 0;
 
-const EMPTY_EQUIPPED = {
-  chapeau: null, cape: null, plastron: null, amulette: null,
-  gants: null, ceinture: null, anneau: null, jambieres: null,
-  arme: null, bouclier: null,
-  relique1: null, relique2: null, relique3: null, relique4: null,
-};
-
-// Inventaire de test — les items du Set Vétéran pour valider le flux
-// équiper/déséquiper avant de brancher un vrai système de loot.
-function testInventory() {
-  return ITEM_ORDER.map((id, i) => ({ ...ITEMS[id], uid: `test-${i}` }));
-}
-
-function initialPlayer() {
-  return {
-    name: "Héros",
-    level: 1,
-    xp: 0,
-    baseHp: 100,
-    hp: 100,
-    caracPoints: 0,
-    caracs: { force: 0, intelligence: 0, agilite: 0, vitalite: 0, chance: 0, vitesse: 0 },
-    equipped: { ...EMPTY_EQUIPPED },
-    inventory: testInventory(),
-    gold: 0,
-    resources: {},                                  // { idRessource: quantité }
-    professions: emptyProfessions(PROFESSION_ORDER), // { métier: { level, xp } }
-  };
-}
-
-export function usePlayer() {
-  const [player, setPlayer] = useState(initialPlayer);
+export function usePlayer(initial) {
+  const [player, setPlayer] = useState(initial);
 
   // Stats dérivées, recalculées seulement quand player change (évite le
   // recalcul à chaque render qui ralentissait l'ancienne version)
@@ -74,6 +42,9 @@ export function usePlayer() {
       return { ...prev, equipped: newEquipped, inventory: newInventory };
     });
   }, []);
+
+  // Apparence cosmétique : null = suit l'équipement
+  const setAppearance = useCallback((outfit) => setPlayer((prev) => ({ ...prev, appearance: outfit || null })), []);
 
   const unequipSlot = useCallback((slotKey) => {
     setPlayer((prev) => {
@@ -130,8 +101,7 @@ export function usePlayer() {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, applyCombatRewards, gather, testAddResources, testAddGold,
+    craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance,
   };
 }
 
-export { EMPTY_EQUIPPED };

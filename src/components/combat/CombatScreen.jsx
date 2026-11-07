@@ -6,7 +6,8 @@ import { ENCOUNTERS } from "../../data/encounters.js";
 import { RESOURCES } from "../../data/resources.js";
 import { ITEMS } from "../../data/items.js";
 import { WEAPON_TYPES } from "../../data/weapons.js";
-import { heroOutfitFor, heroSpriteUrl } from "../../data/heroSprites.js";
+import { classSpellsAt } from "../../data/classes.js";
+import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { applyRewards, xpToNext } from "../../utils/progression.js";
 import { sfx, isMuted, setMuted } from "./sfx.js";
 import { color, font } from "../../styles/theme.js";
@@ -64,8 +65,7 @@ export default function CombatScreen({ player, stats, onRewards }) {
   const [fightKey, setFightKey] = useState(0);
 
   const weaponType = player.equipped.arme?.weaponType || null;
-  const outfit = heroOutfitFor(stats.setBonuses);
-  const heroSrc = heroSpriteUrl(outfit);
+  const heroSrc = heroSpriteUrl(heroLook(player, stats));
 
   if (!encounter) {
     return <EncounterSelect player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc} onPick={(enc) => { sfx.click(); setEncounter(enc); setFightKey((k) => k + 1); }} />;
@@ -89,7 +89,7 @@ export default function CombatScreen({ player, stats, onRewards }) {
 export function EncounterFight({ encounter, player, stats, onRewards, onExit }) {
   const [fightKey, setFightKey] = useState(0);
   const weaponType = player.equipped.arme?.weaponType || null;
-  const heroSrc = heroSpriteUrl(heroOutfitFor(stats.setBonuses));
+  const heroSrc = heroSpriteUrl(heroLook(player, stats));
   return (
     <Fight key={fightKey} encounter={encounter} player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc}
       onRewards={onRewards} onRestart={() => setFightKey((k) => k + 1)} onExit={onExit} backLabel="Retour à la carte" />
@@ -100,7 +100,7 @@ export function EncounterFight({ encounter, player, stats, onRewards, onExit }) 
 // Sélection de la rencontre
 // ------------------------------------------------------------
 function EncounterSelect({ player, stats, weaponType, heroSrc, onPick }) {
-  const spells = spellsFor(weaponType);
+  const spells = spellsFor(weaponType, player.classKey, player.level);
   const weapon = player.equipped.arme;
   return (
     <div className="cb-select">
@@ -169,7 +169,7 @@ const Mini = ({ label, value, c }) => (
 // Un combat
 // ------------------------------------------------------------
 function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire" }) {
-  const initial = useMemo(() => createCombat({ stats, weaponType, enemyKeys: encounter.enemies }), []); // eslint-disable-line
+  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
   const busyRef = useRef(true);
@@ -425,6 +425,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
   const hasAoeHover = hover && p.spells.find((s) => s.id === hover)?.aoe;
   const hoverSpell = p.spells.find((s) => s.id === hover);
   const rewardsPreview = ended === "victory" && cs.rewards ? applyRewards(player, cs.rewards) : null;
+  const newSpells = rewardsPreview ? classSpellsAt(player.classKey, rewardsPreview.player.level).filter((sp) => sp.level > player.level) : [];
   const outfitClass = p.flags.shadowDodge ? "cb-hero-shadow" : "";
 
   return (
@@ -505,7 +506,10 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
                 </div>
               ) : <div className="sub">Aucun butin cette fois.</div>}
               {rewardsPreview && rewardsPreview.levelsGained > 0 && (
-                <div className="cb-levelup">Niveau {rewardsPreview.player.level} atteint ! +{3 * rewardsPreview.levelsGained} points de caractéristiques</div>
+                <div className="cb-levelup">
+                  Niveau {rewardsPreview.player.level} atteint ! +{3 * rewardsPreview.levelsGained} points de caractéristiques
+                  {newSpells.length > 0 && <div>Nouveau sort : {newSpells.map((sp) => sp.name).join(", ")}</div>}
+                </div>
               )}
               <div style={{ fontSize: 11, color: color.mist, marginBottom: 14 }}>
                 Expérience : {rewardsPreview ? rewardsPreview.player.xp : player.xp} / {xpToNext(rewardsPreview ? rewardsPreview.player.level : player.level)}
@@ -582,7 +586,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           </button>
         </div>
         <div className="cb-hint">
-          {hoverSpell ? hoverSpell.desc : myTurn ? "Clique sur un ennemi pour le cibler, puis lance un sort (touches 1-3)." : ended ? "" : "Chacun joue à son tour, toujours dans l'ordre de la frise, fixé par l'initiative au début du combat."}
+          {hoverSpell ? hoverSpell.desc : myTurn ? "Clique sur un ennemi pour le cibler, puis lance un sort (touches 1-9)." : ended ? "" : "Chacun joue à son tour, toujours dans l'ordre de la frise, fixé par l'initiative au début du combat."}
         </div>
       </div>
     </div>

@@ -3,15 +3,18 @@
 // ============================================================
 
 import assert from "node:assert/strict";
-import { createCombat, advance, castSpell, endTurn, PA_MAX } from "../src/combat/engine.js";
+import { createCombat, advance, castSpell, endTurn, spellsFor, PA_MAX } from "../src/combat/engine.js";
 
 const BASE_STATS = {
   atkPhys: 20, atkMagie: 20, defPhys: 0, defMagie: 0, maxHp: 100,
   esquive: 0, critique: 0, vitesse: 10, dropBonus: 0, setBonuses: [],
 };
 
-function mk({ weapon = "epee", enemies = ["loup_des_plaines"], stats = {}, seed = 1 } = {}) {
-  const s = createCombat({ stats: { ...BASE_STATS, ...stats }, weaponType: weapon, enemyKeys: enemies, seed });
+// Classe correspondant à chaque arme (niveau 50 : tous les sorts de classe sont débloqués)
+const CLASS_OF = { epee: "guerrier", marteau: "guerrier", dague: "assassin", arc: "assassin", baton: "magicien", faux: "magicien" };
+
+function mk({ weapon = "epee", enemies = ["loup_des_plaines"], stats = {}, seed = 1, level = 50 } = {}) {
+  const s = createCombat({ stats: { ...BASE_STATS, ...stats }, weaponType: weapon, classKey: CLASS_OF[weapon], level, enemyKeys: enemies, seed });
   // Ennemis déterministes pour les tests : pas d'esquive ni de critique
   s.enemies.forEach((e) => { e.stats.esquive = 0; e.stats.critique = 0; });
   return s;
@@ -279,6 +282,26 @@ test("défaite quand les PV du joueur tombent à zéro", () => {
 test("sans arme, le joueur a le coup de poing", () => {
   const s = createCombat({ stats: BASE_STATS, weaponType: null, enemyKeys: ["loup_des_plaines"], seed: 1 });
   assert.equal(s.player.spells[0].id, "coup_de_poing");
+});
+
+test("l'arme ne donne qu'un seul sort, la classe donne le reste selon le niveau", () => {
+  const ids = (weapon, classKey, level) => spellsFor(weapon, classKey, level).map((sp) => sp.id);
+  assert.deepEqual(ids("epee", "guerrier", 1), ["taillade", "parade"]);
+  assert.deepEqual(ids("epee", "guerrier", 3), ["taillade", "parade", "coup_devastateur"]);
+  assert.equal(ids("epee", "guerrier", 50).length, 1 + 6);
+  assert.deepEqual(ids("dague", "assassin", 1), ["laceration", "disparition"]);
+  assert.deepEqual(ids("baton", "magicien", 2), ["projectile_arcanique", "brasier"]);
+  assert.deepEqual(ids(null, "magicien", 1), ["coup_de_poing", "brasier"]);   // sans arme
+});
+
+test("un sort de classe encore verrouillé ne peut pas être lancé", () => {
+  const { state } = toPlayerTurn(mk({ weapon: "epee", level: 1 }));
+  assert.equal(castSpell(state, "coup_devastateur", "e0").events.length, 0);
+});
+
+test("la classe, pas l'arme, donne les sorts : un guerrier à la dague garde Parade", () => {
+  const s = createCombat({ stats: BASE_STATS, weaponType: "dague", classKey: "guerrier", level: 1, enemyKeys: ["loup_des_plaines"], seed: 1 });
+  assert.deepEqual(s.player.spells.map((sp) => sp.id), ["laceration", "parade"]);
 });
 
 console.log(`\n${n} tests passent.`);

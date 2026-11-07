@@ -19,6 +19,7 @@
 
 import { ENEMIES } from "../data/zones.js";
 import { WEAPON_TYPES, UNARMED_SPELLS } from "../data/weapons.js";
+import { classSpellsAt } from "../data/classes.js";
 
 export const PA_MAX = 6;
 export const CRIT_MULT = 1.5;
@@ -40,11 +41,14 @@ const randInt = (s, min, max) => min + Math.floor(rand(s) * (max - min + 1));
 // ------------------------------------------------------------
 // Création
 // ------------------------------------------------------------
-export function spellsFor(weaponType) {
-  return WEAPON_TYPES[weaponType]?.spells || UNARMED_SPELLS;
+// Sorts disponibles : celui de l'arme équipée (ou le coup de poing à mains nues),
+// puis les sorts de la classe débloqués au niveau du joueur.
+export function spellsFor(weaponType, classKey = null, level = 1) {
+  const weaponSpells = WEAPON_TYPES[weaponType] ? [WEAPON_TYPES[weaponType].spell] : UNARMED_SPELLS;
+  return [...weaponSpells, ...classSpellsAt(classKey, level)];
 }
 
-export function createCombat({ stats, weaponType = null, enemyKeys, seed = Date.now() >>> 0 }) {
+export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, seed = Date.now() >>> 0 }) {
   const s = { seed: seed >>> 0 };
 
   const bonuses = (stats.setBonuses || []).map((b) => b.bonus);
@@ -67,7 +71,7 @@ export function createCombat({ stats, weaponType = null, enemyKeys, seed = Date.
     pa: 0,
     effects: [],
     flags: { firstCrit, riposte, spellDiscount, discountReady: false, shadowDodge: false, shadowCrit: false },
-    spells: spellsFor(weaponType),
+    spells: spellsFor(weaponType, classKey, level),
     alive: true,
   };
 
