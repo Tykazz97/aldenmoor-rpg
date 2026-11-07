@@ -39,7 +39,9 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error" && !/fonts|ERR_|403|Failed to load resource/.test(m.text())) errors.push(m.text()); });
   const tab = (name) => page.locator("button", { hasText: name }).first();
-  const save = () => page.evaluate(() => JSON.parse(localStorage.getItem("aldenmoor:save")));
+  // la sauvegarde vit dans l'IndexedDB (clé « save » du magasin « kv », stockée en texte JSON)
+  const rawSave = () => page.evaluate(() => new Promise((res) => { const r = indexedDB.open("aldenmoor"); r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("save"); g.onsuccess = () => { r.result.close(); res(g.result ?? null); }; g.onerror = () => res(null); }; r.onerror = () => res(null); }));
+  const save = async () => { const raw = await rawSave(); return raw ? JSON.parse(raw) : null; };
 
   await step("création du personnage puis entrée dans le jeu (mode test)", async () => {
     await page.goto(URL); await page.waitForTimeout(400);
@@ -82,7 +84,7 @@ try {
   });
 
   await step("grimoire : points de sort, montée de rang, barre de combat équipable", async () => {
-    const mod = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("aldenmoor:save")); s.player.level = 12; s.player.gold = 5000; return JSON.stringify(s); });
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.level = 12; s.player.gold = 5000; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-grimoire")) { sessionStorage.setItem("ui-grimoire", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
     await page.reload(); await page.waitForTimeout(800);
     await tab("Personnage").click(); await page.waitForTimeout(300);
@@ -105,7 +107,7 @@ try {
 
   await step("combat complet : carte → monstres → victoire → butin → retour à la carte", async () => {
     // on place le héros dans les Prairies, près des loups (et on vérifie que la barre du grimoire est bien celle du combat)
-    const mod = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("aldenmoor:save")); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; return JSON.stringify(s); });
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-test")) { sessionStorage.setItem("ui-test", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
     await page.reload(); await page.waitForTimeout(800);
     await tab("Carte").click(); await page.waitForTimeout(1000);

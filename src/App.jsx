@@ -14,7 +14,7 @@ import { usePlayer } from "./hooks/usePlayer.js";
 import { createPlayer } from "./utils/newPlayer.js";
 import { SIM_MARKET } from "./sim/config.js";
 import { enableSimMarket, marketOf } from "./utils/market.js";
-import { loadSave, writeSave, clearSave, exportSave, parseSave } from "./utils/save.js";
+import { loadSave, writeSave, flushSave, clearSave, exportSave, parseSave } from "./utils/save.js";
 import { color, font } from "./styles/theme.js";
 
 const TAB_TITLES = {
@@ -31,11 +31,17 @@ const TAB_TITLES = {
 enableSimMarket(SIM_MARKET);   // les simulés vivent dans le marché du joueur
 
 export default function App() {
-  const [save, setSave] = useState(loadSave);
+  const [save, setSave] = useState(undefined);        // undefined = lecture de la sauvegarde en cours (IndexedDB, asynchrone)
   const [gameKey, setGameKey] = useState(0);
+  useEffect(() => {
+    let on = true;
+    loadSave().then((d) => { if (on) setSave(d); }, () => { if (on) setSave(null); });
+    return () => { on = false; };
+  }, []);
 
   const start = (data) => { writeSave(data.player, data.world); setSave(data); setGameKey((k) => k + 1); };
 
+  if (save === undefined) return <div style={{ padding: 24, color: "#c9b79c", fontFamily: "serif" }}>Chargement de la sauvegarde…</div>;
   if (!save) {
     return (
       <CharacterCreator
@@ -68,9 +74,11 @@ function Game({ initial, onNewCharacter }) {
     return () => clearTimeout(t);
   }, [player, world]);
   useEffect(() => {
-    const flush = () => writeSave(latest.current.player, latest.current.world);
+    const flush = () => flushSave(latest.current.player, latest.current.world);
+    const onHide = () => { if (document.visibilityState === "hidden") flush(); };
     window.addEventListener("pagehide", flush);
-    return () => window.removeEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHide);
+    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", onHide); };
   }, []);
 
   const downloadSave = () => {

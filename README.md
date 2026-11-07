@@ -2,7 +2,7 @@
 
 RPG médiéval sombre dans le navigateur, au tour par tour, inspiré de Dofus : trois classes (guerrier, assassin, magicien), combat en grille avec initiative, métiers de récolte et de fabrication, carte en monde ouvert, ville centrale (atelier, coffre, marché, portail vers les régions).
 
-Réalisé avec React 18 et Vite. Déployé sur Vercel à chaque envoi sur `main`. La partie est sauvegardée dans le navigateur (localStorage), avec export / import en fichier.
+Réalisé avec React 18 et Vite. Déployé sur Vercel à chaque envoi sur `main`. La partie est sauvegardée dans le navigateur (IndexedDB), avec export / import en fichier.
 
 ## Lancer le jeu
 
@@ -43,7 +43,7 @@ Règle de base : la logique vit dans `src/utils`, `src/combat` et `src/data` (te
 
 ## Données sauvegardées
 
-Clé `aldenmoor:save` (localStorage) : `{ version, savedAt, player, world }`. En changeant la forme d'une sauvegarde, augmenter `version` dans `src/utils/save.js` et ajouter la migration.
+Base IndexedDB `aldenmoor`, magasin `kv`, clé `save` (texte JSON) : `{ version, savedAt, player, world }`. Le chargement est asynchrone (écran « Chargement… » un instant). Le localStorage (clé `aldenmoor:save`) ne sert plus que de **reprise** d'une ancienne sauvegarde (recopiée dans l'IndexedDB, relue pour vérifier qu'elle est identique, et seulement ensuite effacée : jamais de perte), de **filet** à la fermeture de la page (l'écriture IndexedDB n'y est pas garantie, la copie est reprise au chargement suivant) et de **repli** si l'IndexedDB est indisponible. La copie la plus récente gagne. Les écritures sont regroupées (seule la dernière compte) et ne bloquent plus le jeu. `test-save.js` vérifie tout cela. En changeant la forme d'une sauvegarde, augmenter `version` dans `src/utils/save.js` et ajouter la migration.
 
 ## Joueurs simulés (désactivés)
 
