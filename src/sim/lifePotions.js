@@ -14,6 +14,8 @@ import { RESOURCES } from "../data/resources.js";
 import { asPlayer, priceOf, SELL_RATE } from "./lifeCraft.js";
 
 export const POTION_KIT = { potion_de_soin: 3, grande_potion_de_soin: 2, elixir_de_rappel: 1 };   // ce qu'il veut emporter
+// Ce qu'il garde sur lui de chaque potion : sa trousse (et 4 mineures) ; le reste est mis en vente à l'hôtel des ventes
+export const POTION_KEEP = { potion_mineure: 4, potion_de_soin: 3, grande_potion_de_soin: 2, elixir_de_rappel: 1 };
 export const TRAINING_STOCK = 12;               // il ne s'entraîne plus sur une potion dont il a déjà 12 exemplaires
 export const TRAINING_KEEP = 6;                 // sans hôtel des ventes, il revend au marchand ce qui dépasse 6 potions d'entraînement
 export const BREW_BATCH = 5;                    // potions distillées d'un coup

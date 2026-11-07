@@ -30,7 +30,7 @@ import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/
 import { shoppingList, stash } from "../sim/lifeCraft.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
-import { potionShopping } from "../sim/lifePotions.js";
+import { potionShopping, POTION_KEEP } from "../sim/lifePotions.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 
@@ -46,6 +46,7 @@ const NPC = "npc";
 // Le colporteur ne vend ni ressources rares, ni ressources de donjon, ni équipement au-dessus du commun (pièces fabriquées, épiques, reliques) : cela ne vient que des joueurs
 const NPC_ITEMS = ITEM_ORDER.filter((id) => ITEMS[id].rarity === "commune");
 const SIM_SELL_KEEP = 8;                       // un simulé garde au moins 8 unités de chaque ressource pour ses fabrications
+const keepOf = (id) => (RESOURCES[id].crafted ? POTION_KEEP[id] ?? 0 : SIM_SELL_KEEP);   // les potions : sa trousse seulement
 const MAX_CATCHUP_JOINT = 1008;                // 7 jours de rattrapage quand les simulés vivent ici
 const HOUR_STEPS = 6, HIST_LEN = 24, MAX_CATCHUP = 288;   // 48 h de rattrapage au plus
 const REVERT = 0.02, NOISE = 0.07, EVENT_P = 0.004, EVENT = 0.5;
@@ -159,12 +160,12 @@ function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
   const cands = [];
   for (const b of getPopulation()) {
     const life = s.sims.lives[b.id];
-    const spare = life ? sellableOf(life, id, SIM_SELL_KEEP) : 0;
+    const spare = life ? sellableOf(life, id, keepOf(id)) : 0;
     if (spare >= lo) cands.push([b, spare]);
   }
   if (cands.length) {
     const b = rng.weighted(cands), life = s.sims.lives[b.id];
-    const qty = Math.min(sellableOf(life, id, SIM_SELL_KEEP), rng.int(lo, hi));
+    const qty = Math.min(sellableOf(life, id, keepOf(id)), rng.int(lo, hi));
     return { seller: b.id, greed: b.greed, qty, life, bot: b };
   }
   if (RESOURCES[id].rarity !== "rare" && !RESOURCES[id].dungeon && !RESOURCES[id].crafted && supplyTotal < 0.6 * T && rng() < 0.9) return { seller: NPC, greed: 0.12, qty: rng.int(lo, hi) };
