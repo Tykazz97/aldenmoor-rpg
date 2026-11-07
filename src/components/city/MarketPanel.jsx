@@ -3,7 +3,7 @@ import { color, border, radius, font } from "../../styles/theme.js";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_RARITIES } from "../../data/resources.js";
 import { itemStatLines } from "../../utils/itemText.js";
 import {
-  marketOf, settleMarket, buyFromListing, buyCheapest, postListing, cancelListing, listingsFor, equipmentListings, myListings,
+  marketOf, CATCHUP_SLICE, settleMarket, buyFromListing, buyCheapest, postListing, cancelListing, listingsFor, equipmentListings, myListings,
   marketPrice, suggestedPrice, suggestedItemPrice, supplyOf, trend, stockLabel, quoteBuy, quotePost, maxAffordable, minutesLeft,
   sellerName, isMine, TAX_RATE, MAX_PLAYER_LISTINGS, STEP_MS,
 } from "../../utils/market.js";
@@ -201,7 +201,7 @@ export default function MarketPanel({ player, onPlayerChange }) {
   };
   useEffect(() => { settle(); const t = setInterval(() => settle(), 30000); return () => clearInterval(t); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const m = useMemo(() => marketOf(player, now), [player.market, now]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const m = useMemo(() => marketOf(player, now, { maxSteps: CATCHUP_SLICE }), [player.market, now]);   // eslint-disable-line react-hooks/exhaustive-deps
   const apply = (r, okText, koText) => { if (!r.ok) return say(koText(r.reason), false); onPlayerChange(r.player); say(okText(r)); };
 
   const buy = (id, qty) => apply(buyCheapest(player, id, qty, Date.now()), (r) => `Acheté ${r.qty} × ${RESOURCES[id].name} pour ${r.total} or.`, (why) => (why === "or" ? "Pas assez d'or." : "Plus rien en vente."));

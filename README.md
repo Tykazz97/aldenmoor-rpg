@@ -45,6 +45,10 @@ Règle de base : la logique vit dans `src/utils`, `src/combat` et `src/data` (te
 
 Base IndexedDB `aldenmoor`, magasin `kv`, clé `save` (texte JSON) : `{ version, savedAt, player, world }`. Le chargement est asynchrone (écran « Chargement… » un instant). Le localStorage (clé `aldenmoor:save`) ne sert plus que de **reprise** d'une ancienne sauvegarde (recopiée dans l'IndexedDB, relue pour vérifier qu'elle est identique, et seulement ensuite effacée : jamais de perte), de **filet** à la fermeture de la page (l'écriture IndexedDB n'y est pas garantie, la copie est reprise au chargement suivant) et de **repli** si l'IndexedDB est indisponible. La copie la plus récente gagne. Les écritures sont regroupées (seule la dernière compte) et ne bloquent plus le jeu. `test-save.js` vérifie tout cela. En changeant la forme d'une sauvegarde, augmenter `version` dans `src/utils/save.js` et ajouter la migration.
 
+## Rattrapage des simulés sans figer la page
+
+Après une absence, le marché et les simulés rejouent le temps écoulé (jusqu'à 7 jours, un pas par 10 minutes). Fait d'un seul coup cela bloquait la page environ 4 secondes ; c'est désormais fait **par tranches de 12 pas** (`CATCHUP_SLICE` dans `utils/market.js`, `tickMarket(m, now, { maxSteps })`), l'application enchaînant les tranches tant que le marché a du retard (`marketBehind`) : aucune pause de plus de ~0,15 s. Le résultat est strictement le même que d'un seul coup (testé dans `test-simmarket.js`). Mesuré aussi : sauvegarder les simulés avec le joueur ne coûte que ~2 ms (360 Ko), donc ils restent dans la même sauvegarde.
+
 ## Joueurs simulés (désactivés)
 
 Pour les remettre : `SIM_PLAYERS = true` dans `src/sim/config.js`. Pour qu'ils répondent avec un modèle de langage : ajouter `ANTHROPIC_API_KEY` dans les variables d'environnement de Vercel (voir `.env.example` et `api/chat.js`), puis fixer une limite de dépense dans la console Anthropic. Sans clé, ils utilisent des phrases préécrites.

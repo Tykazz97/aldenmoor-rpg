@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import AppShell from "./components/layout/AppShell.jsx";
 import CharacterSheet from "./components/character/CharacterSheet.jsx";
 import ForgePanel from "./components/forge/ForgePanel.jsx";
@@ -14,7 +14,7 @@ import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
 import { createPlayer } from "./utils/newPlayer.js";
 import { SIM_MARKET } from "./sim/config.js";
-import { enableSimMarket, marketOf } from "./utils/market.js";
+import { enableSimMarket, marketOf, marketBehind, CATCHUP_SLICE } from "./utils/market.js";
 import { loadSave, writeSave, flushSave, clearSave, exportSave, parseSave } from "./utils/save.js";
 import { color, font } from "./styles/theme.js";
 
@@ -60,12 +60,19 @@ function Game({ initial, onNewCharacter }) {
   const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook } = usePlayer(initial.player);
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
+  // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
+  const advanceMarket = useCallback(() => setPlayer((p) => { const m = marketOf(p, Date.now(), { maxSteps: CATCHUP_SLICE }); return m === p.market ? p : { ...p, market: m }; }), [setPlayer]);
   useEffect(() => {
-    const tick = () => setPlayer((p) => { const m = marketOf(p, Date.now()); return m === p.market ? p : { ...p, market: m }; });
-    tick();
-    const id = setInterval(tick, 60000);
+    advanceMarket();
+    const id = setInterval(advanceMarket, 60000);
     return () => clearInterval(id);
-  }, [setPlayer]);
+  }, [advanceMarket]);
+  const behind = marketBehind(player.market, Date.now());
+  useEffect(() => {
+    if (!behind) return undefined;
+    const t = setTimeout(advanceMarket, 20);                      // tranche suivante : le rendu a eu le temps de passer
+    return () => clearTimeout(t);
+  }, [behind, player.market?.bucket, advanceMarket]);
 
   // Sauvegarde automatique (un peu différée pour ne pas écrire à chaque changement)
   const latest = useRef({ player, world });

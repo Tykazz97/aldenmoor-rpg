@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import {
   newMarket, tickMarket, marketOf, enableSimMarket, simMarketEnabled, buyFromListing, buyCheapest, postListing, settleMarket,
-  listingsFor, sellerName, STEP_MS, supplyOf, targetStock,
+  listingsFor, sellerName, STEP_MS, supplyOf, targetStock, marketBehind, CATCHUP_SLICE,
 } from "../src/utils/market.js";
 import { getPopulation } from "../src/sim/population.js";
 import { RESOURCES, RESOURCE_ORDER } from "../src/data/resources.js";
@@ -133,6 +133,23 @@ await test("le colporteur ne vend jamais de ressource rare, ni d'équipement au-
       else assert.equal(ITEMS[l.rid].rarity, "commune", `${l.rid} vendu par le colporteur`);
     }
   }
+}));
+
+await test("rattrapage par tranches : le même marché et les mêmes simulés que d'un seul coup, sans jamais dépasser la tranche", () => run(() => {
+  const start = newMarket(T0), target = T0 + 3 * DAY;
+  const whole = tickMarket(start, target);
+  let m = start, slices = 0;
+  while (marketBehind(m, target)) {
+    const before = m.bucket;
+    m = tickMarket(m, target, { maxSteps: CATCHUP_SLICE });
+    assert.ok(m.bucket - before <= CATCHUP_SLICE && m.bucket > before, "avance d'une tranche au plus, et toujours");
+    slices++;
+  }
+  assert.ok(slices >= 10, `${slices} tranches pour 3 jours`);
+  assert.equal(JSON.stringify(m), JSON.stringify(whole));
+  assert.equal(marketBehind(m, target), false);
+  assert.equal(tickMarket(m, target, { maxSteps: CATCHUP_SLICE }), m, "à jour : rien ne change");
+  assert.equal(marketBehind(null, target), false);
 }));
 
 console.log(`\n${n} tests passent.`);

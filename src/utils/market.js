@@ -289,11 +289,15 @@ function coefficient(m, id) {
 
 const simsValid = (m) => !!m.sims && validWorld(m.sims, SIM_START, getPopulation());
 
-export function tickMarket(m, now = Date.now()) {
+// `maxSteps` : n'avance que de ce nombre de pas de 10 minutes (le reste au prochain appel), pour qu'un long rattrapage ne fige pas la page.
+// Avancer par tranches donne exactement le même marché et les mêmes simulés que d'un seul coup (chaque pas ne dépend que de l'état et de son numéro).
+export const CATCHUP_SLICE = 12;
+export function tickMarket(m, now = Date.now(), { maxSteps = Infinity } = {}) {
   const target = bucketOf(now);
   let b = Math.max(m.bucket, target - (JOINT ? MAX_CATCHUP_JOINT : MAX_CATCHUP));
   const needSims = JOINT && !simsValid(m);              // pas encore de simulés (ou un autre fresh start) : on les crée
   if (b >= target && !needSims) return m;
+  const end = Math.min(target, b + maxSteps);
   const s = {
     ...m,
     stock: { ...m.stock },
@@ -304,10 +308,12 @@ export function tickMarket(m, now = Date.now()) {
     volume: (m.volume || []).map((d) => ({ ...d })),
   };
   if (JOINT) s.sims = needSims ? createLives({ population: getPopulation(), mode: SIM_START.mode, epoch: SIM_START.epoch, now }) : structuredClone(m.sims);
-  for (; b < target; b++) stepListings(s, b + 1);
-  s.bucket = Math.max(target, m.bucket);
+  for (; b < end; b++) stepListings(s, b + 1);
+  s.bucket = Math.max(end, m.bucket);
   return s;
 }
+// Le marché a-t-il du retard sur l'heure (un rattrapage par tranches est en cours) ?
+export const marketBehind = (m, now = Date.now()) => !!m && m.v === 2 && m.bucket < bucketOf(now);
 
 // Marché neuf : on rejoue 24 h pour avoir déjà des annonces et un historique à afficher
 export function newMarket(now = Date.now()) {
@@ -318,7 +324,7 @@ export function newMarket(now = Date.now()) {
 }
 
 // Le marché du joueur mis à jour jusqu'à maintenant (sans modifier le joueur). Un ancien marché (v1) est remplacé.
-export const marketOf = (player, now = Date.now()) => (player.market?.v === 2 ? tickMarket(player.market, now) : newMarket(now));
+export const marketOf = (player, now = Date.now(), opts = {}) => (player.market?.v === 2 ? tickMarket(player.market, now, opts) : newMarket(now));
 
 // ============================================================
 // Lecture du marché
