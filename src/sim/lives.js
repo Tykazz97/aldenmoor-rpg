@@ -9,7 +9,9 @@
 //   - il enchaîne des combats dans la région de son niveau (xp, or) ; au-delà du niveau de la région l'xp s'effondre,
 //     faute de contenu plus difficile (ce plafond disparaîtra avec les nouvelles régions) ;
 //   - ou il récolte et monte son métier de récolte.
-// Étape suivante prévue : sac et ressources, fabrication d'équipement, achats et ventes à l'hôtel des ventes.
+// Il garde dans son SAC ce qu'il ramasse : les ressources des drops et de la récolte, et l'équipement qui tombe (celui de sa
+// classe seulement, comme pour toi). Quand son sac d'équipement déborde, il vend le plus ancien pour de l'or.
+// Étape suivante prévue : fabrication d'équipement, achats et ventes à l'hôtel des ventes (le sac des ressources sert à ça).
 // ============================================================
 import { ENEMIES } from "../data/zones.js";
 import { ENCOUNTERS } from "../data/encounters.js";
@@ -18,12 +20,15 @@ import { MAPS } from "../data/maps.js";
 import { ZONES } from "../data/zones.js";
 import { xpToNext, MAX_LEVEL } from "../utils/progression.js";
 import { xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
+import { ITEMS } from "../data/items.js";
+import { itemSellPrice } from "../utils/market.js";
 import { makeRng, hashString } from "./rng.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
 export const MAX_CATCHUP_STEPS = 7 * 144;              // au plus 7 jours rejoués à la fois
 export const FIGHTS_PER_STEP = 0.6;                    // combats par pas de 10 min d'un simulé zélé : un simulé n'est pas un joueur acharné (à régler avec scripts/simulate-lives.js)
 export const GATHERS_PER_STEP = 2;                     // récoltes par pas de 10 min
+export const BAG_ITEMS_MAX = 24;                       // équipements gardés dans le sac (au-delà : revente du plus ancien)
 export const OVERLEVEL_HALF = 2;                       // au-delà du niveau max de la région : l'xp est divisée par 2 tous les 2 niveaux
 const PROFESSIONS_OF_GATHER = ["bucheron", "mineur", "herboriste"];
 
@@ -37,7 +42,7 @@ function buildRegions() {
     const map = Object.values(MAPS).find((x) => x.regionKey === r.key);
     if (!m || !map) continue;
     const encs = [...new Set(map.groups.map((g) => g.encounter))].map((id) => ENCOUNTERS.find((e) => e.id === id)).filter((e) => e && !e.boss);
-    out.push({ key: r.key, lo: Number(m[1]), hi: Number(m[2]), encounters: encs.map((e) => ({ xp: e.enemies.reduce((s, k) => s + (ENEMIES[k].xp || 0), 0), gold: e.enemies.reduce((s, k) => s + ((ENEMIES[k].gold?.[0] + ENEMIES[k].gold?.[1]) / 2 || 0), 0) })) });
+    out.push({ key: r.key, lo: Number(m[1]), hi: Number(m[2]), encounters: encs.map((e) => ({ enemies: e.enemies, xp: e.enemies.reduce((s, k) => s + (ENEMIES[k].xp || 0), 0), gold: e.enemies.reduce((s, k) => s + ((ENEMIES[k].gold?.[0] + ENEMIES[k].gold?.[1]) / 2 || 0), 0) })) });
   }
   return out.sort((a, b) => a.lo - b.lo);
 }
@@ -71,15 +76,17 @@ export function isActive(bot, step, traits = traitsOf(bot)) {
 const SHARES = { combattant: { fight: 0.9, gather: 0.1 }, recolteur: { fight: 0.2, gather: 0.8 }, marchand: { fight: 0.3, gather: 0.35 }, flaneur: { fight: 0.3, gather: 0.15 } };
 
 // --- État d'un simulé --------------------------------------------------------------------------------------------------
-// { id, level, xp, gold, kills, gathers, prof: { key, level, xp } }
+// { id, level, xp, gold, kills, gathers, prof: { key, level, xp }, bag: { res: { idRessource: quantité }, items: [idObjet, ...] } }
 export function initialLife(bot, mode = "generated", seed = 1) {
   const t = traitsOf(bot);
-  if (mode === "fresh") return { id: bot.id, level: 1, xp: 0, gold: 0, kills: 0, gathers: 0, prof: { key: t.primary, level: 1, xp: 0 } };
+  if (mode === "fresh") return { id: bot.id, level: 1, xp: 0, gold: 0, kills: 0, gathers: 0, prof: { key: t.primary, level: 1, xp: 0 }, bag: emptyBag() };
   const r = makeRng(hashString(`init:${bot.id}:${seed}`));
   const level = bot.level;
   const profLevel = Math.max(1, Math.min(MAX_PROFESSION_LEVEL, Math.round(level * (bot.activity === "recolteur" ? 1.3 : 0.6) * (0.7 + r() * 0.6))));
-  return { id: bot.id, level, xp: Math.floor(r() * xpToNext(level)), gold: Math.round(level * (20 + r() * 60)), kills: level * 12, gathers: profLevel * 8, prof: { key: t.primary, level: profLevel, xp: Math.floor(r() * xpForLevel(profLevel)) } };
+  return { id: bot.id, level, xp: Math.floor(r() * xpToNext(level)), gold: Math.round(level * (20 + r() * 60)), kills: level * 12, gathers: profLevel * 8, prof: { key: t.primary, level: profLevel, xp: Math.floor(r() * xpForLevel(profLevel)) }, bag: emptyBag() };
 }
+
+export const emptyBag = () => ({ res: {}, items: [] });
 
 function addXp(life, amount) {
   let { level, xp } = life;
@@ -95,6 +102,17 @@ function addProfXp(prof, amount) {
 }
 const bestNode = (profKey, level) => Object.values(NODES).filter((n) => n.profession === profKey && n.minLevel <= level).sort((a, b) => b.minLevel - a.minLevel)[0];
 
+// Les drops d'un monstre vaincu vont dans le sac (équipement : seulement celui de sa classe)
+export function rollDrops(life, bot, enemy, rng) {
+  for (const d of enemy.drops || []) {
+    if (d.forClass && d.forClass !== bot.classKey) continue;
+    if (rng() >= d.chance) continue;
+    const qty = rng.int(d.min, d.max);
+    if (d.type === "resource") life.bag.res[d.id] = (life.bag.res[d.id] || 0) + qty;
+    else for (let i = 0; i < qty; i++) { life.bag.items.push(d.id); if (life.bag.items.length > BAG_ITEMS_MAX) life.gold += itemSellPrice(life.bag.items.shift()); }
+  }
+}
+
 // Un pas de 10 minutes (modifie `life`)
 export function stepLife(life, bot, step, traits = traitsOf(bot)) {
   if (!isActive(bot, step, traits)) return life;
@@ -106,14 +124,20 @@ export function stepLife(life, bot, step, traits = traitsOf(bot)) {
     const n = Math.floor(FIGHTS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());   // arrondi au hasard : 0,4 combat = 4 chances sur 10 d'en faire un
     const mult = overlevelMult(life.level);
     let xp = 0, gold = 0;
-    for (let i = 0; i < n; i++) { const e = rng.pick(region.encounters); xp += e.xp; gold += e.gold; }
+    for (let i = 0; i < n; i++) {
+      const e = rng.pick(region.encounters); xp += e.xp; gold += e.gold;
+      for (const k of e.enemies) rollDrops(life, bot, ENEMIES[k], rng);
+    }
     life.kills += n;
     life.gold += Math.round(gold);
     addXp(life, Math.round(xp * mult));
   } else if (roll < share.fight + share.gather) {
     const n = Math.floor(GATHERS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());
     const node = bestNode(life.prof.key, life.prof.level);
-    if (node) { life.gathers += n; addProfXp(life.prof, n * node.xp); }
+    if (node) {
+      life.gathers += n; addProfXp(life.prof, n * node.xp);
+      for (let i = 0; i < n; i++) life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + rng.int(node.yield[0], node.yield[1]);
+    }
   }
   return life;
 }
@@ -152,7 +176,13 @@ export function liveBots(world, population) {
 }
 
 // Une sauvegarde lue du navigateur est-elle utilisable ? (bonne version, même départ, même population)
+// Anciennes sauvegardes (sans sac) : on ajoute un sac vide plutôt que de tout effacer
+export function migrateWorld(w) {
+  if (w && w.lives && typeof w.lives === "object") for (const l of Object.values(w.lives)) if (l && typeof l === "object" && !l.bag) l.bag = emptyBag();
+  return w;
+}
+
 export function validWorld(w, { mode, epoch }, population) {
   return !!w && w.v === 1 && w.mode === mode && w.epoch === epoch && Number.isFinite(w.step) && w.lives && typeof w.lives === "object"
-    && population.every((b) => { const l = w.lives[b.id]; return l && Number.isFinite(l.level) && l.level >= 1 && l.prof && Number.isFinite(l.prof.level); });
+    && population.every((b) => { const l = w.lives[b.id]; return l && Number.isFinite(l.level) && l.level >= 1 && l.prof && Number.isFinite(l.prof.level) && l.bag && typeof l.bag.res === "object" && Array.isArray(l.bag.items); });
 }

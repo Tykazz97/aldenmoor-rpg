@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import { getPopulation } from "../src/sim/population.js";
 import {
   createLives, advanceLives, liveBots, validWorld, stepOf, isActive, traitsOf, overlevelMult, regionFor, initialLife,
-  STEP_MS, MAX_CATCHUP_STEPS,
+  STEP_MS, MAX_CATCHUP_STEPS, BAG_ITEMS_MAX, migrateWorld, rollDrops, emptyBag,
 } from "../src/sim/lives.js";
 import { MAX_LEVEL, xpToNext } from "../src/utils/progression.js";
+import { RESOURCES } from "../src/data/resources.js";
+import { ITEMS } from "../src/data/items.js";
+import { makeRng } from "../src/sim/rng.js";
 import { MAX_PROFESSION_LEVEL } from "../src/data/professions.js";
 
 let n = 0;
@@ -136,6 +139,46 @@ await test("navigateur : la liste vivante vient du localStorage, se rattrape à 
   assert.notEqual(later, list);
   assert.ok(JSON.parse(store[LIVES_KEY]).step > saved.step, "la sauvegarde avance avec l'heure");
   assert.ok(getLiveWorld());
+});
+
+await test("sac : ils gardent les drops et la récolte, équipement de leur classe seulement, sac d'équipement plafonné", () => {
+  const w = run(fresh(), 40);
+  const lives = pop.map((b) => [b, w.lives[b.id]]);
+  let withRes = 0;
+  for (const [b, l] of lives) {
+    assert.ok(l.bag && typeof l.bag.res === "object" && Array.isArray(l.bag.items));
+    for (const [id, q] of Object.entries(l.bag.res)) assert.ok(RESOURCES[id] && Number.isInteger(q) && q > 0, `ressource ${id}`);
+    assert.ok(l.bag.items.length <= BAG_ITEMS_MAX);
+    for (const id of l.bag.items) { const it = ITEMS[id]; assert.ok(it, id); if (it.classKey) assert.equal(it.classKey, b.classKey, "pas d'arme d'une autre classe"); }
+    if (Object.keys(l.bag.res).length) withRes++;
+  }
+  assert.ok(withRes > 150, `${withRes} sacs avec des ressources`);
+  // la récolte arrive dans le sac : un récolteur actif a de sa ressource de métier
+  const gatherer = lives.filter(([b, l]) => b.activity === "recolteur" && l.gathers > 50)[0];
+  assert.ok(gatherer, "un récolteur actif existe");
+  const own = { bucheron: ["bois_de_frene", "bois_de_chene"], mineur: ["minerai_de_fer", "minerai_de_cuivre"], herboriste: ["ortie", "sauge"] }[gatherer[1].prof.key];
+  assert.ok(own.some((id) => gatherer[1].bag.res[id] > 0), "ses récoltes sont dans son sac");
+  // un combattant a des drops de monstres
+  const fighter = lives.filter(([b, l]) => b.activity === "combattant" && l.kills > 100)[0];
+  assert.ok(Object.keys(fighter[1].bag.res).length >= 2);
+});
+
+await test("sac : l'équipement en trop est revendu (or), et les anciennes sauvegardes reçoivent un sac vide", () => {
+  const b = pop.find((x) => x.classKey === "guerrier");
+  const life = { gold: 0, bag: emptyBag() };
+  const sure = { drops: [{ type: "item", id: "epee_milicien", chance: 1, min: 1, max: 1 }, { type: "resource", id: "croc_de_loup", chance: 1, min: 2, max: 2 }, { type: "item", id: "croc_du_veilleur", chance: 1, min: 1, max: 1, forClass: "assassin" }] };
+  const rng = makeRng(1);
+  for (let i = 0; i < BAG_ITEMS_MAX; i++) rollDrops(life, b, sure, rng);
+  assert.equal(life.bag.items.length, BAG_ITEMS_MAX); assert.equal(life.gold, 0);
+  assert.equal(life.bag.res.croc_de_loup, 2 * BAG_ITEMS_MAX);
+  assert.ok(!life.bag.items.includes("croc_du_veilleur"), "arme d'assassin ignorée par un guerrier");
+  rollDrops(life, b, sure, rng);
+  assert.equal(life.bag.items.length, BAG_ITEMS_MAX, "sac plafonné");
+  assert.ok(life.gold > 0, "le plus ancien est revendu");
+  const old = { v: 1, mode: "fresh", epoch: T0, step: 1, lives: { a: { id: "a", level: 3, prof: { key: "mineur", level: 1, xp: 0 } } } };
+  migrateWorld(old);
+  assert.deepEqual(old.lives.a.bag, { res: {}, items: [] });
+  assert.ok(!validWorld({ ...old, lives: { ...old.lives, a: { ...old.lives.a, bag: undefined } } }, { mode: "fresh", epoch: T0 }, [{ id: "a" }]));
 });
 
 console.log(`\n${n} tests passent.`);

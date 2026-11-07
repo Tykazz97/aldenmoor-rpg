@@ -4,7 +4,7 @@
 // ============================================================
 import { getPopulation } from "./population.js";
 import { SIM_START } from "./config.js";
-import { createLives, advanceLives, liveBots, validWorld } from "./lives.js";
+import { createLives, advanceLives, liveBots, validWorld, migrateWorld } from "./lives.js";
 
 export const LIVES_KEY = "aldenmoor:sims";
 let world = null, cacheStep = -1, cacheList = null;
@@ -15,7 +15,7 @@ function write(w) { try { localStorage.setItem(LIVES_KEY, JSON.stringify(w)); } 
 export function getLiveWorld(now = Date.now()) {
   const pop = getPopulation();
   if (!world) {
-    const saved = read();
+    const saved = migrateWorld(read());
     world = validWorld(saved, SIM_START, pop) ? saved : createLives({ population: pop, mode: SIM_START.mode, epoch: SIM_START.epoch, now });
     cacheStep = -1;
   }
