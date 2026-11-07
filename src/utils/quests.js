@@ -13,6 +13,7 @@ import { RECIPES } from "../data/recipes.js";
 import { ENEMIES } from "../data/zones.js";
 import { NODES, NODE_ORDER } from "../data/gathering.js";
 import { getCraftInfo } from "../data/professions.js";
+import { REFINING } from "../data/refining.js";
 import { makeRng, hashString } from "../sim/rng.js";
 import { gainXp } from "./progression.js";
 import { counterValue } from "./counters.js";
@@ -50,7 +51,7 @@ function reward(tpl, target, qty) {
     gold = qty * RESOURCES[target].value * 1.2; xp = qty * 2; rep = 3 + qty * 0.35;
   } else if (tpl.type === "deliver") {
     const v = RESOURCES[target].value;
-    gold = qty * v * 1.1; xp = qty * 1.5; rep = 3 + qty * (v >= 15 ? 1.2 : 0.3);
+    gold = qty * v * 1.1; xp = qty * 1.5; rep = Math.min(15, 3 + (qty * v) / 14);
   } else {
     const rec = RECIPES[target];
     const value = Object.entries(rec.ingredients).reduce((s, [r, q]) => s + RESOURCES[r].value * q, 0) + rec.gold;
@@ -68,6 +69,7 @@ function build(tpl, day) {
 // Le joueur peut-il faire cette quête ? (niveau de métier, ennemi connu)
 function eligible(player, q) {
   if (q.type === "gather") { const n = nodeFor(q.target); return !!n && (player.professions?.[n.profession]?.level ?? 1) >= n.minLevel; }
+  if (q.type === "deliver" && REFINING[q.target]) return (player.professions?.[REFINING[q.target].profession]?.level ?? 1) >= REFINING[q.target].minLevel;
   if (q.type === "craft") { const i = getCraftInfo(q.target); return !!i && (player.professions?.[i.profession]?.level ?? 1) >= i.minLevel; }
   return true;
 }

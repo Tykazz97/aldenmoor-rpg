@@ -3,8 +3,9 @@
 // Chaque métier a son propre niveau et sa propre xp ; le niveau
 // débloque les recettes par paliers (voir getCraftInfo).
 //
-// Métiers de craft (forgeron, tailleur, maroquinier, menuisier) et de
-// récolte (bûcheron, mineur, herboriste : voir gathering.js). Le
+// Métiers de craft (forgeron, tailleur, maroquinier, menuisier), de
+// récolte (bûcheron, mineur, herboriste : voir gathering.js) et de raffinage
+// (fondeur, scieur, tanneur, tisserand : voir refining.js). Le
 // Bijoutier et l'Alchimiste viendront avec les capes/amulettes/consommables.
 // ============================================================
 
@@ -42,6 +43,23 @@ export const PROFESSIONS = {
   herboriste: {
     key: "herboriste", name: "Herboriste", icon: "🌿", kind: "gather",
     desc: "Cueille les plantes sauvages.",
+  },
+  // --- Raffinage : transforme les matières brutes à l'atelier (voir refining.js) ---
+  fondeur: {
+    key: "fondeur", name: "Fondeur", icon: "🔥", kind: "refine",
+    desc: "Fond le minerai en lingots, la matière des armures lourdes et des armes.",
+  },
+  scieur: {
+    key: "scieur", name: "Scieur", icon: "🪚", kind: "refine",
+    desc: "Débite le bois en planches pour les arcs, bâtons et boucliers.",
+  },
+  tanneur: {
+    key: "tanneur", name: "Tanneur", icon: "🦌", kind: "refine",
+    desc: "Tanne les peaux en cuir solide.",
+  },
+  tisserand: {
+    key: "tisserand", name: "Tisserand", icon: "🧶", kind: "refine",
+    desc: "Retisse les chiffons en étoffe et file les orties.",
   },
 };
 

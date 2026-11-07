@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { calcStats } from "../utils/calcStats.js";
 import { RESOURCE_ORDER, RESOURCES } from "../data/resources.js";
-import { applyCraft, addResourcesTo } from "../utils/crafting.js";
+import { applyCraft, applyRefine, addResourcesTo } from "../utils/crafting.js";
 import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
 import { depositItem, withdrawItem, depositResource, withdrawResource, upgradeBank } from "../utils/bank.js";
@@ -85,6 +85,11 @@ export function usePlayer(initial) {
     setPlayer((prev) => applyCraft(prev, itemId, `craft-${Date.now()}-${craftCounter++}`));
   }, []);
 
+  // Raffinage : `times` unités d'une ressource raffinée (la validation est refaite sur l'état le plus récent)
+  const refine = useCallback((id, times = 1) => {
+    setPlayer((prev) => applyRefine(prev, id, times).player);
+  }, []);
+
   // Récompenses d'un combat gagné (xp, or, ressources, objets)
   const applyCombatRewards = useCallback((rewards) => {
     setPlayer((prev) => applyRewards(prev, rewards, `loot-${Date.now()}-${craftCounter++}`).player);
@@ -111,7 +116,7 @@ export function usePlayer(initial) {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank,
+    craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank,
   };
 }
 

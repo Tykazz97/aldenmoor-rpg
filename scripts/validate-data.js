@@ -11,7 +11,8 @@ import { RESOURCES } from "../src/data/resources.js";
 import { NODES } from "../src/data/gathering.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { ENEMIES, ZONES } from "../src/data/zones.js";
-import { getCraftInfo } from "../src/data/professions.js";
+import { getCraftInfo, PROFESSIONS } from "../src/data/professions.js";
+import { REFINING } from "../src/data/refining.js";
 
 const errors = [];
 const warnings = [];
@@ -51,8 +52,23 @@ for (const [resId, res] of Object.entries(RESOURCES)) {
   }
   if (res.source === "recolte") {
     if (!Object.values(NODES).some((nd) => nd.resource === resId)) err(`Ressource ${resId} : aucun nœud de récolte ne la donne`);
+  } else if (res.source === "raffinage") {
+    if (!REFINING[resId]) err(`Ressource ${resId} : aucune recette de raffinage ne la produit`);
   } else if (!ENEMIES[res.source]) err(`Ressource ${resId} : source inconnue ${res.source}`);
   else if (!dropped.has(`resource:${resId}`)) warn(`Ressource ${resId} : aucun ennemi ne la lâche`);
+}
+
+// Raffinage : produit, ingrédients et métier existants ; une matière raffinée vaut plus que ce qu'elle consomme
+for (const [id, rec] of Object.entries(REFINING)) {
+  if (!RESOURCES[id]) { err(`Raffinage ${id} : ressource produite inconnue`); continue; }
+  if (RESOURCES[id].source !== "raffinage") err(`Raffinage ${id} : la ressource devrait avoir source "raffinage"`);
+  if (PROFESSIONS[rec.profession]?.kind !== "refine") err(`Raffinage ${id} : métier ${rec.profession} inconnu ou pas un métier de raffinage`);
+  let raw = 0;
+  for (const [r, q] of Object.entries(rec.ingredients)) {
+    if (!RESOURCES[r]) err(`Raffinage ${id} : ingrédient inconnu ${r}`);
+    else { raw += RESOURCES[r].value * q; if (RESOURCES[r].source === "raffinage") err(`Raffinage ${id} : ${r} est déjà raffiné`); }
+  }
+  if (RESOURCES[id].value <= raw) warn(`Raffinage ${id} : vaut ${RESOURCES[id].value} or pour ${raw} or de matières brutes (aucun bénéfice)`);
 }
 
 // Sets : pièces existantes et craftables

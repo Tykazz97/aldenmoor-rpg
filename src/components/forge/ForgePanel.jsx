@@ -6,7 +6,8 @@ import { PROFESSIONS, PROFESSION_ORDER, recipesOfProfession, xpForLevel, MAX_PRO
 import { RECIPES } from "../../data/recipes.js";
 import { ITEMS } from "../../data/items.js";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_RARITIES } from "../../data/resources.js";
-import { canCraft } from "../../utils/crafting.js";
+import { REFINING, refiningOf } from "../../data/refining.js";
+import { canCraft, canRefine, maxRefine, professionOf } from "../../utils/crafting.js";
 import { itemStatLines } from "../../utils/itemText.js";
 
 const RARITY_ITEM_COLOR = { commune: "#9a95a8", rare: "#5fa3c4", epique: "#a855f7", legendaire: "#d9b568" };
@@ -145,6 +146,53 @@ function RecipeCard({ itemId, check, onCraft }) {
   );
 }
 
+// Raffinage : on transforme des matières brutes en matière raffinée, par 1, par 5 ou au maximum
+function RefineCard({ id, player, onRefine }) {
+  const rec = REFINING[id], out = RESOURCES[id], max = maxRefine(player, id), check = canRefine(player, id, 1);
+  const rc = RESOURCE_RARITIES[out.rarity]?.color || color.mist;
+  const btn = (n, label) => {
+    const on = n >= 1 && max >= n;
+    return (
+      <button data-refine={n === max ? "max" : String(n)} disabled={!on} onClick={() => onRefine(id, n)} style={{ padding: "5px 10px", fontSize: 12, fontWeight: 600, borderRadius: radius.sm, background: on ? color.gold : color.panelRaised, color: on ? color.void : color.mist, border: `1px solid ${on ? color.goldBright : color.line}`, cursor: on ? "pointer" : "not-allowed" }}>{label}</button>
+    );
+  };
+  let blocker = null;
+  if (check.lacksLevel) blocker = `Niveau ${check.minLevel} requis`;
+  else if (check.lacksResources) blocker = "Matières manquantes";
+  else if (check.lacksGold) blocker = "Or insuffisant";
+  return (
+    <div data-refine-recipe={id} style={{ background: color.panel, border: `1px solid ${max > 0 ? color.gold + "66" : color.line}`, borderRadius: radius.md, padding: 12, display: "flex", gap: 12, opacity: check.lacksLevel ? 0.6 : 1 }}>
+      <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: radius.sm, background: color.panelRaised, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <ResourceIcon resource={out} size={42} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: rc }}>{out.name}</span>
+          <span style={{ fontSize: 10, color: color.mist }}>{rec.verb} · +{rec.xp} xp par unité · vaut {out.value} or · tu en as {player.resources[id] || 0}</span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {Object.entries(rec.ingredients).map(([resId, qty]) => {
+            const res = RESOURCES[resId], have = player.resources[resId] || 0, enough = have >= qty;
+            return (
+              <div key={resId} title={res.name} style={{ display: "flex", alignItems: "center", gap: 5, padding: "2px 7px 2px 3px", background: color.void, borderRadius: 999, border: `1px solid ${enough ? color.line : color.danger + "99"}` }}>
+                <ResourceIcon resource={res} size={20} />
+                <span style={{ fontSize: 11, color: enough ? color.parchmentDim : "#d98a8a" }}>{res.name}</span>
+                <span style={{ fontSize: 11, fontFamily: font.data, color: enough ? color.success : "#d98a8a" }}>{have}/{qty}</span>
+              </div>
+            );
+          })}
+          <span style={{ fontSize: 11, fontFamily: font.data, color: color.goldBright, alignSelf: "center" }}>→ 1 pour {rec.gold} or</span>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center", gap: 6, flexShrink: 0 }}>
+        {max > 0 ? (
+          <div style={{ display: "flex", gap: 6 }}>{btn(1, "×1")}{max >= 5 && btn(5, "×5")}{max > 1 && max !== 5 && btn(max, `Max (${max})`)}</div>
+        ) : <span style={{ fontSize: 11, color: color.mist }}>{blocker}</span>}
+      </div>
+    </div>
+  );
+}
+
 function NodeCard({ node, level }) {
   const res = RESOURCES[node.resource];
   const ok = level >= node.minLevel;
@@ -162,7 +210,7 @@ function NodeCard({ node, level }) {
   );
 }
 
-export default function ForgePanel({ player, onCraft, onTestResources, onTestGold }) {
+export default function ForgePanel({ player, onCraft, onRefine, onTestResources, onTestGold }) {
   const [selected, setSelected] = useState(PROFESSION_ORDER[0]);
   const [flash, setFlash] = useState(null);
   const timer = useRef(null);
@@ -175,7 +223,16 @@ export default function ForgePanel({ player, onCraft, onTestResources, onTestGol
     timer.current = setTimeout(() => setFlash(null), 2500);
   };
 
-  const gatherNodes = PROFESSIONS[selected].kind === "gather" ? nodesOfProfession(selected) : null;
+  const handleRefine = (id, n) => {
+    onRefine(id, n);
+    setFlash(`${RESOURCES[id].name} ×${n} produit${n > 1 ? "s" : ""} — ajouté${n > 1 ? "s" : ""} à ton sac`);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setFlash(null), 2500);
+  };
+
+  const kind = PROFESSIONS[selected].kind;
+  const gatherNodes = kind === "gather" ? nodesOfProfession(selected) : null;
+  const refineIds = kind === "refine" ? refiningOf(selected) : null;
   const recipes = recipesOfProfession(selected);
   const owned = RESOURCE_ORDER.filter((id) => (player.resources[id] || 0) > 0);
 
@@ -185,18 +242,21 @@ export default function ForgePanel({ player, onCraft, onTestResources, onTestGol
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <BannerHeader icon="⚒" title="Métiers" />
         <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-          {PROFESSION_ORDER.map((key) => (
-            <ProfessionButton
-              key={key} profession={PROFESSIONS[key]} state={player.professions[key]}
-              selected={selected === key} onClick={() => setSelected(key)}
-            />
-          ))}
+          {PROFESSION_ORDER.map((key, i) => {
+            const k = PROFESSIONS[key].kind || "craft", prev = i > 0 ? PROFESSIONS[PROFESSION_ORDER[i - 1]].kind || "craft" : null;
+            return (
+              <React.Fragment key={key}>
+                {k !== prev && <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: i ? 6 : 0 }}>{{ craft: "Fabrication", gather: "Récolte", refine: "Raffinage" }[k]}</div>}
+                <ProfessionButton profession={PROFESSIONS[key]} state={professionOf(player, key)} selected={selected === key} onClick={() => setSelected(key)} />
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
 
       {/* Recettes */}
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
+        <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : refineIds ? `${refineIds.length} transformation${refineIds.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
         <div style={{ padding: "8px 12px 0", fontSize: 12, color: color.mist }}>{PROFESSIONS[selected].desc}</div>
         {flash && (
           <div style={{ margin: "8px 12px 0", padding: "6px 10px", fontSize: 12, color: color.success, background: "#5c9c5c18", border: `1px solid ${color.success}66`, borderRadius: radius.sm }}>
@@ -204,8 +264,9 @@ export default function ForgePanel({ player, onCraft, onTestResources, onTestGol
           </div>
         )}
         <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
-          {gatherNodes && gatherNodes.map((n) => <NodeCard key={n.id} node={n} level={player.professions[selected]?.level ?? 1} />)}
-          {!gatherNodes && recipes.map(({ itemId }) => (
+          {gatherNodes && gatherNodes.map((n) => <NodeCard key={n.id} node={n} level={professionOf(player, selected).level} />)}
+          {refineIds && refineIds.map((id) => <RefineCard key={id} id={id} player={player} onRefine={handleRefine} />)}
+          {!gatherNodes && !refineIds && recipes.map(({ itemId }) => (
             <RecipeCard key={itemId} itemId={itemId} check={canCraft(player, itemId)} onCraft={handleCraft} />
           ))}
         </div>

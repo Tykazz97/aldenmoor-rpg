@@ -8,38 +8,40 @@
 // UNE pièce par set (le plastron), les autres pièces se font avec
 // les ressources communes et peu communes.
 // Les matières premières (bois, minerai, plantes) se récoltent sur la carte
-// (gathering.js) ; les drops de monstres complètent. Les ressources du
+// (gathering.js) ; les drops de monstres complètent. Bois, minerai, peaux, chiffons et orties
+// passent d'abord par le RAFFINAGE (refining.js) : deux matières brutes donnent une matière raffinée,
+// et les recettes ci-dessous demandent les matières raffinées. Les ressources du
 // Cavalier Déchu ne sont pas encore utilisées :
 // elles serviront pour un set / des pièces dédiés (à définir).
 // ============================================================
 
 export const RECIPES = {
   // --- Harnois du Vétéran (sanglier + bandit) ---
-  chapeau_veteran: { ingredients: { peau_de_sanglier: 3, minerai_de_fer: 2, defense_ebrechee: 1 }, gold: 30 },
-  plastron_veteran: { ingredients: { peau_de_sanglier: 4, defense_ebrechee: 2, minerai_de_fer: 3, minerai_de_cuivre: 2, coeur_de_sanglier: 1 }, gold: 60 },
-  gants_veteran: { ingredients: { peau_de_sanglier: 3, minerai_de_fer: 2, defense_ebrechee: 1 }, gold: 25 },
-  ceinture_veteran: { ingredients: { peau_de_sanglier: 3, defense_ebrechee: 1, minerai_de_fer: 2 }, gold: 25 },
-  jambieres_veteran: { ingredients: { peau_de_sanglier: 4, minerai_de_fer: 3, defense_ebrechee: 1 }, gold: 35 },
+  chapeau_veteran: { ingredients: { cuir_de_sanglier: 2, lingot_de_fer: 1, defense_ebrechee: 1 }, gold: 30 },
+  plastron_veteran: { ingredients: { cuir_de_sanglier: 2, defense_ebrechee: 2, lingot_de_fer: 2, lingot_de_cuivre: 1, coeur_de_sanglier: 1 }, gold: 60 },
+  gants_veteran: { ingredients: { cuir_de_sanglier: 2, lingot_de_fer: 1, defense_ebrechee: 1 }, gold: 25 },
+  ceinture_veteran: { ingredients: { cuir_de_sanglier: 2, defense_ebrechee: 1, lingot_de_fer: 1 }, gold: 25 },
+  jambieres_veteran: { ingredients: { cuir_de_sanglier: 2, lingot_de_fer: 2, defense_ebrechee: 1 }, gold: 35 },
 
   // --- Robes de l'Apprenti (chiffon en quantité + fourrure + parchemin) ---
-  chapeau_apprenti: { ingredients: { chiffon_rapiece: 4, ortie: 2, fourrure_grise: 1 }, gold: 30 },
-  plastron_apprenti: { ingredients: { chiffon_rapiece: 5, ortie: 3, sauge: 2, fourrure_grise: 2, parchemin_froisse: 1 }, gold: 60 },
-  gants_apprenti: { ingredients: { chiffon_rapiece: 3, ortie: 2, fourrure_grise: 1 }, gold: 25 },
-  ceinture_apprenti: { ingredients: { chiffon_rapiece: 3, ortie: 2, fourrure_grise: 1 }, gold: 25 },
-  jambieres_apprenti: { ingredients: { chiffon_rapiece: 4, ortie: 2, fourrure_grise: 1 }, gold: 35 },
+  chapeau_apprenti: { ingredients: { etoffe: 2, fil_d_ortie: 1, fourrure_grise: 1 }, gold: 30 },
+  plastron_apprenti: { ingredients: { etoffe: 3, fil_d_ortie: 2, sauge: 2, fourrure_grise: 2, parchemin_froisse: 1 }, gold: 60 },
+  gants_apprenti: { ingredients: { etoffe: 2, fil_d_ortie: 1, fourrure_grise: 1 }, gold: 25 },
+  ceinture_apprenti: { ingredients: { etoffe: 2, fil_d_ortie: 1, fourrure_grise: 1 }, gold: 25 },
+  jambieres_apprenti: { ingredients: { etoffe: 2, fil_d_ortie: 1, fourrure_grise: 1 }, gold: 35 },
 
   // --- Cuirs du Traqueur (loup + chiffon) ---
-  chapeau_traqueur: { ingredients: { croc_de_loup: 3, chiffon_rapiece: 2, fourrure_grise: 1 }, gold: 30 },
-  plastron_traqueur: { ingredients: { fourrure_grise: 3, croc_de_loup: 4, chiffon_rapiece: 2, sauge: 2, oeil_de_loup_argente: 1 }, gold: 60 },
-  gants_traqueur: { ingredients: { croc_de_loup: 3, chiffon_rapiece: 2, fourrure_grise: 1 }, gold: 25 },
-  ceinture_traqueur: { ingredients: { croc_de_loup: 3, chiffon_rapiece: 2, fourrure_grise: 1 }, gold: 25 },
-  jambieres_traqueur: { ingredients: { croc_de_loup: 4, chiffon_rapiece: 2, fourrure_grise: 2 }, gold: 35 },
+  chapeau_traqueur: { ingredients: { croc_de_loup: 3, etoffe: 1, fourrure_grise: 1 }, gold: 30 },
+  plastron_traqueur: { ingredients: { fourrure_grise: 3, croc_de_loup: 4, etoffe: 1, sauge: 2, oeil_de_loup_argente: 1 }, gold: 60 },
+  gants_traqueur: { ingredients: { croc_de_loup: 3, etoffe: 1, fourrure_grise: 1 }, gold: 25 },
+  ceinture_traqueur: { ingredients: { croc_de_loup: 3, etoffe: 1, fourrure_grise: 1 }, gold: 25 },
+  jambieres_traqueur: { ingredients: { croc_de_loup: 4, etoffe: 1, fourrure_grise: 2 }, gold: 35 },
 
   // --- Armes et bouclier craftables (la dague et la masse tombent directement) ---
-  epee_milicien: { ingredients: { minerai_de_fer: 4, ferraille_emoussee: 2, defense_ebrechee: 1, peau_de_sanglier: 2 }, gold: 40 },
-  baton_noueux: { ingredients: { bois_de_frene: 4, bois_de_chene: 1, chiffon_rapiece: 2, fourrure_grise: 1 }, gold: 40 },
-  arc_chasse: { ingredients: { bois_de_frene: 3, bois_de_chene: 1, croc_de_loup: 2, fourrure_grise: 2 }, gold: 40 },
-  bouclier_milicien: { ingredients: { bois_de_chene: 2, minerai_de_fer: 3, peau_de_sanglier: 3, defense_ebrechee: 2 }, gold: 45 },
+  epee_milicien: { ingredients: { lingot_de_fer: 2, ferraille_emoussee: 2, defense_ebrechee: 1, cuir_de_sanglier: 1 }, gold: 40 },
+  baton_noueux: { ingredients: { planche_de_frene: 2, planche_de_chene: 1, etoffe: 1, fourrure_grise: 1 }, gold: 40 },
+  arc_chasse: { ingredients: { planche_de_frene: 2, planche_de_chene: 1, croc_de_loup: 2, fourrure_grise: 2 }, gold: 40 },
+  bouclier_milicien: { ingredients: { planche_de_chene: 1, lingot_de_fer: 2, cuir_de_sanglier: 2, defense_ebrechee: 2 }, gold: 45 },
 };
 
 // Objets qui ne se craftent pas mais tombent directement sur un monstre :

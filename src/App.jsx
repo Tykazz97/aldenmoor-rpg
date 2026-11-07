@@ -46,7 +46,7 @@ export default function App() {
 function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank } = usePlayer(initial.player);
+  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank } = usePlayer(initial.player);
 
   // Sauvegarde automatique (un peu différée pour ne pas écrire à chaque changement)
   const latest = useRef({ player, world });
@@ -71,7 +71,7 @@ function Game({ initial, onNewCharacter }) {
   };
   // Contenu des lieux de la ville
   const renderBuilding = (kind) => {
-    if (kind === "atelier") return <ForgePanel player={player} onCraft={craft} onTestResources={testAddResources} onTestGold={testAddGold} />;
+    if (kind === "atelier") return <ForgePanel player={player} onCraft={craft} onRefine={refine} onTestResources={testAddResources} onTestGold={testAddGold} />;
     if (kind === "coffre") return <BankPanel player={player} bank={bank} />;
     if (kind === "marche") return <MarketPanel player={player} onPlayerChange={setPlayer} />;
     if (kind === "panneau") return <QuestPanel player={player} onPlayerChange={setPlayer} atBoard />;
@@ -108,6 +108,7 @@ function Game({ initial, onNewCharacter }) {
         <ForgePanel
           player={player}
           onCraft={craft}
+          onRefine={refine}
           onTestResources={testAddResources}
           onTestGold={testAddGold}
         />

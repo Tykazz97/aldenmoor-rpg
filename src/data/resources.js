@@ -76,6 +76,15 @@ export const RESOURCES = {
     id: "fragment_armure_maudite", name: "Fragment d'armure maudite", rarity: "peu_commune", value: 90,
     source: "cavalier_dechu",
   },
+
+  // --- Ressources RAFFINÉES : on ne les trouve pas, on les fabrique à l'atelier (voir refining.js) ---
+  lingot_de_fer: { id: "lingot_de_fer", name: "Lingot de fer", rarity: "commune", value: 16, source: "raffinage" },
+  lingot_de_cuivre: { id: "lingot_de_cuivre", name: "Lingot de cuivre", rarity: "peu_commune", value: 62, source: "raffinage" },
+  planche_de_frene: { id: "planche_de_frene", name: "Planche de frêne", rarity: "commune", value: 16, source: "raffinage" },
+  planche_de_chene: { id: "planche_de_chene", name: "Planche de chêne", rarity: "peu_commune", value: 62, source: "raffinage" },
+  cuir_de_sanglier: { id: "cuir_de_sanglier", name: "Cuir de sanglier", rarity: "commune", value: 13, source: "raffinage" },
+  etoffe: { id: "etoffe", name: "Étoffe", rarity: "commune", value: 10, source: "raffinage" },
+  fil_d_ortie: { id: "fil_d_ortie", name: "Fil d'ortie", rarity: "commune", value: 13, source: "raffinage" },
 };
 
 // Chaque ressource a son icône : public/assets/icons/resources/<id>.png

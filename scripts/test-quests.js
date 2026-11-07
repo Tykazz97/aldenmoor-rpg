@@ -90,7 +90,7 @@ test("récolte et fabrication comptent aussi", () => {
     p = applyGather(p, "frene", 4).player;
     assert.equal(progressOf(p, questsOf(p).active[0]).have, 4);
   }
-  let c = base({ gold: 1000, resources: { peau_de_sanglier: 10, minerai_de_fer: 10, defense_ebrechee: 5 } });
+  let c = base({ gold: 1000, resources: { cuir_de_sanglier: 10, lingot_de_fer: 10, defense_ebrechee: 5 } });
   let cq; for (let d = 0; d < 60 && !cq; d++) { cq = boardFor(c, NOW + d * DAY).find((q) => q.tpl === "craft_gants_veteran"); if (cq) c = acceptQuest(c, cq.id, NOW + d * DAY).player; }
   assert.ok(cq, "quête de fabrication jamais proposée");
   assert.equal(progressOf(c, questsOf(c).active[0]).have, 0);

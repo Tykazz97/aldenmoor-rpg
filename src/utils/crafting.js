@@ -6,7 +6,11 @@
 import { ITEMS } from "../data/items.js";
 import { RECIPES } from "../data/recipes.js";
 import { getCraftInfo, xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
+import { REFINING } from "../data/refining.js";
 import { recordCraft } from "./counters.js";
+
+// État d'un métier (les saves d'avant les métiers de raffinage n'ont pas ces métiers : niveau 1 par défaut)
+export const professionOf = (player, key) => player.professions?.[key] || { level: 1, xp: 0 };
 
 export function emptyProfessions(keys) {
   return Object.fromEntries(keys.map((k) => [k, { level: 1, xp: 0 }]));
@@ -69,7 +73,7 @@ export function applyCraft(player, itemId, uid) {
     inventory: [...player.inventory, { ...ITEMS[itemId], uid }],
     professions: {
       ...player.professions,
-      [info.profession]: gainProfessionXp(player.professions[info.profession], info.xp),
+      [info.profession]: gainProfessionXp(professionOf(player, info.profession), info.xp),
     },
   }, itemId);
 }
@@ -81,4 +85,38 @@ export function addResourcesTo(player, gains) {
     resources[resId] = (resources[resId] || 0) + qty;
   }
   return { ...player, resources };
+}
+
+// ---- Raffinage ----
+// Combien d'unités peut-on raffiner d'un coup ? (limité par le niveau, les matières brutes et l'or)
+export function maxRefine(player, id) {
+  const rec = REFINING[id];
+  if (!rec || professionOf(player, rec.profession).level < rec.minLevel) return 0;
+  let n = Infinity;
+  for (const [r, q] of Object.entries(rec.ingredients)) n = Math.min(n, Math.floor((player.resources[r] || 0) / q));
+  if (rec.gold > 0) n = Math.min(n, Math.floor(player.gold / rec.gold));
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function canRefine(player, id, times = 1) {
+  const rec = REFINING[id];
+  if (!rec) return { ok: false, unknown: true };
+  const level = professionOf(player, rec.profession).level;
+  const missing = {};
+  for (const [r, q] of Object.entries(rec.ingredients)) { const lack = q * times - (player.resources[r] || 0); if (lack > 0) missing[r] = lack; }
+  const lacksLevel = level < rec.minLevel, lacksGold = player.gold < rec.gold * times, lacksResources = Object.keys(missing).length > 0;
+  return { ok: !lacksLevel && !lacksGold && !lacksResources && times >= 1, lacksLevel, lacksGold, lacksResources, missing, level, minLevel: rec.minLevel };
+}
+
+// Raffine `times` unités : consomme matières brutes et or, ajoute la ressource raffinée et l'xp du métier.
+// Renvoie { player, made } ; le même joueur et made = 0 si c'est impossible.
+export function applyRefine(player, id, times = 1) {
+  const n = Math.floor(times);
+  if (!canRefine(player, id, n).ok) return { player, made: 0 };
+  const rec = REFINING[id];
+  const resources = { ...player.resources };
+  for (const [r, q] of Object.entries(rec.ingredients)) { resources[r] -= q * n; if (resources[r] <= 0) delete resources[r]; }
+  resources[id] = (resources[id] || 0) + n;
+  const prof = gainProfessionXp(professionOf(player, rec.profession), rec.xp * n);
+  return { made: n, player: { ...player, gold: player.gold - rec.gold * n, resources, professions: { ...player.professions, [rec.profession]: prof } } };
 }

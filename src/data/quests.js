@@ -5,7 +5,7 @@
 //
 // type "kill"    : vaincre `qty` ennemis `target` (compte les combats gagnés après l'acceptation)
 // type "gather"  : récolter `qty` de la ressource `target` sur la carte (après l'acceptation)
-// type "deliver" : rapporter `qty` de la ressource `target` ; elle est retirée du sac à la remise
+// type "deliver" : rapporter `qty` de la ressource `target` (brute ou raffinée) ; elle est retirée du sac à la remise
 // type "craft"   : fabriquer l'objet `target` (il reste au joueur)
 // weight : fréquence d'apparition (le Cavalier Déchu est rare)
 // ============================================================
@@ -30,6 +30,13 @@ export const QUEST_TEMPLATES = [
   { id: "deliver_fourrure", type: "deliver", target: "fourrure_grise", qty: [3, 8], title: "Fourrures de qualité", text: "Un marchand veut de belles fourrures grises.", weight: 2 },
   { id: "deliver_defense", type: "deliver", target: "defense_ebrechee", qty: [3, 8], title: "Défenses pour le sculpteur", text: "Un sculpteur cherche de l'ivoire sauvage.", weight: 2 },
   { id: "deliver_ferraille", type: "deliver", target: "ferraille_emoussee", qty: [3, 8], title: "Ferraille à fondre", text: "La forge récupère de la ferraille.", weight: 2 },
+
+  { id: "deliver_lingot_fer", type: "deliver", target: "lingot_de_fer", qty: [4, 10], title: "Lingots pour le forgeron", text: "Le forgeron manque de lingots de fer prêts à travailler.", weight: 2 },
+  { id: "deliver_planche_frene", type: "deliver", target: "planche_de_frene", qty: [4, 10], title: "Planches pour la charpente", text: "Des planches de frêne bien sèches, pour réparer les toits.", weight: 2 },
+  { id: "deliver_cuir", type: "deliver", target: "cuir_de_sanglier", qty: [4, 10], title: "Cuir pour le sellier", text: "Le sellier réclame du cuir de sanglier tanné.", weight: 2 },
+  { id: "deliver_etoffe", type: "deliver", target: "etoffe", qty: [4, 10], title: "Étoffe pour le drapier", text: "Le drapier veut de l'étoffe propre, pas des chiffons.", weight: 2 },
+  { id: "deliver_lingot_cuivre", type: "deliver", target: "lingot_de_cuivre", qty: [2, 5], title: "Cuivre pour les artisans", text: "Les artisans paient bien le cuivre fondu.", weight: 1 },
+  { id: "deliver_planche_chene", type: "deliver", target: "planche_de_chene", qty: [2, 5], title: "Chêne pour les ouvrages solides", text: "Des planches de chêne pour une charpente de qualité.", weight: 1 },
 
   { id: "craft_gants_veteran", type: "craft", target: "gants_veteran", qty: [1, 1], title: "Des gants solides", text: "La garde a besoin de gants du Vétéran.", weight: 1 },
   { id: "craft_ceinture_veteran", type: "craft", target: "ceinture_veteran", qty: [1, 1], title: "Une ceinture de garde", text: "Forge une ceinture du Vétéran pour la milice.", weight: 1 },

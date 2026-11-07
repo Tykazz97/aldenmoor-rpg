@@ -18,9 +18,9 @@ assert.equal(canCraft(p, "gants_veteran").ok, true);
 assert.equal(canCraft(p, "plastron_veteran").lacksLevel, true);
 
 // 4. craft consomme et donne de l'xp
-const before = p.resources.peau_de_sanglier;
+const before = p.resources.cuir_de_sanglier;
 p = applyCraft(p, "gants_veteran", "u1");
-assert.equal(p.resources.peau_de_sanglier, before - 3);
+assert.equal(p.resources.cuir_de_sanglier, before - 2);
 assert.equal(p.gold, 475);
 assert.equal(p.inventory.length, 1);
 assert.equal(p.inventory[0].uid, "u1");
@@ -34,7 +34,7 @@ assert.deepEqual(p.professions.forgeron, { level: 2, xp: 20 });
 assert.deepEqual(p.professions.tailleur, { level: 1, xp: 0 });
 
 // 7. la ressource à 0 est supprimée de l'inventaire
-let q = { gold: 100, resources: { peau_de_sanglier: 3, minerai_de_fer: 2, defense_ebrechee: 1 }, inventory: [], professions: emptyProfessions(PROFESSION_ORDER) };
+let q = { gold: 100, resources: { cuir_de_sanglier: 2, lingot_de_fer: 1, defense_ebrechee: 1 }, inventory: [], professions: emptyProfessions(PROFESSION_ORDER) };
 q = applyCraft(q, "gants_veteran", "x");
 assert.deepEqual(q.resources, {});
 
