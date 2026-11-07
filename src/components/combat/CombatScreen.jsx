@@ -85,6 +85,17 @@ export default function CombatScreen({ player, stats, onRewards }) {
   );
 }
 
+// Combat lancé depuis la carte : onExit(true) si victoire (butin récupéré)
+export function EncounterFight({ encounter, player, stats, onRewards, onExit }) {
+  const [fightKey, setFightKey] = useState(0);
+  const weaponType = player.equipped.arme?.weaponType || null;
+  const heroSrc = heroSpriteUrl(heroOutfitFor(stats.setBonuses));
+  return (
+    <Fight key={fightKey} encounter={encounter} player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc}
+      onRewards={onRewards} onRestart={() => setFightKey((k) => k + 1)} onExit={onExit} backLabel="Retour à la carte" />
+  );
+}
+
 // ------------------------------------------------------------
 // Sélection de la rencontre
 // ------------------------------------------------------------
@@ -157,7 +168,7 @@ const Mini = ({ label, value, c }) => (
 // ------------------------------------------------------------
 // Un combat
 // ------------------------------------------------------------
-function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRestart, onExit }) {
+function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire" }) {
   const initial = useMemo(() => createCombat({ stats, weaponType, enemyKeys: encounter.enemies }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
@@ -407,7 +418,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
     if (claimed) return;
     setClaimed(true);
     onRewards(cs.rewards);
-    onExit();
+    onExit(true);
   };
 
   const p = cs.player;
@@ -512,7 +523,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
               <div className="sub">Tu es à terre… mais tu ne perds rien. Ajuste ton équipement et retente ta chance.</div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
                 <button className="cb-btn primary" onClick={onRestart}>Recommencer</button>
-                <button className="cb-btn" onClick={onExit}>Changer d'adversaire</button>
+                <button className="cb-btn" onClick={() => onExit(false)}>{backLabel}</button>
               </div>
             </div>
           </div>
@@ -542,7 +553,7 @@ function Fight({ encounter, player, stats, weaponType, heroSrc, onRewards, onRes
           <div style={{ display: "flex", gap: 6 }}>
             <button className="cb-btn small" onClick={() => setSpeed((s) => (s === 1 ? 2 : 1))} title="Vitesse du combat">×{speed}</button>
             <button className="cb-btn small" onClick={() => { setMuted(!mute); setMute(!mute); }} title="Son">{mute ? "🔇" : "🔊"}</button>
-            <button className="cb-btn small" onClick={onExit} title="Abandonner le combat (rien n'est perdu)">Quitter</button>
+            <button className="cb-btn small" onClick={() => onExit(false)} title="Abandonner le combat (rien n'est perdu)">Quitter</button>
           </div>
         </div>
 

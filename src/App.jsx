@@ -3,6 +3,8 @@ import AppShell from "./components/layout/AppShell.jsx";
 import CharacterSheet from "./components/character/CharacterSheet.jsx";
 import ForgePanel from "./components/forge/ForgePanel.jsx";
 import CombatScreen from "./components/combat/CombatScreen.jsx";
+import MapScreen from "./components/map/MapScreen.jsx";
+import { initialWorld } from "./data/maps.js";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
 
@@ -16,6 +18,7 @@ const TAB_TITLES = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("personnage");
+  const [world, setWorld] = useState(initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
   const { player, stats, equipItem, unequipSlot, addCaracPoint, craft, applyCombatRewards, testAddResources, testAddGold } = usePlayer();
 
   // Pour l'instant, cliquer sur un slot vide ne fait rien — l'équipement
@@ -48,7 +51,10 @@ export default function App() {
       {activeTab === "combat" && (
         <CombatScreen player={player} stats={stats} onRewards={applyCombatRewards} />
       )}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "combat" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab === "carte" && (
+        <MapScreen player={player} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} />
+      )}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }
