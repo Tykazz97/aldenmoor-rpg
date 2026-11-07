@@ -62,6 +62,7 @@ export const overlevelMult = (level) => { const hi = regionFor(level).hi; return
 
 // --- Traits de caractère qui ne changent pas (déduits de l'id, rien à sauvegarder) -----------------------------------
 const START_HOURS = [[17, 3], [18, 4], [19, 4], [20, 4], [21, 3], [22, 2], [13, 2], [14, 1], [9, 2], [10, 2], [15, 1]];
+export const PROFILE_MIX = { occasionnel: 0.6, regulier: 0.3, acharne: 0.1 };      // part de chaque profil (le reste : acharnés)
 const TRAITS_CACHE = new Map();
 export function traitsOf(bot) {
   const hit = TRAITS_CACHE.get(bot.id);
@@ -74,6 +75,20 @@ export function traitsOf(bot) {
     playDay: Math.round((0.55 + r() * 0.4) * 100) / 100,         // probabilité de jouer un jour donné
     primary: r.pick(PROFESSIONS_OF_GATHER),                      // métier de récolte
   };
+  // Profil de joueur (tiré après le reste : les traits de base ne bougent pas). Comme sur un vrai serveur : beaucoup d'occasionnels,
+  // une bonne part de joueurs réguliers, et quelques acharnés qui ont un objectif (monter vite en niveau, ou monter les métiers).
+  const rp = r(), rf = r();
+  traits.profile = rp < PROFILE_MIX.occasionnel ? "occasionnel" : rp < PROFILE_MIX.occasionnel + PROFILE_MIX.regulier ? "regulier" : "acharne";
+  traits.focus = traits.profile === "acharne" ? (rf < 0.5 ? "xp" : "metiers") : null;
+  if (traits.profile === "occasionnel") {                         // une heure ou deux, pas tous les jours, sans se presser
+    traits.diligence = Math.round(traits.diligence * 0.7 * 100) / 100;
+    traits.hours = Math.max(1, Math.round(traits.hours * 0.6));
+    traits.playDay = Math.round(traits.playDay * 0.8 * 100) / 100;
+  } else if (traits.profile === "acharne") {                      // de longues séances, presque tous les jours, à fond
+    traits.diligence = Math.round((1.35 + (traits.diligence - 0.45) * 0.4) * 100) / 100;
+    traits.hours = traits.hours + 3;
+    traits.playDay = 0.93;
+  }
   TRAITS_CACHE.set(bot.id, traits);
   return traits;
 }
@@ -87,8 +102,10 @@ export function isActive(bot, step, traits = traitsOf(bot)) {
   return ((hour - traits.start + 24) % 24) < traits.hours;
 }
 
-// Part de ses séances passée à combattre / récolter, selon l'activité
+// Part de ses séances passée à combattre / récolter, selon l'activité. Un acharné suit son objectif : l'xp (combats, donjon) ou les métiers (récolte, raffinage, fabrication)
 const SHARES = { combattant: { fight: 0.75, gather: 0.1, craft: 0.15 }, recolteur: { fight: 0.15, gather: 0.6, craft: 0.25 }, marchand: { fight: 0.25, gather: 0.25, craft: 0.5 }, flaneur: { fight: 0.25, gather: 0.1, craft: 0.15 } };
+const RUSH_XP = { fight: 0.85, gather: 0.04, craft: 0.11 }, RUSH_METIERS = { fight: 0.06, gather: 0.5, craft: 0.44 };
+export const shareOf = (bot, traits) => (traits.focus === "xp" ? RUSH_XP : traits.focus === "metiers" ? RUSH_METIERS : SHARES[bot.activity] || SHARES.flaneur);
 
 // --- État d'un simulé --------------------------------------------------------------------------------------------------
 // { id, level, xp, gold, kills, gathers, crafted, prof: { key, level, xp }  (métier de récolte),
@@ -134,13 +151,13 @@ export function rollDrops(life, bot, enemy, rng) {
 export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
   if (!isActive(bot, step, traits)) return life;
   const rng = makeRng(hashString(`${bot.id}:${step}`));
-  const share = SHARES[bot.activity] || SHARES.flaneur;
+  const share = shareOf(bot, traits);
   const roll = rng();
   if (roll < share.fight) {
     const region = regionFor(life.level);
     const hunt0 = huntTarget(life);
     const bossTry = rng() < (hunt0 && ENEMIES[hunt0]?.miniBoss ? 0.9 : BOSS_CHANCE);
-    if (life.level >= 20 && rng() < DUNGEON_CHANCE && dungeonStep(life, bot, step, rng, { acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
+    if (life.level >= 20 && rng() < (traits.focus === "xp" ? DUNGEON_CHANCE * 2 : DUNGEON_CHANCE) && dungeonStep(life, bot, step, rng, { acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
     if (bossTry && bossStep(life, bot, step, rng, { hunt: hunt0, acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
     const n = Math.floor(FIGHTS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());   // arrondi au hasard : 0,4 combat = 4 chances sur 10 d'en faire un
     const mult = overlevelMult(life.level);

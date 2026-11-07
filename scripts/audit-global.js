@@ -11,6 +11,7 @@ import { RECIPES } from "../src/data/recipes.js";
 import { PROFESSIONS, getCraftInfo } from "../src/data/professions.js";
 import { MAX_LEVEL, xpToNext } from "../src/utils/progression.js";
 import { craftFee } from "../src/utils/cityTax.js";
+import { traitsOf } from "../src/sim/lives.js";
 
 const mode = process.argv[2] === "fresh" ? "fresh" : "generated";
 const DAYS = Number(process.argv[3]) || 60;
@@ -110,6 +111,13 @@ console.log(`  niveaux : médian ${med(L.map((l) => l.level))}, max ${Math.max(.
 console.log(`  Alchimiste > 1 : ${L.filter((l) => (l.pro?.alchimiste?.level || 1) > 1).length} simulés, niveau max ${Math.max(...L.map((l) => l.pro?.alchimiste?.level || 1))}`);
 console.log(`  potions en possession : ${JSON.stringify(potionStock)} ; en vente à l'hôtel des ventes : ${JSON.stringify(potionListed)}`);
 console.log(`  donjon : ${dj.runs} expéditions, ${dj.clears} réussies, ${dj.relics} reliques, ${dj.potions} potions bues, ${dj.keys} clés en poche ; ${tier4} simulés portent du palier 4`);
+for (const [name, label] of [["occasionnel", "occasionnels"], ["regulier", "réguliers"], ["acharne:xp", "acharnés (xp)"], ["acharne:metiers", "acharnés (métiers)"]]) {
+  const [pf, fc] = name.split(":");
+  const g = L.filter((l) => { const t = traitsOf(byId.get(l.id)); return t.profile === pf && (!fc || t.focus === fc); });
+  if (!g.length) continue;
+  const pro = (l) => Math.max(l.prof.level, ...Object.values(l.pro || {}).map((p) => p.level));
+  console.log(`  ${label.padEnd(20)} ${String(g.length).padStart(3)} simulés : niveau médian ${med(g.map((l) => l.level))} (max ${Math.max(...g.map((l) => l.level))}), meilleur métier médian ${med(g.map(pro))}, or médian ${med(g.map((l) => l.gold))}, donjons ${g.reduce((a, l) => a + (l.dj?.runs || 0), 0)}`);
+}
 console.log(`  annonces : ${m.listings.length} (dont ${m.listings.filter((x) => x.seller === "npc").length} du colporteur)`);
 if (problems.length) { console.log(`\n${problems.length} anomalie(s) :`); problems.forEach((p) => console.log("  ✖", p)); process.exitCode = 1; }
 else console.log("\nAucune anomalie.");

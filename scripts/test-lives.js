@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { getPopulation } from "../src/sim/population.js";
 import {
-  createLives, advanceLives, liveBots, validWorld, stepOf, isActive, traitsOf, overlevelMult, regionFor, initialLife,
+  createLives, advanceLives, liveBots, validWorld, stepOf, isActive, traitsOf, shareOf, PROFILE_MIX, overlevelMult, regionFor, initialLife,
   STEP_MS, MAX_CATCHUP_STEPS, BAG_ITEMS_MAX, migrateWorld, rollDrops, emptyBag,
 } from "../src/sim/lives.js";
 import { MAX_LEVEL, xpToNext } from "../src/utils/progression.js";
@@ -76,7 +76,7 @@ await test("ils ne jouent pas tout le temps : séances de quelques heures, de pr
   const frac = active / steps;
   assert.ok(frac > 0.05 && frac < 0.35, `part du temps en jeu ${frac.toFixed(2)}`);
   assert.ok(evening / eveningSteps > 2 * (night / nightSteps), "plus de monde le soir que la nuit");
-  assert.ok(tr.hours >= 2 && tr.hours <= 6 && tr.diligence > 0.4 && tr.diligence < 1.4);
+  assert.ok(tr.hours >= 1 && tr.hours <= 10 && tr.diligence > 0.2 && tr.diligence < 2.1);   // selon le profil (occasionnel à acharné)
   assert.deepEqual(traitsOf(bot), traitsOf(bot), "traits stables");
 });
 
@@ -396,6 +396,36 @@ await test("coffre : seul le trop-plein est vendu (d'abord celui du coffre), et 
   bankStep(life);
   assert.equal(life.bank.resources.bois_de_frene, BANK_MAX_PER_RES);
   assert.ok(life.gold > g, "le surplus est bradé contre de l'or");
+});
+
+await test("profils de joueur : occasionnels, réguliers et acharnés (xp ou métiers), stables et dans les bonnes proportions", () => {
+  const count = (f) => pop.filter((b) => f(traitsOf(b))).length;
+  const occ = count((t) => t.profile === "occasionnel"), reg = count((t) => t.profile === "regulier"), ach = count((t) => t.profile === "acharne");
+  assert.equal(occ + reg + ach, pop.length);
+  assert.ok(Math.abs(occ / pop.length - PROFILE_MIX.occasionnel) < 0.1, `occasionnels ${occ}`);
+  assert.ok(Math.abs(reg / pop.length - PROFILE_MIX.regulier) < 0.1, `réguliers ${reg}`);
+  assert.ok(ach >= 8 && ach <= 35, `acharnés ${ach}`);
+  assert.ok(count((t) => t.focus === "xp") >= 1 && count((t) => t.focus === "metiers") >= 1, "les deux objectifs existent");
+  for (const b of pop) { const t = traitsOf(b); assert.equal(t.focus !== null, t.profile === "acharne"); assert.deepEqual(traitsOf(b), t, "stable"); }
+  const avg = (profile, key) => { const g = pop.map(traitsOf).filter((t) => t.profile === profile); return g.reduce((s, t) => s + t[key], 0) / g.length; };
+  for (const key of ["diligence", "hours", "playDay"]) assert.ok(avg("occasionnel", key) < avg("regulier", key) && avg("regulier", key) < avg("acharne", key), `${key} croît avec l'engagement`);
+  const bot = pop[0];
+  assert.deepEqual(shareOf(bot, { focus: "xp" }), { fight: 0.85, gather: 0.04, craft: 0.11 });
+  assert.ok(shareOf(bot, { focus: "metiers" }).fight < 0.1 && shareOf(bot, { focus: "metiers" }).craft + shareOf(bot, { focus: "metiers" }).gather > 0.9);
+  assert.equal(shareOf(bot, { focus: null }).fight > 0, true, "sans objectif : la part de son activité habituelle");
+});
+
+await test("profils de joueur : après dix jours à partir de zéro, les acharnés (xp) devancent les réguliers, eux-mêmes devant les occasionnels ; les acharnés « métiers » ont les meilleurs métiers", () => {
+  const w = run(fresh(), 10);
+  const lives = pop.map((b) => ({ t: traitsOf(b), l: w.lives[b.id] }));
+  const mean = (g, f) => g.reduce((s, x) => s + f(x.l), 0) / Math.max(1, g.length);
+  const of = (pf, fc) => lives.filter((x) => x.t.profile === pf && (!fc || x.t.focus === fc));
+  const lvl = (l) => l.level, pro = (l) => Math.max(l.prof.level, ...Object.values(l.pro || {}).map((p) => p.level));
+  const o = mean(of("occasionnel"), lvl), r = mean(of("regulier"), lvl), x = mean(of("acharne", "xp"), lvl);
+  assert.ok(o < r && r < x, `niveaux moyens : occasionnels ${o.toFixed(1)}, réguliers ${r.toFixed(1)}, acharnés xp ${x.toFixed(1)}`);
+  const m = mean(of("acharne", "metiers"), pro), rp = mean(of("regulier"), pro), op = mean(of("occasionnel"), pro);
+  assert.ok(m > rp && rp > op, `meilleur métier : acharnés métiers ${m.toFixed(1)}, réguliers ${rp.toFixed(1)}, occasionnels ${op.toFixed(1)}`);
+  assert.ok(mean(of("acharne", "metiers"), lvl) < x, "les acharnés « métiers » montent moins vite en niveau que ceux de l'xp");
 });
 
 await test("boss : un simulé trop faible n'en tente aucun ; un boss ne se retente pas avant un jour ; la chance de victoire vient du vrai moteur de combat", () => {

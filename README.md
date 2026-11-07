@@ -49,6 +49,12 @@ Base IndexedDB `aldenmoor`, magasin `kv`, clé `save` (texte JSON) : `{ version,
 
 Après une absence, le marché et les simulés rejouent le temps écoulé (jusqu'à 7 jours, un pas par 10 minutes). Fait d'un seul coup cela bloquait la page environ 4 secondes ; c'est désormais fait **par tranches de 12 pas** (`CATCHUP_SLICE` dans `utils/market.js`, `tickMarket(m, now, { maxSteps })`), l'application enchaînant les tranches tant que le marché a du retard (`marketBehind`) : aucune pause de plus de ~0,15 s. Le résultat est strictement le même que d'un seul coup (testé dans `test-simmarket.js`). Mesuré aussi : sauvegarder les simulés avec le joueur ne coûte que ~2 ms (360 Ko), donc ils restent dans la même sauvegarde.
 
+## Profils des joueurs simulés
+
+Chaque simulé a un **profil**, fixé une fois pour toutes d'après son identifiant (`traitsOf` dans `sim/lives.js`) : **occasionnel** (60 %), **régulier** (30 %) ou **acharné** (10 %). L'occasionnel joue peu et pas tous les jours (zèle ×0,7, séances ×0,6, jours de jeu ×0,8) ; le régulier est le comportement de base ; l'acharné joue de longues séances presque tous les jours, à fond (zèle environ 1,4 à 1,6, séances +3 h, 93 % des jours). Les acharnés ont un **objectif** : **xp** (85 % de combats, donjon deux fois plus souvent) ou **métiers** (récolte, raffinage et fabrication : peu de combats). Les parts d'activité des autres viennent toujours de leur type (combattant, récolteur…). À 30 jours depuis zéro (`node scripts/audit-global.js fresh 30`, qui donne un tableau par profil) : niveau médian d'environ 14 pour les occasionnels, 27 pour les réguliers et 34 pour les acharnés « xp » ; les acharnés « métiers » ont un métier médian d'environ 44 contre 13 pour les réguliers. Aucun profil n'est affiché au joueur : on le voit à leurs actes.
+
+À savoir : l'or des acharnés est élevé (une dizaine de fois celui d'un régulier), parce que la dernière région s'arrête au niveau 20 et qu'ils y restent en attendant la suite du jeu.
+
 ## Joueurs simulés (désactivés)
 
 Pour les remettre : `SIM_PLAYERS = true` dans `src/sim/config.js`. Pour qu'ils répondent avec un modèle de langage : ajouter `ANTHROPIC_API_KEY` dans les variables d'environnement de Vercel (voir `.env.example` et `api/chat.js`), puis fixer une limite de dépense dans la console Anthropic. Sans clé, ils utilisent des phrases préécrites.
