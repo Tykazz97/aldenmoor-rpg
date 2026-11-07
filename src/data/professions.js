@@ -12,7 +12,7 @@
 import { ITEMS } from "./items.js";
 import { RECIPES } from "./recipes.js";
 
-export const MAX_PROFESSION_LEVEL = 10;
+export const MAX_PROFESSION_LEVEL = 100;      // niveau maximum de tous les métiers
 
 export const PROFESSIONS = {
   forgeron: {
@@ -67,7 +67,7 @@ export const PROFESSION_ORDER = Object.keys(PROFESSIONS);
 
 // xp nécessaire pour passer du niveau `level` au niveau suivant
 export function xpForLevel(level) {
-  return 30 * level;
+  return 30 * level;                          // niveau 1 -> 2 : 30 xp ; 99 -> 100 : 2 970 xp (≈ 148 500 xp au total)
 }
 
 // Quel métier fabrique quoi

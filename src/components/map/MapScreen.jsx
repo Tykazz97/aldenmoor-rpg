@@ -16,7 +16,7 @@ import { MAPS, CITY, buildingObjects } from "../../data/maps.js";
 import { ZONES, ENEMIES } from "../../data/zones.js";
 import { RESOURCES } from "../../data/resources.js";
 import { NODES } from "../../data/gathering.js";
-import { PROFESSIONS } from "../../data/professions.js";
+import { PROFESSIONS, MAX_PROFESSION_LEVEL, xpForLevel } from "../../data/professions.js";
 import { heroLook } from "../../data/heroSprites.js";
 import { heroSheetUrl, heroFrameLayout, HERO_ACTION_FOR_PROFESSION } from "../../data/heroAnims.js";
 import { canGather, rollHarvest } from "../../utils/gathering.js";
@@ -113,7 +113,7 @@ export default function MapScreen({ player, stats, world, setWorld, onRewards, o
       const found = roll.find ? Object.keys(roll.find)[0] : null;
       setGains((g) => [...g, { id: gid, x: n.x, y: n.y, text: `+${qty} ${RESOURCES[def.resource].name}${roll.doubled ? " (récolte double !)" : ""}`, sub: found ? `+1 ${RESOURCES[found].name} (trouvaille !) · +${def.xp} xp` : `+${def.xp} xp ${PROFESSIONS[def.profession].name}` }]);
       setTimeout(() => setGains((g) => g.filter((e) => e.id !== gid)), 2200);
-      if (before.level < 10 && before.xp + def.xp >= before.level * 30) showToast(`${PROFESSIONS[def.profession].name} : niveau ${before.level + 1} !`);
+      if (before.level < MAX_PROFESSION_LEVEL && before.xp + def.xp >= xpForLevel(before.level)) showToast(`${PROFESSIONS[def.profession].name} : niveau ${before.level + 1} !`);
     }, ms);
   }, [onGather, setWorld, showToast]);
 

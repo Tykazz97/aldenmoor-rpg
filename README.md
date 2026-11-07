@@ -50,7 +50,7 @@ Pour les remettre : `SIM_PLAYERS = true` dans `src/sim/config.js`. Pour qu'ils r
 
 ## Avantages des métiers
 
-Chaque niveau de métier (jusqu'au niveau 10) apporte un pas de plus, affiché dans l'Atelier avec la valeur du niveau suivant. **Récolte** (bûcheron, mineur, herboriste) : récolte 4 % plus rapide par niveau (−32 % au niveau 10), 5 % de chance de récolte double et 2 % de chance de trouvaille d'une ressource peu commune (chêne, cuivre, sauge). **Raffinage** : 4 % de chance par niveau de produire 1 unité de plus, sans consommer plus. **Fabrication** : 3 % de chance par niveau d'un chef-d'œuvre, un objet aux stats +10 % qui se vend 25 % plus cher. Les pas et les plafonds sont dans `src/utils/perks.js` et vérifiés par `test-perks.js`.
+Tous les métiers montent jusqu'au **niveau 100** (30 xp × niveau pour passer au suivant, environ 148 500 xp au total). Chaque niveau apporte un peu plus, affiché dans l'Atelier avec la valeur du niveau suivant ; les premiers niveaux comptent plus que les derniers. Maximums au niveau 100 : **Récolte** (bûcheron, mineur, herboriste) 40 % plus rapide, 50 % de chance de récolte double, 20 % de chance de trouvaille d'une ressource peu commune (chêne, cuivre, sauge) ; **Raffinage** 40 % de chance de produire 1 unité de plus sans consommer plus ; **Fabrication** 30 % de chance de chef-d'œuvre (objet aux stats +10 %, vendu 25 % plus cher). Valeurs et courbe dans `src/utils/perks.js`, vérifiées par `test-perks.js`. Le contenu actuel (recettes et ressources jusqu'au niveau 3) ne remplit pas 100 niveaux : les prochaines régions apporteront des ressources et recettes de niveaux plus élevés, qui donneront plus d'xp.
 
 ## Raffinage
 

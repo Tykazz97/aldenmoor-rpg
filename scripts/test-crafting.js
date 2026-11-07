@@ -47,4 +47,20 @@ for (const id of ["gants_veteran", "ceinture_veteran", "chapeau_veteran", "jambi
 assert.equal(r.professions.forgeron.level, 3);
 assert.equal(canCraft(r, "plastron_veteran").ok, true);
 
+// 9. niveau maximum des métiers : 100 (courbe de 30 xp × niveau)
+import { gainProfessionXp } from "../src/utils/crafting.js";
+import { MAX_PROFESSION_LEVEL, xpForLevel } from "../src/data/professions.js";
+assert.equal(MAX_PROFESSION_LEVEL, 100);
+assert.equal(xpForLevel(1), 30);
+assert.equal(xpForLevel(99), 2970);
+let total = 0; for (let l = 1; l < MAX_PROFESSION_LEVEL; l++) total += xpForLevel(l);
+assert.equal(total, 148500);
+assert.deepEqual(gainProfessionXp({ level: 1, xp: 0 }, 30), { level: 2, xp: 0 });
+assert.deepEqual(gainProfessionXp({ level: 10, xp: 0 }, 5), { level: 10, xp: 5 });               // l'ancien plafond (10) n'en est plus un
+assert.deepEqual(gainProfessionXp({ level: 10, xp: 299 }, 1), { level: 11, xp: 0 });
+assert.deepEqual(gainProfessionXp({ level: 1, xp: 0 }, 1350), { level: 10, xp: 0 });             // plusieurs niveaux d'un coup
+assert.deepEqual(gainProfessionXp({ level: 1, xp: 0 }, total), { level: 100, xp: 0 });
+assert.deepEqual(gainProfessionXp({ level: 99, xp: 2900 }, 5000), { level: 100, xp: 0 });        // plafonné : l'excédent est perdu
+assert.deepEqual(gainProfessionXp({ level: 100, xp: 0 }, 50), { level: 100, xp: 0 });
+
 console.log("craft : tous les tests passent");

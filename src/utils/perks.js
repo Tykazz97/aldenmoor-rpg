@@ -3,36 +3,40 @@
 //   Récolte  (bûcheron, mineur, herboriste) : récolte plus rapide, chance de récolte double, chance de trouvaille.
 //   Raffinage (fondeur, scieur, tanneur, tisserand) : chance de produire 1 unité de plus, sans rien consommer de plus.
 //   Fabrication (forgeron, tailleur, maroquinier, menuisier) : chance de « chef-d'œuvre », un objet aux stats +10 %.
-// Chaque niveau au-dessus du premier ajoute le même pas ; au niveau 10, on atteint le maximum.
+// Niveau 1 : aucun avantage ; niveau 100 : le maximum (PERK_MAX) ; entre les deux, une courbe qui monte plus vite au début.
 // Tous les tirages prennent un `rng` (0..1) pour pouvoir être testés.
 // ============================================================
-import { PROFESSIONS } from "../data/professions.js";
+import { PROFESSIONS, MAX_PROFESSION_LEVEL } from "../data/professions.js";
 
-// Pas par niveau (au-dessus du niveau 1)
-export const GATHER_SPEED_STEP = 0.04;       // récolte 4 % plus rapide par niveau (−32 % de durée au niveau 10)
-export const GATHER_DOUBLE_STEP = 0.05;      // +5 % de chance de récolte double par niveau
-export const GATHER_FIND_STEP = 0.02;        // +2 % de chance de trouvaille par niveau
-export const REFINE_BONUS_STEP = 0.04;       // +4 % de chance d'une unité de plus par niveau
-export const CRAFT_MASTERWORK_STEP = 0.03;   // +3 % de chance de chef-d'œuvre par niveau
+// Valeur maximale de chaque avantage, atteinte au niveau maximum du métier (100)
+export const PERK_MAX = {
+  speed: 0.40,        // récolte 40 % plus rapide (durée × 0,6)
+  double: 0.50,       // 50 % de chance de récolte double
+  find: 0.20,         // 20 % de chance de trouvaille
+  bonus: 0.40,        // 40 % de chance d'une unité de plus au raffinage
+  masterwork: 0.30,   // 30 % de chance de chef-d'œuvre
+};
+// Les premiers niveaux comptent plus que les derniers : progression = ((niveau − 1) / (niveau max − 1)) ^ PERK_CURVE
+export const PERK_CURVE = 0.7;
 export const MASTERWORK_RATE = 1.1;          // un chef-d'œuvre a +10 % de stats (au moins +1)
 export const MASTERWORK_VALUE_RATE = 1.25;   // et se vend 25 % plus cher
 
 // Trouvaille : ressource peu commune du même métier, trouvée en plus (1 unité)
 export const FIND_RESOURCE = { bucheron: "bois_de_chene", mineur: "minerai_de_cuivre", herboriste: "sauge" };
 
-const steps = (level) => Math.max(0, level - 1);
+export const perkProgress = (level) => Math.pow(Math.min(1, Math.max(0, (level - 1) / (MAX_PROFESSION_LEVEL - 1))), PERK_CURVE);
 const kindOf = (key) => PROFESSIONS[key]?.kind || "craft";
 
 export function perksFor(professionKey, level) {
-  const s = steps(level), kind = kindOf(professionKey);
-  if (kind === "gather") return { kind, speed: 1 - GATHER_SPEED_STEP * s, double: GATHER_DOUBLE_STEP * s, find: GATHER_FIND_STEP * s };
-  if (kind === "refine") return { kind, bonus: REFINE_BONUS_STEP * s };
-  return { kind, masterwork: CRAFT_MASTERWORK_STEP * s };
+  const k = perkProgress(level), kind = kindOf(professionKey);
+  if (kind === "gather") return { kind, speed: 1 - PERK_MAX.speed * k, double: PERK_MAX.double * k, find: PERK_MAX.find * k };
+  if (kind === "refine") return { kind, bonus: PERK_MAX.bonus * k };
+  return { kind, masterwork: PERK_MAX.masterwork * k };
 }
 
-const pct = (v) => `${Math.round(v * 100)} %`;
+const pct = (v) => `${String(Math.round(v * 1000) / 10).replace(".", ",")} %`;      // une décimale, virgule française
 // Lignes lisibles pour l'écran des métiers : { label, now, next } ; `next` est la valeur au niveau suivant (null au maximum)
-export function perkLines(professionKey, level, maxLevel) {
+export function perkLines(professionKey, level, maxLevel = MAX_PROFESSION_LEVEL) {
   const now = perksFor(professionKey, level), nxt = level < maxLevel ? perksFor(professionKey, level + 1) : null;
   const row = (label, a, b, fmt = pct) => ({ label, now: fmt(a), next: nxt ? fmt(b) : null });
   if (now.kind === "gather") return [
