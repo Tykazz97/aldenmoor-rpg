@@ -30,7 +30,7 @@ Les tests sont de simples scripts Node, sans bibliothèque. GitHub les relance �
 | --- | --- |
 | `src/data/` | Toutes les données du jeu : classes, armes, objets, ressources, recettes, monstres, cartes. On équilibre ici, sans toucher à la logique. |
 | `src/combat/` | Moteur de combat (sans React, déterministe avec une graine). |
-| `src/utils/` | Logique pure : stats, progression, récolte, fabrication, coffre, marché (prix selon l'offre et la demande, taxe de mise en vente de 5 %, achat sans taxe), déplacements et chemins, sauvegarde. |
+| `src/utils/` | Logique pure : stats, progression, récolte, fabrication, coffre, hôtel des ventes (annonces des joueurs simulés et les tiennes, prix fixés par les joueurs, taxe de mise en vente de 5 %, achat sans taxe), déplacements et chemins, sauvegarde. |
 | `src/hooks/` | `usePlayer` : l'état du joueur et ses actions. |
 | `src/components/` | L'affichage : `character`, `combat`, `map`, `forge`, `city`, `layout`, `shared`. |
 | `src/sim/` | Joueurs simulés (200 aventuriers, vie en ville, discussion). **Désactivés** : interrupteur `SIM_PLAYERS` dans `src/sim/config.js`. |
@@ -50,4 +50,4 @@ Pour les remettre : `SIM_PLAYERS = true` dans `src/sim/config.js`. Pour qu'ils r
 
 ## Idées à venir
 
-Marché alimenté par les autres joueurs (annonces, enchères), simulés dans les régions, groupes et guildes, régions 2 et 3, emplacements d'équipement restants.
+Enchères à l'hôtel des ventes, vrais joueurs sur le même marché, joueurs simulés dans les régions, groupes et guildes, régions 2 et 3, emplacements d'équipement restants.

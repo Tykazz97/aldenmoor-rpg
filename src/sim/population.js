@@ -24,6 +24,11 @@ const GOALS = {
   marchand: ["tu amasses un stock pour l'ouverture du marché", "tu surveilles les prix des ressources"],
   flaneur: ["tu découvres le jeu tranquillement", "tu cherches une guilde sympa", "tu discutes en attendant des amis"],
 };
+// Cupidité : de combien ce joueur majore ses prix à l'hôtel des ventes (négatif = il casse les prix)
+const GREED = {
+  "radin, compte chaque pièce": 0.28, "compétitif, veut être le meilleur": -0.04, "pragmatique et direct": 0.04, "serviable avec les débutants": -0.05,
+  "grognon mais serviable": 0.02, "passionné d'artisanat": 0.06, "sarcastique": 0.1, "blagueur, adore taquiner": 0.08,
+};
 export const ACTIVITIES = ["combattant", "recolteur", "marchand", "flaneur"];
 
 // niveaux : beaucoup de débutants, de moins en moins de vétérans
@@ -50,6 +55,8 @@ export function generateBot(rng, index, usedNames) {
   const activity = rng.weighted([["combattant", 36], ["recolteur", 28], ["marchand", 12], ["flaneur", 24]]);
   const id = `sim_${String(index + 1).padStart(3, "0")}`;
   const prng = makeRng(hashString(id));            // tirage à part : n'influence pas le reste de la population
+  const trait = prng.pick(TRAITS), goal = prng.pick(GOALS[activity]);
+  const greed = Math.round(((GREED[trait] ?? 0.06) + (prng() - 0.5) * 0.08) * 100) / 100;
   return {
     id,
     name, classKey, gender, level,
@@ -58,8 +65,7 @@ export function generateBot(rng, index, usedNames) {
     chatty: Math.round((0.15 + rng() * 0.85) * 100) / 100,   // 0 = muet, 1 = bavard
     casual: rng.chance(0.4),                                  // écrit en minuscules, sans ponctuation
     speed: Math.round((2.3 + rng() * 1.1) * 100) / 100,       // tuiles par seconde
-    trait: prng.pick(TRAITS),
-    goal: prng.pick(GOALS[activity]),
+    trait, goal, greed,
     sim: true,
   };
 }
