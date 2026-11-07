@@ -24,10 +24,10 @@ export const FRIENDS_AVAILABLE = 0.7;            // chance de trouver deux amis 
 
 export const bossOf = (life) => life.boss || (life.boss = { last: {}, kills: {}, deaths: 0, groupKills: 0 });
 export const reachableBosses = (life) => BOSSES.filter((b) => life.level >= b.rec);
-const rollDrop = (life, bot, def, mult, rng, acquire) => {
+export const rollDrop = (life, bot, def, mult, rng, acquire) => {
   for (const d of def.drops || []) {
     if (d.forClass && d.forClass !== bot.classKey) continue;
-    if (rng() >= Math.min(1, d.chance * mult)) continue;
+    if (rng() >= Math.min(1, d.fixed ? d.chance : d.chance * mult)) continue;
     const qty = rng.int(d.min, d.max);
     if (d.type === "resource") life.bag.res[d.id] = (life.bag.res[d.id] || 0) + qty;
     else for (let i = 0; i < qty; i++) acquire(life, d.id);

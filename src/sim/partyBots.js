@@ -20,12 +20,15 @@ export const BUILDS = {
     { weapon: "epee_milicien", set: "veteran", shield: "bouclier_milicien" },
     { weapon: "epee_fossoyeur", set: "fossoyeur", shield: "bouclier_fossoyeur" },
     { weapon: "epee_chevalier", set: "chevalier", shield: "bouclier_chevalier" },
+    { weapon: "epee_garde_noye", set: "garde_noye", shield: "bouclier_garde_noye" },    // palier 4 : butin du donjon, jamais celui d'un niveau
   ] },
   assassin: { wtype: "dague", main: "agilite", tiers: [
     { weapon: "dague_ebrechee", set: "traqueur" }, { weapon: "dague_charognard", set: "charognard" }, { weapon: "dague_garou", set: "garou" },
+    { weapon: "dague_veneur", set: "veneur" },
   ] },
   magicien: { wtype: "baton", main: "intelligence", tiers: [
     { weapon: "baton_noueux", set: "apprenti" }, { weapon: "baton_brasier", set: "brasier" }, { weapon: "baton_esprit", set: "esprit" },
+    { weapon: "baton_veuve", set: "veuve" },
   ] },
 };
 export const tierOf = (level) => (level < 10 ? 0 : level < 16 ? 1 : 2);

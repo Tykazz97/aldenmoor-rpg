@@ -64,7 +64,7 @@ export function acquireItem(life, id) {
   const slot = it.type;
   const cur = life.gear[slot];
   const blocked = (slot === "bouclier" && ITEMS[life.gear.arme]?.twoHanded) || (slot === "arme" && it.twoHanded && life.gear.bouclier);
-  if (slot in { chapeau: 1, cape: 1, plastron: 1, amulette: 1, gants: 1, ceinture: 1, anneau: 1, jambieres: 1, arme: 1, bouclier: 1 } && !blocked && (!cur || gearScore(id) > gearScore(cur))) {
+  if (slot in { chapeau: 1, cape: 1, plastron: 1, amulette: 1, gants: 1, ceinture: 1, anneau: 1, jambieres: 1, arme: 1, bouclier: 1, relique1: 1 } && !blocked && (!cur || gearScore(id) > gearScore(cur))) {
     life.gear[slot] = id;
     if (cur) stash(life, cur);
   } else stash(life, id);
@@ -106,13 +106,16 @@ function gather(p, itemId, rng, merchant = true) {
   return p;
 }
 
+// Le palier qu'il vise : celui de son niveau ; une fois le Manoir Englouti fini, il a de quoi viser le palier 4
+export const tierFor = (life) => (life.dj?.clears > 0 && life.level >= 20 ? 3 : tierOf(life.level));
+
 // Les pièces qu'il peut viser maintenant, dans l'ordre : manquantes de son palier (les moins chères d'abord), sinon de quoi
 // entraîner le métier qui le bloque
 function chooseTargets(life, bot) {
   const base = asPlayer(life);
   const can = (id) => { const info = getCraftInfo(id); return info && professionOf(base, info.profession).level >= info.minLevel; };
   const cost = (id) => Object.entries(RECIPES[id].ingredients).reduce((s, [r, q]) => s + RESOURCES[r].value * q, RECIPES[id].gold);
-  const tier = tierOf(life.level);
+  const tier = tierFor(life);
   // 1) les pièces qui lui manquent, du palier visé vers les paliers plus bas, les moins chères d'abord
   let picks = [];
   for (let t = tier; t >= 0 && !picks.length; t--) {
@@ -137,6 +140,11 @@ export function craftStep(life, bot, rng, { merchant = true } = {}) {
   return tryCraft(life, base, picks, rng, merchant);
 }
 
+// Fabrique UN objet précis (la clé d'un donjon, par exemple) avec ce qu'il a ; il ne l'équipe pas. Renvoie l'id ou null.
+export function craftOne(life, itemId, rng, merchant = true) {
+  return tryCraft(life, asPlayer(life), [itemId], rng, merchant, false);
+}
+
 // Ce qu'il lui faut acheter pour sa prochaine fabrication : { idRessource: quantité } (matières brutes quand il sait raffiner)
 export function shoppingList(life, bot) {
   const { base, picks } = chooseTargets(life, bot);
@@ -156,7 +164,7 @@ export function shoppingList(life, bot) {
 const bumpCraft = (life, id) => { const q = life.quests || (life.quests = { active: [], done: { day: -1, ids: [] }, rep: {}, chain: [], counters: { kills: {}, gathered: {}, crafted: {} } }); const c = q.counters || (q.counters = { kills: {}, gathered: {}, crafted: {} }); (c.crafted || (c.crafted = {}))[id] = ((c.crafted || {})[id] || 0) + 1; };
 
 // Essaie de fabriquer l'une des pièces (ingrédients raffinés ou achetés au besoin) ; renvoie l'id fabriqué ou null
-function tryCraft(life, base, picks, rng, merchant = true) {
+function tryCraft(life, base, picks, rng, merchant = true, equip = true) {
   for (const id of picks) {
     let p = gather({ ...base, resources: { ...base.resources } }, id, rng, merchant);
     if (!p) continue;
@@ -168,7 +176,7 @@ function tryCraft(life, base, picks, rng, merchant = true) {
     life.pro = Object.fromEntries(craftKeys.map((k) => [k, after.professions[k]]));
     life.crafted = (life.crafted || 0) + 1;
     bumpCraft(life, id);
-    acquireItem(life, id);
+    if (equip) acquireItem(life, id);
     return id;
   }
   return null;

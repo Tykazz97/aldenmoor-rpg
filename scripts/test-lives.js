@@ -431,7 +431,7 @@ await test("boss : après un mois, beaucoup ont vaincu des boss (jamais sous le 
     for (const [k, v] of kills) { n += v; assert.ok(l.level >= rec[k], `${b.id} niveau ${l.level} a vaincu ${k}`); assert.ok(l.quests.counters.kills[k] >= v); }
     total += n;
     assert.ok(n <= 31, `${b.id} : ${n} boss en 30 jours`);
-    for (const id of [...Object.values(l.gear), ...l.bag.items, ...(l.bank?.items || [])]) if (ITEMS[id]?.rarity === "legendaire") { relics++; assert.equal(ITEMS[id].classKey, b.classKey, `${id} sur un ${b.classKey}`); }
+    for (const id of [...Object.values(l.gear), ...l.bag.items, ...(l.bank?.items || [])]) if (ITEMS[id]?.rarity === "legendaire" && ITEMS[id].classKey) { relics++; assert.equal(ITEMS[id].classKey, b.classKey, `${id} sur un ${b.classKey}`); }
   }
   assert.ok(withBoss > 100 && total > 300, `${withBoss} simulés, ${total} victoires`);
   assert.ok(relics <= 40, `${relics} armes uniques`);

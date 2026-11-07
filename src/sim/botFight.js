@@ -73,5 +73,22 @@ export function winChance(bot, life, enemyKeys, allyClasses = []) {
   CACHE.set(key, p);
   return p;
 }
-export const clearFightCache = () => CACHE.clear();
-export const cacheSize = () => CACHE.size;
+
+// Un donjon en groupe : probabilité de s'arrêter après n salles gagnées (n = 0 … nombre de salles ; la dernière = tout fini)
+export const DUNGEON_SAMPLES = 4;
+const DJ_CACHE = new Map();
+export function dungeonOdds(bot, life, dungeon, allyClasses) {
+  const style = buildOf(bot);
+  const key = `${dungeon.key}|${bot.classKey}|${life.level >> 1}|${sig(life.gear)}${life.gear?.relique1 ? "R" : ""}|${Math.round(style.main * 10)}|${style.extra}|${style.rankCap}|${allyClasses.join("+")}`;
+  const hit = DJ_CACHE.get(key);
+  if (hit) return hit;
+  const player = makeBotPlayer(bot.classKey, life.level, life.gear, style);
+  const allies = allyClasses.map((c) => botSpec(c, life.level));
+  const reached = Array(dungeon.rooms.length + 1).fill(0);
+  for (let seed = 1; seed <= DUNGEON_SAMPLES; seed++) reached[autoDungeon(player, allies, dungeon.rooms, seed).rooms]++;
+  const odds = reached.map((n) => n / DUNGEON_SAMPLES);
+  DJ_CACHE.set(key, odds);
+  return odds;
+}
+export const clearFightCache = () => { CACHE.clear(); DJ_CACHE.clear(); };
+export const cacheSize = () => CACHE.size + DJ_CACHE.size;
