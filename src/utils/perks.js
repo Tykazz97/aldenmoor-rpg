@@ -10,7 +10,7 @@ import { PROFESSIONS, MAX_PROFESSION_LEVEL } from "../data/professions.js";
 
 // Valeur maximale de chaque avantage, atteinte au niveau maximum du métier (100)
 export const PERK_MAX = {
-  speed: 0.40,        // récolte 40 % plus rapide (durée × 0,6)
+  speed: 0.80,        // durée de récolte divisée par 5 au niveau 100 (5 s → 1 s)
   double: 0.50,       // 50 % de chance de récolte double
   find: 0.20,         // 20 % de chance de trouvaille
   bonus: 0.40,        // 40 % de chance d'une unité de plus au raffinage

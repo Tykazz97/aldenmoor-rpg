@@ -13,6 +13,7 @@ import { calcStats } from "../src/utils/calcStats.js";
 import { itemWorth, itemValue } from "../src/utils/market.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { makeRng } from "../src/sim/rng.js";
+import { HARVEST_MS } from "../src/components/map/mapConstants.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -51,7 +52,7 @@ test("la courbe monte à chaque niveau, plus vite au début, et ne dépasse jama
 
 test("les avantages restent raisonnables au niveau maximum", () => {
   const p = perksFor("bucheron", 100);
-  assert.ok(p.speed >= 0.6 && p.double <= 0.5 && p.find <= 0.25);
+  assert.ok(p.speed >= 0.2 - 1e-9 && p.double <= 0.5 && p.find <= 0.25);
   assert.ok(perksFor("fondeur", 100).bonus <= 0.4 && perksFor("forgeron", 100).masterwork <= 0.3);
 });
 
@@ -82,12 +83,14 @@ test("récolte : fréquences sur de nombreux tirages proches des pourcentages an
   assert.ok(Math.abs(f / N - p.find) < 0.02, `trouvaille ${f / N} au lieu de ${p.find}`);
 });
 
-test("la durée de récolte baisse avec le niveau, jamais en dessous de 60 %", () => {
-  assert.equal(harvestDuration(1, "bucheron", 2000), 2000);
-  assert.ok(harvestDuration(5, "bucheron", 2000) < 2000);
-  assert.ok(harvestDuration(50, "bucheron", 2000) < harvestDuration(10, "bucheron", 2000));
-  assert.equal(harvestDuration(100, "bucheron", 2000), Math.round(2000 * (1 - PERK_MAX.speed)));
-  assert.ok(harvestDuration(100, "bucheron", 2000) >= 1200);
+test("la durée de récolte baisse avec le niveau : 5 s au niveau 1, 1 s au niveau 100", () => {
+  assert.equal(HARVEST_MS, 5000);
+  assert.equal(harvestDuration(1, "bucheron", HARVEST_MS), 5000);
+  assert.ok(harvestDuration(5, "bucheron", HARVEST_MS) < 5000);
+  assert.ok(harvestDuration(50, "bucheron", HARVEST_MS) < harvestDuration(10, "bucheron", HARVEST_MS));
+  assert.equal(harvestDuration(100, "bucheron", HARVEST_MS), 1000);
+  for (let l = 1; l < 100; l++) assert.ok(harvestDuration(l, "mineur", HARVEST_MS) >= harvestDuration(l + 1, "mineur", HARVEST_MS), `niveau ${l}`);
+  assert.ok(harvestDuration(500, "mineur", HARVEST_MS) >= 1000);                       // jamais en dessous de 1 s
 });
 
 test("applyGather ajoute la trouvaille en plus de la ressource, et compte pour les quêtes", () => {
