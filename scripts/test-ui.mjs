@@ -151,7 +151,9 @@ try {
     const goldBefore = (await save()).player.gold;
     await page.evaluate(() => {
       const v = document.querySelector(".mp-map").getBoundingClientRect();
-      const c = [...document.querySelectorAll(".mp-group")].filter((e) => { const r = e.getBoundingClientRect(); return r.left > v.left && r.right < v.right && r.top > v.top && r.bottom < v.bottom; });
+      const cx = (v.left + v.right) / 2, cy = (v.top + v.bottom) / 2;
+      const d = (e) => { const r = e.getBoundingClientRect(); return Math.hypot((r.left + r.right) / 2 - cx, (r.top + r.bottom) / 2 - cy); };
+      const c = [...document.querySelectorAll(".mp-group:not(.boss):not(.busy)")].sort((a, b) => d(a) - d(b));   // le plus proche du centre de l'écran (la carte est grande : il n'y en a pas toujours un à l'écran)
       c[0].click();
     });
     await page.locator("button", { hasText: "Combattre" }).click({ timeout: 15000 });
@@ -188,7 +190,9 @@ try {
     // on est encore sur la carte des Prairies : on engage un groupe visible
     await page.evaluate(() => {
       const v = document.querySelector(".mp-map").getBoundingClientRect();
-      const c = [...document.querySelectorAll(".mp-group")].filter((e) => { const r = e.getBoundingClientRect(); return r.left > v.left && r.right < v.right && r.top > v.top && r.bottom < v.bottom; });
+      const cx = (v.left + v.right) / 2, cy = (v.top + v.bottom) / 2;
+      const d = (e) => { const r = e.getBoundingClientRect(); return Math.hypot((r.left + r.right) / 2 - cx, (r.top + r.bottom) / 2 - cy); };
+      const c = [...document.querySelectorAll(".mp-group:not(.boss):not(.busy)")].sort((a, b) => d(a) - d(b));   // le plus proche du centre de l'écran (la carte est grande : il n'y en a pas toujours un à l'écran)
       c[0].click();
     });
     // on choisit un compagnon parmi les aventuriers proposés : son pseudo se retrouve dans le groupe, puis dans la sauvegarde
@@ -243,7 +247,7 @@ try {
     const bld = page.locator(".mp-building", { hasText: "Manoir Englouti" });
     assert.equal(await bld.count(), 1, "l'entrée du donjon est sur la carte de la Lisière");
     await bld.evaluate((e) => e.click());   // hors de la vue : on déclenche le clic, le héros marche jusqu'à l'entrée
-    await page.locator(".mp-popup").waitFor({ timeout: 40000 });
+    await page.locator(".mp-popup").waitFor({ timeout: 120000 });
     const pop = (await page.locator(".mp-popup").innerText()).toLowerCase();
     for (const w of ["Hall inondé", "Chapelle ardente", "Niveaux 20 à 26"]) assert.ok(pop.includes(w.toLowerCase()), w);
     assert.equal(await page.locator("button", { hasText: "Combattre seul" }).count(), 0, "pas de solo dans un donjon");

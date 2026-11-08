@@ -26,7 +26,7 @@ import { heroLook } from "../../data/heroSprites.js";
 import { heroSheetUrl, heroFrameLayout, HERO_ACTION_FOR_PROFESSION } from "../../data/heroAnims.js";
 import { canGather, rollHarvest } from "../../utils/gathering.js";
 import { harvestDuration } from "../../utils/perks.js";
-import { findPath, pathToObject, activeGroups, activeNodes, mapWidth, mapHeight } from "../../utils/mapPath.js";
+import { findPath, pathToObject, activeGroups, activeNodes, mapWidth, mapHeight, isWalkable } from "../../utils/mapPath.js";
 
 export default function MapScreen({ player, onPlayerChange, stats, world, setWorld, onRewards, onGather, renderBuilding }) {
   const map = MAPS[world.mapKey];
@@ -47,7 +47,8 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const viewRef = useRef(null), worldElRef = useRef(null), heroRef = useRef(null), heroAnimRef = useRef(null), dotRef = useRef(null);
   const harvestAct = useRef(null);                // { action, t0 } pendant une récolte
   const animKey = useRef("");
-  const posRef = useRef({ ...world.pos });
+  // une ancienne sauvegarde peut garder une position de l'ancienne carte (plus petite) : si elle tombe dans un obstacle, retour à l'arrivée
+  const posRef = useRef(isWalkable(map, Math.floor(world.pos.x), Math.floor(world.pos.y)) ? { ...world.pos } : { x: map.start.x + 0.5, y: map.start.y + 0.5 });
   const camRef = useRef(null);
   const pathRef = useRef(null);                   // { pts, then }
   const keysRef = useRef(new Set());

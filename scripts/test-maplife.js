@@ -75,7 +75,8 @@ test("ils vont se battre : des groupes de monstres ordinaires sont vraiment vain
   const { events, map, seenFight } = run("prairies_sauvages");
   const cleared = events.filter((e) => e.type === "cleared");
   assert.ok(cleared.length >= 3, `${cleared.length} victoires en 4 minutes`);
-  assert.ok(cleared.length <= 12, "ils ne vident pas la carte");
+  // (ici les groupes ne réapparaissent pas : en jeu ils reviennent au bout d'une minute) il en reste au moins un
+  assert.ok(cleared.length < map.groups.length, `ils ne vident pas la carte (${cleared.length}/${map.groups.length})`);
   for (const c of cleared) {
     const g = map.groups.find((x) => x.id === c.id);
     assert.ok(g && !isBoss(g), c.id);

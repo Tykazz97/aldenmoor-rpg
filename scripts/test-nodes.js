@@ -17,6 +17,16 @@ const byProfession = (map) => {
   return out;
 };
 
+test("les régions ont été agrandies d'environ 50 % (elles faisaient 48 à 52 × 30 tuiles, soit au moins 48×30) et gardent leurs groupes ordinaires et leurs nœuds en nombre", () => {
+  for (const key of REGIONS) {
+    const map = MAPS[key], w = map.rows[0].length, h = map.rows.length;
+    assert.ok(w * h >= 48 * 30 * 1.4, `${key} : ${w}×${h}`);
+    assert.ok(map.groups.length >= 17, `${key} : ${map.groups.length} groupes`);
+    assert.ok(map.nodes.length >= 40, `${key} : ${map.nodes.length} nœuds`);
+    for (const r of map.rows) assert.equal(r.length, w);
+  }
+});
+
 test("chaque nœud est sur une tuile praticable, hors groupes et bâtiments, avec une tuile libre entre deux nœuds", () => {
   for (const key of REGIONS) {
     const map = MAPS[key], others = [...map.groups, ...(map.buildings || []).map((b) => ({ x: b.a, y: b.y })), map.start];
