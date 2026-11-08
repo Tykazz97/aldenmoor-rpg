@@ -1,0 +1,105 @@
+/* Hôtel des ventes : mise en page (les couleurs reprennent styles/theme.js) */
+.hv { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.hv-top { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; }
+.hv-gold { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #d9b568; }
+.hv-chip { font-size: 12px; color: #a89f8c; background: #14141f; border: 1px solid #2a2a3d; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+.hv-chip b { color: #d9b568; font-family: 'JetBrains Mono', monospace; }
+.hv-chip.full b { color: #e0796a; }
+.hv-msg { flex: 1; min-width: 200px; font-size: 12px; min-height: 16px; }
+.hv-msg.ok { color: #8fd08a; }
+.hv-msg.ko { color: #e0796a; }
+.hv-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.hv-tab { background: #1c1c2b; color: #a89f8c; border: 1px solid #2a2a3d; border-radius: 8px; padding: 8px 18px; font-size: 13px; cursor: pointer; }
+.hv-tab:hover { border-color: #3a3a52; }
+.hv-tab.on { background: #14141f; color: #d9b568; border-color: #d9b568; }
+
+/* ---- Acheter : catégories | liste | fiche ---- */
+.hv-buy { display: grid; grid-template-columns: 188px minmax(0, 1fr) 360px; gap: 12px; align-items: start; }
+.hv-sell { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; align-items: start; }
+.hv-side { background: #14141f; border: 1px solid #2a2a3d; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; }
+.hv-side-head { font-family: 'Cinzel', serif; color: #d9b568; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 8px 8px 4px; }
+.hv-cat { display: flex; align-items: center; justify-content: space-between; gap: 6px; background: transparent; color: #a89f8c; border: 0; border-radius: 6px; padding: 6px 8px; font-size: 12.5px; text-align: left; cursor: pointer; }
+.hv-cat:hover { background: #1c1c2b; color: #d9d0bd; }
+.hv-cat.on { background: #1c1c2b; color: #d9b568; box-shadow: inset 2px 0 0 #b8923f; }
+.hv-cat.sub { padding-left: 18px; }
+.hv-cat .n { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #74748a; }
+
+.hv-main { background: #14141f; border: 1px solid #2a2a3d; border-radius: 8px; display: flex; flex-direction: column; min-width: 0; }
+.hv-bar { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid #2a2a3d; }
+.hv-search { flex: 1 1 180px; max-width: 320px; background: #0a0a0f; border: 1px solid #2a2a3d; border-radius: 8px; color: #d9d0bd; padding: 7px 11px; font-size: 13px; font-family: inherit; }
+.hv-check { font-size: 12px; color: #a89f8c; display: flex; gap: 6px; align-items: center; cursor: pointer; margin-left: auto; }
+.hv-scroll { overflow-y: auto; max-height: calc(100vh - 300px); min-height: 280px; }
+.hv-cols, .hv-row { display: grid; grid-template-columns: minmax(190px, 2fr) 62px repeat(3, minmax(64px, 0.8fr)) 70px; gap: 8px; align-items: center; padding: 6px 12px; }
+.hv-cols { font-size: 10px; color: #74748a; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #2a2a3d; position: sticky; top: 0; background: #14141f; z-index: 1; }
+.hv-cols .r, .hv-row .r { text-align: right; }
+.hv-row { cursor: pointer; border-bottom: 1px solid #1c1c2b; background: transparent; width: 100%; border-left: 0; border-right: 0; border-top: 0; color: inherit; font-family: inherit; text-align: left; }
+.hv-row:hover { background: #1c1c2b; }
+.hv-row.on { background: #20202f; box-shadow: inset 3px 0 0 #b8923f; }
+.hv-name { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.hv-name span { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-num { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #d9d0bd; text-align: right; }
+.hv-num small { display: block; font-size: 10px; color: #74748a; }
+.hv-num.no { color: #4a4a5c; }
+.hv-stats { grid-column: 4 / span 3; font-size: 11.5px; color: #a89f8c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-icon { width: 34px; height: 34px; flex-shrink: 0; border-radius: 6px; background: #1c1c2b; display: flex; align-items: center; justify-content: center; }
+.hv-icon.big { width: 56px; height: 56px; border-radius: 10px; }
+.hv-icon img { object-fit: contain; }
+.hv-empty { padding: 28px 16px; text-align: center; font-size: 12.5px; color: #74748a; line-height: 1.6; }
+
+.hv-detail { background: #14141f; border: 1px solid #2a2a3d; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 0; min-width: 0; }
+.hv-h { display: flex; gap: 12px; align-items: center; }
+.hv-title { font-family: 'Cinzel', serif; font-size: 16px; line-height: 1.2; }
+.hv-sub { font-size: 11px; color: #74748a; margin-top: 2px; }
+.hv-block { display: flex; flex-direction: column; gap: 8px; background: #0f0f18; border: 1px solid #2a2a3d; border-radius: 8px; padding: 10px; }
+.hv-label { font-size: 10px; color: #74748a; text-transform: uppercase; letter-spacing: .07em; }
+.hv-lots { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.hv-lot { background: #1c1c2b; color: #d9d0bd; border: 1px solid #2a2a3d; border-radius: 6px; padding: 5px 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace; cursor: pointer; }
+.hv-lot:hover { border-color: #3a3a52; }
+.hv-lot.on { border-color: #d9b568; color: #d9b568; background: #20202f; }
+.hv-input { width: 84px; background: #0a0a0f; border: 1px solid #2a2a3d; border-radius: 6px; color: #d9d0bd; padding: 5px 8px; font-size: 12.5px; font-family: 'JetBrains Mono', monospace; }
+.hv-btn { background: #b8923f; color: #0a0a0f; border: 0; border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.hv-btn:hover { background: #d9b568; }
+.hv-btn:disabled, .hv-btn.off { background: #2a2a3d; color: #74748a; cursor: not-allowed; }
+.hv-mini { background: #1c1c2b; color: #d9d0bd; border: 1px solid #2a2a3d; border-radius: 6px; padding: 3px 9px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+.hv-mini:hover { border-color: #3a3a52; }
+.hv-mini:disabled, .hv-mini.off { opacity: .45; cursor: not-allowed; }
+.hv-sum { font-size: 12px; color: #a89f8c; line-height: 1.55; }
+.hv-sum b { color: #d9d0bd; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+.hv-sum .bad { color: #e0796a; }
+.hv-offers { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
+.hv-offer { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 12px; padding: 5px 4px; border-bottom: 1px solid #1c1c2b; }
+.hv-offer .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hv-offer .who small { display: block; color: #74748a; font-size: 10.5px; white-space: normal; }
+.hv-offer.mine .who { color: #d9b568; }
+.hv-pill { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; border-radius: 20px; padding: 2px 8px; border: 1px solid; white-space: nowrap; }
+.hv-trend { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; justify-content: flex-end; }
+.hv-lines { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: #a89f8c; }
+
+/* ---- Vendre ---- */
+.hv-sellrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 12px; border-bottom: 1px solid #1c1c2b; cursor: pointer; background: transparent; width: 100%; border-left: 0; border-right: 0; border-top: 0; color: inherit; font-family: inherit; text-align: left; }
+.hv-sellrow:hover { background: #1c1c2b; }
+.hv-sellrow.on { background: #20202f; box-shadow: inset 3px 0 0 #b8923f; }
+
+/* ---- Mes ventes : emplacements ---- */
+.hv-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.hv-slot { border: 1px solid #2a2a3d; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-height: 104px; background: #14141f; }
+.hv-slot.free { border-style: dashed; align-items: center; justify-content: center; color: #74748a; font-size: 12px; text-align: center; }
+.hv-slot.locked { background: #0f0f18; border-style: dashed; border-color: #1c1c2b; color: #4a4a5c; align-items: center; justify-content: center; font-size: 12px; text-align: center; }
+.hv-slotn { font-size: 10px; color: #74748a; text-transform: uppercase; letter-spacing: .07em; }
+.hv-section { font-family: 'Cinzel', serif; color: #d9b568; font-size: 14px; }
+
+@media (max-width: 1180px) {
+  .hv-buy { grid-template-columns: 1fr; }
+  .hv-sell { grid-template-columns: 1fr; }
+  .hv-side { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .hv-side-head { width: 100%; padding: 4px 6px 0; }
+  .hv-cat.sub { padding-left: 8px; }
+  .hv-cat { border: 1px solid #2a2a3d; }
+  .hv-detail { position: static; }
+  .hv-scroll { max-height: 420px; }
+}
+@media (max-width: 640px) {
+  .hv-cols, .hv-row { grid-template-columns: minmax(110px, 1.6fr) 44px 64px 64px; }
+  .hv-cols .hide-s, .hv-row .hide-s { display: none; }
+  .hv-stats { grid-column: 4; }
+}

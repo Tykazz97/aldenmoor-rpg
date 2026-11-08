@@ -60,7 +60,15 @@ const EXPONENT = 0.6, MULT_MIN = 0.45, MULT_MAX = 2.3;
 export const TAX_RATE = 0.10;                  // taxe de mise en vente : 10 % du montant, payée par le vendeur
 export { ITEM_SELL_RATE, itemValue, itemSellPrice };
 export const LISTING_STEPS = 288;              // une annonce du joueur dure 48 h
-export const MAX_PLAYER_LISTINGS = 12;
+export const MAX_PLAYER_LISTINGS = 12;         // maximum d'emplacements de vente, atteint au niveau 45
+export const SLOTS_BASE = 3;                   // emplacements de vente au niveau 1
+export const SLOTS_EVERY = 5;                  // un emplacement de plus tous les 5 niveaux
+// Plus le personnage monte en niveau, plus il peut avoir d'annonces en même temps (une annonce = un emplacement, quelle que soit la quantité)
+export const listingSlots = (level = 1) => Math.min(MAX_PLAYER_LISTINGS, SLOTS_BASE + Math.floor(Math.max(1, Math.floor(level) || 1) / SLOTS_EVERY));
+// Niveau auquel on obtient l'emplacement numéro n (1 = premier)
+export const slotUnlockLevel = (n) => (n <= SLOTS_BASE ? 1 : (n - SLOTS_BASE) * SLOTS_EVERY);
+// Niveau du prochain emplacement, ou null si on les a tous
+export const nextSlotLevel = (level = 1) => { const n = listingSlots(level); return n >= MAX_PLAYER_LISTINGS ? null : slotUnlockLevel(n + 1); };
 export const MAX_UNIT_PRICE = 1_000_000;
 const MAX_BOT_LISTINGS_PER_RESOURCE = 20, ITEM_LISTINGS_TARGET = 12, SALES_LOG = 30;
 
@@ -500,7 +508,7 @@ export function postListing(player, spec, now = Date.now()) {
   const s = settleMarket(player, now), p = s.player, m = p.market;
   const unit = Math.floor(spec.unit);
   if (!(unit >= 1) || unit > MAX_UNIT_PRICE) return fail(p, "prix");
-  if (m.listings.filter(isMine).length >= MAX_PLAYER_LISTINGS) return fail(p, "limite");
+  if (m.listings.filter(isMine).length >= listingSlots(p.level)) return fail(p, "limite");
   let listing, goods;
   if (spec.kind === "item") {
     const item = p.inventory.find((i) => i.uid === spec.uid);

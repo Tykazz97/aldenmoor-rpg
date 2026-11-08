@@ -116,9 +116,43 @@ try {
     assert.deepEqual(errors, []);
   });
 
-  await step("Marché : les trois onglets Acheter / Vendre / Mes annonces", async () => {
+  await step("Marché façon hôtel des ventes : catégories, achat d'un lot, mise en vente, emplacements limités au niveau", async () => {
     await tab("Marché").click(); await page.waitForTimeout(400);
-    for (const t of ["Acheter", "Vendre", "Mes annonces"]) { await page.locator("button", { hasText: t }).first().click(); await page.waitForTimeout(150); }
+    const msg = () => page.locator("[data-msg]").innerText();
+    const gold = async () => Number((await page.locator("[data-gold]").innerText()).replace(/\D/g, ""));
+    // catégories à gauche, liste au milieu
+    assert.ok(await page.locator("[data-hv-cats]").isVisible(), "catégories");
+    await page.locator('[data-cat="e_arme"]').click(); await page.waitForTimeout(150);
+    await page.locator('[data-cat="tout"]').click(); await page.waitForTimeout(150);
+    await page.locator('[data-hv-search]').fill("croc de loup"); await page.waitForTimeout(150);
+    assert.equal(await page.locator("[data-hv-row]").count(), 1, "la recherche filtre la liste");
+    await page.locator('[data-hv-search]').fill(""); await page.waitForTimeout(100);
+    // achat d'un lot de 10 d'une ressource : l'or baisse, un message le dit
+    await page.locator('[data-hv-row="res:croc_de_loup"]').click(); await page.waitForTimeout(250);
+    assert.ok(await page.locator('[data-hv-detail="res:croc_de_loup"]').isVisible(), "fiche de l'objet");
+    const g0 = await gold();
+    await page.locator('[data-lot="10"]').click();
+    await page.locator('[data-act="buy"]').click(); await page.waitForTimeout(250);
+    assert.match(await msg(), /Acheté 10 × Croc de loup/);
+    assert.ok((await gold()) < g0, "l'or baisse après l'achat");
+    // vendre : 3 emplacements au niveau 1, la 4e annonce est impossible
+    await page.locator('[data-tab="sell"]').click(); await page.waitForTimeout(200);
+    for (let i = 0; i < 3; i++) {
+      await page.locator("[data-hv-sellrow]").first().click(); await page.waitForTimeout(150);
+      await page.locator('[data-act="post"]').click(); await page.waitForTimeout(200);
+      assert.match(await msg(), /Annonce publiée/, `annonce ${i + 1}`);
+    }
+    assert.match(await page.locator("[data-hv-slotchip]").innerText(), /3 \/ 3/);
+    await page.locator("[data-hv-sellrow]").first().click(); await page.waitForTimeout(150);
+    assert.equal(await page.locator('[data-act="post"]').isDisabled(), true, "plus d'emplacement libre");
+    assert.match(await page.locator("[data-hv-slots]").innerText(), /tous pris/);
+    // mes ventes : emplacements occupés, libres et verrouillés par niveau
+    await page.locator('[data-tab="mine"]').click(); await page.waitForTimeout(200);
+    assert.equal(await page.locator('[data-slot="used"]').count(), 3);
+    assert.equal(await page.locator('[data-slot="locked"]').count(), 9);
+    assert.match(await page.locator("[data-hv-slots-board]").innerText(), /niveau 5/);
+    await page.locator('[data-act="cancel"]').first().click(); await page.waitForTimeout(200);
+    assert.equal(await page.locator('[data-slot="used"]').count(), 2);
     assert.deepEqual(errors, []);
   });
 

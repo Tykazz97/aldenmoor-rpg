@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   newMarket, tickMarket, marketOf, settleMarket, buyFromListing, buyCheapest, postListing, cancelListing,
   listingsFor, marketPrice, refPrice, supplyOf, targetStock, myListings, equipmentListings, quoteBuy, quotePost, trend, minutesLeft,
-  saleTax, TAX_RATE, itemValue, itemSellPrice, STEP_MS, LISTING_STEPS, MAX_PLAYER_LISTINGS, sellerName,
+  saleTax, TAX_RATE, listingSlots, nextSlotLevel, slotUnlockLevel, itemValue, itemSellPrice, STEP_MS, LISTING_STEPS, MAX_PLAYER_LISTINGS, sellerName,
 } from "../src/utils/market.js";
 import { RESOURCE_ORDER, RESOURCES } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";
@@ -228,10 +228,32 @@ test("refus propres : prix invalide, rien à vendre, taxe impayable, trop d'anno
   assert.equal(postListing(p, { kind: "item", uid: "nope", unit: 5 }, T0).reason, "aucun");
   const broke = withMarket(base({ gold: 0 }));
   assert.equal(postListing(broke, { kind: "res", rid: "bois_de_frene", qty: 50, unit: 100 }, T0).reason, "taxe");
-  let q = withMarket(base({ resources: { bois_de_frene: 500 } }));
+  let q = withMarket(base({ level: 45, resources: { bois_de_frene: 500 } }));
   for (let i = 0; i < MAX_PLAYER_LISTINGS; i++) q = postListing(q, { kind: "res", rid: "bois_de_frene", qty: 1, unit: 50 + i }, T0).player;
   assert.equal(myListings(q.market).length, MAX_PLAYER_LISTINGS);
   assert.equal(postListing(q, { kind: "res", rid: "bois_de_frene", qty: 1, unit: 99 }, T0).reason, "limite");
+});
+
+test("emplacements de vente : 3 au départ, un de plus tous les 5 niveaux, 12 au maximum", () => {
+  assert.equal(listingSlots(1), 3);
+  assert.equal(listingSlots(4), 3);
+  assert.equal(listingSlots(5), 4);
+  assert.equal(listingSlots(30), 9);
+  assert.equal(listingSlots(45), MAX_PLAYER_LISTINGS);
+  assert.equal(listingSlots(50), MAX_PLAYER_LISTINGS);
+  for (let n = 1; n <= MAX_PLAYER_LISTINGS; n++) assert.equal(listingSlots(slotUnlockLevel(n)) >= n, true, `emplacement ${n}`);
+  assert.equal(nextSlotLevel(1), 5);
+  assert.equal(nextSlotLevel(5), 10);
+  assert.equal(nextSlotLevel(45), null);
+});
+
+test("niveau 1 : 3 annonces, la 4e est refusée ; en montant de niveau, elle passe", () => {
+  let q = withMarket(base({ resources: { bois_de_frene: 500 } }));
+  for (let i = 0; i < 3; i++) q = postListing(q, { kind: "res", rid: "bois_de_frene", qty: 1, unit: 50 + i }, T0).player;
+  assert.equal(postListing(q, { kind: "res", rid: "bois_de_frene", qty: 1, unit: 60 }, T0).reason, "limite");
+  const up = postListing({ ...q, level: 5 }, { kind: "res", rid: "bois_de_frene", qty: 1, unit: 60 }, T0);
+  assert.equal(up.ok, true);
+  assert.equal(myListings(up.player.market).length, 4);
 });
 
 test("quantité demandée supérieure au sac : on met en vente ce qu'on a", () => {
