@@ -50,9 +50,3 @@ export function availableOutfits(player) {
   return HERO_OUTFITS.filter((o) =>
     o === "base" || o === CLASSES[player.classKey]?.outfit || (SETS[o]?.pieces || []).some((id) => owned.has(id)));
 }
-
-// Tenues encore verrouillées : on les voit dans la liste d'apparence (grisées), elles s'ouvrent dès qu'on possède une pièce du set
-export const lockedOutfits = (player) => {
-  const open = new Set(availableOutfits(player));
-  return HERO_OUTFITS.filter((o) => !open.has(o));
-};

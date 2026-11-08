@@ -47,11 +47,11 @@ export function generateBot(rng, index, usedNames) {
   const gender = rng.chance(0.46) ? "f" : "m";
   const level = rollLevel(rng);
   const own = CLASSES[classKey].outfit;
-  // tenue : le plus souvent celle de sa classe ; les débutants sortent parfois en voyageur, les autres s'amusent avec l'apparence
-  let outfit = own;
+  // tenue : un simulé ne porte que celle de sa classe (il ne change pas d'apparence). Les deux tirages sont gardés pour ne pas
+  // décaler la suite du hasard, donc le reste de la population reste identique.
+  const outfit = own;
   const r = rng();
-  if (level < 8 && r < 0.22) outfit = "base";
-  else if (r > 0.84) outfit = rng.pick(HERO_OUTFITS);
+  if (!(level < 8 && r < 0.22) && r > 0.84) rng.pick(HERO_OUTFITS);
   const activity = rng.weighted([["combattant", 36], ["recolteur", 28], ["marchand", 12], ["flaneur", 24]]);
   const id = `sim_${String(index + 1).padStart(3, "0")}`;
   const prng = makeRng(hashString(id));            // tirage à part : n'influence pas le reste de la population
