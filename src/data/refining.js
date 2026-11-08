@@ -9,13 +9,13 @@
 // Les recettes d'équipement (recipes.js) demandent ces matières raffinées.
 // ============================================================
 export const REFINING = {
-  lingot_de_fer: { profession: "fondeur", minLevel: 1, ingredients: { minerai_de_fer: 2 }, gold: 2, xp: 5, verb: "Fondre" },
-  lingot_de_cuivre: { profession: "fondeur", minLevel: 3, ingredients: { minerai_de_cuivre: 2 }, gold: 8, xp: 14, verb: "Fondre" },
-  planche_de_frene: { profession: "scieur", minLevel: 1, ingredients: { bois_de_frene: 2 }, gold: 2, xp: 5, verb: "Scier" },
-  planche_de_chene: { profession: "scieur", minLevel: 3, ingredients: { bois_de_chene: 2 }, gold: 8, xp: 14, verb: "Scier" },
-  cuir_de_sanglier: { profession: "tanneur", minLevel: 1, ingredients: { peau_de_sanglier: 2 }, gold: 2, xp: 5, verb: "Tanner" },
-  etoffe: { profession: "tisserand", minLevel: 1, ingredients: { chiffon_rapiece: 2 }, gold: 2, xp: 5, verb: "Retisser" },
-  fil_d_ortie: { profession: "tisserand", minLevel: 1, ingredients: { ortie: 2 }, gold: 2, xp: 5, verb: "Filer" },
+  lingot_de_fer: { profession: "fondeur", minLevel: 1, ingredients: { minerai_de_fer: 2 }, gold: 2, xp: 8, verb: "Fondre" },
+  lingot_de_cuivre: { profession: "fondeur", minLevel: 3, ingredients: { minerai_de_cuivre: 2 }, gold: 8, xp: 24, verb: "Fondre" },
+  planche_de_frene: { profession: "scieur", minLevel: 1, ingredients: { bois_de_frene: 2 }, gold: 2, xp: 8, verb: "Scier" },
+  planche_de_chene: { profession: "scieur", minLevel: 3, ingredients: { bois_de_chene: 2 }, gold: 8, xp: 24, verb: "Scier" },
+  cuir_de_sanglier: { profession: "tanneur", minLevel: 1, ingredients: { peau_de_sanglier: 2 }, gold: 2, xp: 8, verb: "Tanner" },
+  etoffe: { profession: "tisserand", minLevel: 1, ingredients: { chiffon_rapiece: 2 }, gold: 2, xp: 8, verb: "Retisser" },
+  fil_d_ortie: { profession: "tisserand", minLevel: 1, ingredients: { ortie: 2 }, gold: 2, xp: 8, verb: "Filer" },
 };
 export const REFINING_ORDER = Object.keys(REFINING);
 

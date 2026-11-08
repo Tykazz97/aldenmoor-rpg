@@ -4,7 +4,7 @@ import { REFINING, REFINING_ORDER, refiningOf } from "../src/data/refining.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { PROFESSIONS, PROFESSION_ORDER } from "../src/data/professions.js";
-import { canRefine, applyRefine, maxRefine, applyCraft, canCraft, professionOf, emptyProfessions } from "../src/utils/crafting.js";
+import { canRefine, applyRefine, maxRefine, applyCraft, canCraft, professionOf, emptyProfessions, gainProfessionXp } from "../src/utils/crafting.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { newMarket, listingsFor } from "../src/utils/market.js";
 import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
@@ -33,7 +33,7 @@ test("raffiner : 2 matières brutes + de l'or donnent 1 matière raffinée et de
   assert.equal(r.player.resources.minerai_de_fer, 8);
   assert.equal(r.player.resources.lingot_de_fer, 1);
   assert.equal(r.player.gold, 200 - unitFee("lingot_de_fer"));
-  assert.deepEqual(r.player.professions.fondeur, { level: 1, xp: REFINING.lingot_de_fer.xp });
+  assert.deepEqual(r.player.professions.fondeur, gainProfessionXp({ level: 1, xp: 0 }, REFINING.lingot_de_fer.xp));
   assert.equal(r.player.professions.forgeron.level, 1);
 });
 
@@ -45,7 +45,7 @@ test("par lots : ×5 et maximum, coût et xp proportionnels", () => {
   assert.equal(r.player.resources.minerai_de_fer, undefined);                             // tout consommé : l'entrée disparaît
   assert.equal(r.player.resources.lingot_de_fer, 5);
   assert.equal(r.player.gold, 200 - 5 * unitFee("lingot_de_fer"));
-  assert.deepEqual(r.player.professions.fondeur, { level: 1, xp: 25 });                    // 5 × 5 xp, il en faut 30 pour le niveau 2
+  assert.deepEqual(r.player.professions.fondeur, gainProfessionXp({ level: 1, xp: 0 }, 5 * REFINING.lingot_de_fer.xp));   // 5 lingots : l'xp de chacun s'additionne
   assert.equal(applyRefine({ ...p, resources: { minerai_de_fer: 12 }, gold: 100 }, "lingot_de_fer", 6).player.professions.fondeur.level, 2);
 });
 
@@ -76,7 +76,7 @@ test("anciennes sauvegardes sans métiers de raffinage : niveau 1 par défaut, r
   assert.deepEqual(professionOf(old, "fondeur"), { level: 1, xp: 0 });
   const r = applyRefine(old, "lingot_de_fer", 2);
   assert.equal(r.made, 2);
-  assert.equal(r.player.professions.fondeur.xp, 2 * REFINING.lingot_de_fer.xp);
+  assert.deepEqual(r.player.professions.fondeur, gainProfessionXp({ level: 1, xp: 0 }, 2 * REFINING.lingot_de_fer.xp));
 });
 
 test("aucune recette d'équipement ne demande de matière brute qui se raffine", () => {
