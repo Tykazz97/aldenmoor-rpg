@@ -6,6 +6,7 @@
 import { ITEMS } from "../data/items.js";
 import { POINTS_PER_LEVEL, FREE_VITALITE_PER_LEVEL } from "../data/caracs.js";
 import { addResourcesTo } from "./crafting.js";
+import { fitRewards } from "./bag.js";
 import { recordKills } from "./counters.js";
 
 export const MAX_LEVEL = 50;
@@ -37,10 +38,11 @@ export function gainXp(player, amount) {
 // rewards = { xp, gold, resources: { id: qty }, items: [itemId, ...], kills: { idEnnemi: n } }
 // `uidBase` sert à donner un identifiant unique aux objets reçus.
 export function applyRewards(player, rewards, uidBase = "loot") {
+  const fit = fitRewards(player, rewards.resources || {}, rewards.items || []);   // sac plein : ce qui ne tient pas est perdu
   let next = { ...player, gold: player.gold + (rewards.gold || 0) };
-  next = addResourcesTo(next, rewards.resources || {});
-  const newItems = (rewards.items || []).map((id, i) => ({ ...ITEMS[id], uid: `${uidBase}-${i}` }));
+  next = addResourcesTo(next, fit.resources);
+  const newItems = fit.items.map((id, i) => ({ ...ITEMS[id], uid: `${uidBase}-${i}` }));
   next = { ...next, inventory: [...next.inventory, ...newItems] };
   next = recordKills(next, rewards.kills);
-  return gainXp(next, rewards.xp || 0);
+  return { ...gainXp(next, rewards.xp || 0), lost: fit.lost };
 }

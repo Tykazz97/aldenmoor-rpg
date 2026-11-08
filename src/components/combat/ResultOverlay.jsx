@@ -4,6 +4,7 @@ import { ITEMS } from "../../data/items.js";
 import { classSpellsAt } from "../../data/classes.js";
 import { applyRewards, xpToNext } from "../../utils/progression.js";
 import { color } from "../../styles/theme.js";
+import { hasLost } from "../../utils/bag.js";
 
 // Écran de fin de combat : butin en cas de victoire, relance en cas de défaite
 // `dungeon` : { index, total } quand c'est une salle de donjon (on enchaîne la suite, et une défaite met fin à l'expédition)
@@ -31,6 +32,11 @@ export default function ResultOverlay({ ended, cs, encounter, player, backLabel,
               ))}
             </div>
           ) : <div className="sub">Aucun butin cette fois.</div>}
+          {hasLost(preview.lost) && (
+            <div data-bag-lost style={{ margin: "6px 0 10px", padding: "8px 10px", border: "1px solid #5a2a2a", background: "#2a1616", borderRadius: 8, fontSize: 12, color: "#e0796a" }}>
+              🎒 Sac plein : perdu {[...Object.entries(preview.lost.resources).map(([id, q]) => `${RESOURCES[id].name} ×${q}`), ...preview.lost.items.map((id) => ITEMS[id].name)].join(", ")}
+            </div>
+          )}
           {preview.levelsGained > 0 && (
             <div className="cb-levelup">
               Niveau {preview.player.level} atteint ! +{3 * preview.levelsGained} points de caractéristiques, +{preview.levelsGained} point{preview.levelsGained > 1 ? "s" : ""} de sort

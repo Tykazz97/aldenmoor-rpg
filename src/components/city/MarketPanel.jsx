@@ -381,7 +381,7 @@ export default function MarketPanel({ player, onPlayerChange }) {
 
   const m = useMemo(() => marketOf(player, now, { maxSteps: CATCHUP_SLICE }), [player.market, now]);   // eslint-disable-line react-hooks/exhaustive-deps
   const board = useMemo(() => slotBoard(player, m), [player.level, m]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const apply = (r, okText, koText) => { if (!r.ok) return say(koText(r.reason), false); onPlayerChange(r.player); say(okText(r)); };
+  const apply = (r, okText, koText) => { if (!r.ok) return say(r.reason === "sac_plein" ? "Ton sac est plein : fais de la place (coffre, vente) avant de récupérer ou d'acheter." : koText(r.reason), false); onPlayerChange(r.player); say(okText(r)); };
 
   const buy = (id, qty) => apply(buyCheapest(player, id, qty, Date.now()), (r) => `Acheté ${r.qty} × ${RESOURCES[id].name} pour ${num(r.total)} or.`, (why) => (why === "or" ? "Pas assez d'or." : "Plus rien en vente."));
   const buyListingFn = (l, qty) => apply(buyFromListing(player, l.id, qty, Date.now()), (r) => `Acheté ${r.qty} × ${RESOURCES[l.rid].name} à ${sellerName(l.seller)} pour ${num(r.total)} or.`, (why) => (why === "or" ? "Pas assez d'or." : "Cette annonce n'existe plus."));

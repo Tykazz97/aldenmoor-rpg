@@ -1,3 +1,4 @@
+import { bagUsed, bagCapacity } from "../../utils/bag.js";
 import React from "react";
 import EquipmentPanel from "./EquipmentPanel.jsx";
 import StatsPanel from "./StatsPanel.jsx";
@@ -70,7 +71,7 @@ export default function CharacterSheet({ player, stats, onEquipSlotClick, onUneq
           <StatsPanel player={player} stats={stats} onAddCaracPoint={onAddCaracPoint} />
           <SpellsPanel player={player} spellbook={spellbook} />
         </div>
-        <InventoryPanel inventory={player.inventory} onEquip={onEquipItem} />
+        <InventoryPanel inventory={player.inventory} onEquip={onEquipItem} used={bagUsed(player)} capacity={bagCapacity(player)} />
       </div>
     </div>
   );

@@ -49,10 +49,12 @@ function ItemCard({ item, onEquip }) {
   );
 }
 
-export default function InventoryPanel({ inventory, onEquip }) {
+export default function InventoryPanel({ inventory, onEquip, used = null, capacity = null }) {
+  const full = capacity !== null && used >= capacity;
   return (
     <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <BannerHeader icon="🎒" title="Sac" right={`${inventory.length} objet${inventory.length > 1 ? "s" : ""}`} />
+      <BannerHeader icon="🎒" title="Sac" right={capacity !== null ? `${used} / ${capacity} emplacements` : `${inventory.length} objet${inventory.length > 1 ? "s" : ""}`} />
+      {full && <div data-bag-full style={{ margin: "8px 12px 0", padding: "6px 10px", fontSize: 11, color: "#e0796a", background: "#2a1616", border: "1px solid #5a2a2a", borderRadius: 6 }}>Sac plein : on ne peut plus retirer une pièce équipée. Range ou vends des objets (onglet Sac).</div>}
       <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
         {inventory.length === 0 ? (
           <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: color.mist }}>

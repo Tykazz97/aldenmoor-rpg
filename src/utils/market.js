@@ -17,6 +17,7 @@
 //   listings : { id, seller:"sim_001"|"player", kind:"res"|"item", rid, item?, qty, unit, exp }
 //   proceeds : or gagné par tes ventes, pas encore encaissé ; returns : marchandise à récupérer
 // ============================================================
+import { bagGuard } from "./bag.js";
 import { RESOURCES, RESOURCE_ORDER } from "../data/resources.js";
 import { ITEMS, ITEM_ORDER } from "../data/items.js";
 import { RECIPES } from "../data/recipes.js";
@@ -489,6 +490,7 @@ export function buyFromListing(player, listingId, qty = 1, now = Date.now()) {
   const next = { ...p, gold: p.gold - total, market: withCredits({ ...m, listings }, [[l.seller, total]]) };
   if (l.kind === "res") next.resources = addResource(p.resources, l.rid, n);
   else next.inventory = [...p.inventory, { ...(l.item || ITEMS[l.rid]), uid: l.item?.uid || `mk-${l.id}-${m.bucket}` }];
+  if (bagGuard(p, next) !== next) return fail(p, "sac_plein");
   return { ok: true, qty: n, gross: total, tax: 0, total, listing: l, player: next };
 }
 
@@ -501,7 +503,9 @@ export function buyCheapest(player, id, qty, now = Date.now()) {
   const take = Object.fromEntries(q.lines.map((x) => [x.id, x.qty]));
   const listings = m.listings.map((x) => (take[x.id] ? { ...x, qty: x.qty - take[x.id] } : x)).filter((x) => x.qty > 0);
   const sold = q.lines.map((x) => [m.listings.find((y) => y.id === x.id).seller, x.qty * x.unit]);
-  return { ok: true, qty: q.qty, gross: q.total, tax: 0, total: q.total, player: { ...p, gold: p.gold - q.total, resources: addResource(p.resources, id, q.qty), market: withCredits({ ...m, listings }, sold) } };
+  const bought = { ...p, gold: p.gold - q.total, resources: addResource(p.resources, id, q.qty), market: withCredits({ ...m, listings }, sold) };
+  if (bagGuard(p, bought) !== bought) return fail(p, "sac_plein");
+  return { ok: true, qty: q.qty, gross: q.total, tax: 0, total: q.total, player: bought };
 }
 
 // Met une annonce en vente à ton prix. spec : { kind:"res", rid, qty, unit } ou { kind:"item", uid, unit }
@@ -536,5 +540,6 @@ export function cancelListing(player, listingId, now = Date.now()) {
   const next = { ...p, market: { ...m, listings: m.listings.filter((x) => x.id !== l.id) } };
   if (l.kind === "res") next.resources = addResource(p.resources, l.rid, l.qty);
   else next.inventory = [...p.inventory, l.item];
+  if (bagGuard(p, next) !== next) return fail(p, "sac_plein");
   return { ok: true, qty: l.qty, gross: 0, tax: 0, total: 0, listing: l, player: next };
 }

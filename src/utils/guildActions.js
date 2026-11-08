@@ -14,6 +14,7 @@ import {
 } from "./guildCore.js";
 import { donate } from "../sim/guilds.js";
 import { cleanEmblem } from "../data/emblems.js";
+import { bagFree } from "./bag.js";
 import { getPopulation } from "../sim/population.js";
 
 export const REASONS = {
@@ -36,6 +37,7 @@ export const REASONS = {
   onglet: "Cet onglet n'est pas acheté.",
   plein: "Cet onglet est plein.",
   aucun: "Rien à déplacer.",
+  sac_plein: "Ton sac est plein : fais de la place (range des objets au coffre ou vends-les).",
   membre: "Ce membre ne fait pas partie de la guilde.",
   soi: "Ce n'est pas possible pour toi-même.",
 };
@@ -184,12 +186,14 @@ export function withdrawAction(player, tabIndex, spec, now = Date.now()) {
   if (spec.kind === "item") {
     const item = tab.items.find((i) => i.uid === spec.uid);
     if (!item) return fail(player, "aucun");
+    if (bagFree(player) < 1) return fail(player, "sac_plein");
     tab.items = tab.items.filter((i) => i.uid !== spec.uid);
     logOf(r.g, r.step, `${player.name || "Un membre"} retire ${item.name}.`);
     return { ok: true, player: commit(player, r.m, r.G, { inventory: [...player.inventory, item] }) };
   }
   const have = tab.res[spec.id] || 0, qty = Math.min(Math.floor(Number(spec.qty)) || 0, have);
   if (!(qty >= 1)) return fail(player, "aucun");
+  if (!(player.resources[spec.id] > 0) && bagFree(player) < 1) return fail(player, "sac_plein");
   tab.res[spec.id] = have - qty;
   if (tab.res[spec.id] <= 0) delete tab.res[spec.id];
   return { ok: true, qty, player: commit(player, r.m, r.G, { resources: { ...player.resources, [spec.id]: (player.resources[spec.id] || 0) + qty } }) };

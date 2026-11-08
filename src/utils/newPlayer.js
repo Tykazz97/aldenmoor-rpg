@@ -1,6 +1,7 @@
 // ============================================================
 // Création d'un personnage (sans React) : classe + corps + nom.
 // ============================================================
+import { grandfatherBag } from "./bag.js";
 import { ITEMS, ITEM_ORDER } from "../data/items.js";
 import { CLASSES } from "../data/classes.js";
 import { PROFESSION_ORDER } from "../data/professions.js";
@@ -18,6 +19,10 @@ export const EMPTY_EQUIPPED = {
 const testInventory = () => ITEM_ORDER.map((id, i) => ({ ...ITEMS[id], uid: `test-${i}` }));
 
 export function createPlayer({ name, classKey, gender = "m", testMode = false }) {
+  return testMode ? grandfatherBag(buildPlayer({ name, classKey, gender, testMode }), 120) : buildPlayer({ name, classKey, gender, testMode });   // mode test : le sac contient tous les objets, avec de la place pour les ressources
+}
+
+function buildPlayer({ name, classKey, gender = "m", testMode = false }) {
   const cls = CLASSES[classKey];
   if (!cls) throw new Error(`Classe inconnue : ${classKey}`);
   const weapon = { ...ITEMS[cls.startWeapon], uid: "start-weapon" };
@@ -53,6 +58,7 @@ export function repairPlayer(p) {
   for (const k of ["level", "xp", "baseHp", "hp", "caracPoints", "gold", "playSec"]) if (typeof out[k] !== "number" || Number.isNaN(out[k])) out[k] = fresh[k];
   if (!Array.isArray(out.inventory)) out.inventory = [];
   out.inventory = out.inventory.filter((it) => it && typeof it === "object" && it.id);
+  if (typeof out.bagUpgrades !== "number" || !(out.bagUpgrades >= 0)) delete out.bagUpgrades;
   for (const k of ["resources", "caracs", "equipped", "bank", "professions"]) if (!isObj(out[k])) out[k] = fresh[k];
   out.caracs = { ...fresh.caracs, ...out.caracs };
   out.equipped = { ...EMPTY_EQUIPPED, ...out.equipped };
@@ -60,5 +66,5 @@ export function repairPlayer(p) {
   out.bank = { ...fresh.bank, ...out.bank };
   if (!Array.isArray(out.bank.items)) out.bank = { ...out.bank, items: [] };
   if (!isObj(out.bank.resources)) out.bank = { ...out.bank, resources: {} };
-  return out;
+  return grandfatherBag(out);                      // un sac qui contient déjà plus de 20 emplacements est agrandi sans frais (voir utils/bag.js)
 }

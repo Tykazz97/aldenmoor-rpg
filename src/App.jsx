@@ -1,3 +1,4 @@
+import BagPanel from "./components/bag/BagPanel.jsx";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import AppShell from "./components/layout/AppShell.jsx";
 import CharacterSheet from "./components/character/CharacterSheet.jsx";
@@ -64,7 +65,7 @@ export default function App() {
 function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook } = usePlayer(initial.player);
+  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, bag, spellbook } = usePlayer(initial.player);
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
@@ -170,6 +171,12 @@ function Game({ initial, onNewCharacter }) {
           <BankPanel player={player} bank={bank} />
         </div>
       )}
+      {activeTab === "sac" && (
+        <div style={{ padding: 24, height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div style={{ fontFamily: font.display, fontSize: 22, color: color.goldBright, marginBottom: 16 }}>Sac & Inventaire</div>
+          <div style={{ flex: 1, minHeight: 0 }}><BagPanel player={player} onEquip={equipItem} bank={bank} bag={bag} /></div>
+        </div>
+      )}
       {activeTab === "marche" && (
         <div style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
           <div style={{ fontFamily: font.display, fontSize: 22, color: color.goldBright, marginBottom: 16 }}>Marché d'Aldenmoor</div>
@@ -191,7 +198,7 @@ function Game({ initial, onNewCharacter }) {
       {activeTab === "bestiaire" && <BestiaryPanel player={player} stats={stats} />}
       {activeTab === "classement" && <RankingPanel player={player} />}
       {activeTab === "guilde" && <GuildPanel player={player} onPlayerChange={setPlayer} />}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && activeTab !== "guilde" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && activeTab !== "guilde" && activeTab !== "sac" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }

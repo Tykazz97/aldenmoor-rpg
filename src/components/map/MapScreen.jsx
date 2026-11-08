@@ -1,3 +1,4 @@
+import { roomFor } from "../../utils/bag.js";
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./map.css";
 import Terrain from "./Terrain.jsx";
@@ -113,6 +114,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
     const def = NODES[n.node];
     const chk = canGather(playerRef.current, n.node);
     if (!chk.ok) { showToast(`${PROFESSIONS[def.profession].name} niveau ${def.minLevel} requis (tu es niveau ${chk.level}).`); return; }
+    if (!roomFor(playerRef.current, { produces: [def.resource] })) { showToast("Sac plein : range ou vends des ressources avant de récolter."); return; }
     facingRef.current = n.x + 0.5 >= posRef.current.x ? 1 : -1; setFacing(facingRef.current);
     harvestRef.current = true;
     const ms = harvestDuration(chk.level, def.profession, HARVEST_MS);      // les métiers de haut niveau récoltent plus vite
@@ -122,7 +124,8 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
       harvestRef.current = false;
       harvestAct.current = null;
       setHarvest(null);
-      const roll = rollHarvest(playerRef.current, n.node);
+      const rolled = rollHarvest(playerRef.current, n.node);
+      const roll = rolled.find && !roomFor(playerRef.current, { produces: [def.resource, ...Object.keys(rolled.find)] }) ? { ...rolled, find: null } : rolled;   // sac plein : la trouvaille est perdue
       const qty = roll.qty;
       const before = playerRef.current.professions[def.profession];
       onGather?.(n.node, qty, roll.find);

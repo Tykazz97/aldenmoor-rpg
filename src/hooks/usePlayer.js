@@ -6,6 +6,7 @@ import { applyCraft, applyRefine, applyBrew, addResourcesTo } from "../utils/cra
 import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
 import { rankUp, equipSpell, resetRanks } from "../utils/spellbook.js";
+import { bagGuard, upgradeBag } from "../utils/bag.js";
 import { depositItem, withdrawItem, depositResource, withdrawResource, upgradeBank } from "../utils/bank.js";
 
 let craftCounter = 0;
@@ -43,7 +44,7 @@ export function usePlayer(initial) {
         return prev;
       }
 
-      return { ...prev, equipped: newEquipped, inventory: newInventory };
+      return bagGuard(prev, { ...prev, equipped: newEquipped, inventory: newInventory });   // l'ancienne pièce (et le bouclier) reviennent au sac : il faut de la place
     });
   }, []);
 
@@ -53,11 +54,14 @@ export function usePlayer(initial) {
   // Coffre
   const bank = useMemo(() => ({
     depositItem: (uid) => setPlayer((p) => depositItem(p, uid)),
-    withdrawItem: (uid) => setPlayer((p) => withdrawItem(p, uid)),
+    withdrawItem: (uid) => setPlayer((p) => bagGuard(p, withdrawItem(p, uid))),
     depositResource: (id, qty) => setPlayer((p) => depositResource(p, id, qty)),
-    withdrawResource: (id, qty) => setPlayer((p) => withdrawResource(p, id, qty)),
+    withdrawResource: (id, qty) => setPlayer((p) => bagGuard(p, withdrawResource(p, id, qty))),
     upgrade: () => setPlayer((p) => upgradeBank(p)),
   }), []);
+
+  // Sac : agrandissement contre de l'or
+  const bag = useMemo(() => ({ upgrade: () => setPlayer((p) => upgradeBag(p)) }), []);
 
   // Grimoire : rang d'un sort, emplacement de la barre, remise à zéro des rangs (contre de l'or)
   const spellbook = useMemo(() => ({
@@ -70,11 +74,11 @@ export function usePlayer(initial) {
     setPlayer((prev) => {
       const item = prev.equipped[slotKey];
       if (!item) return prev;
-      return {
+      return bagGuard(prev, {
         ...prev,
         equipped: { ...prev.equipped, [slotKey]: null },
         inventory: [...prev.inventory, item],
-      };
+      });
     });
   }, []);
 
@@ -93,16 +97,16 @@ export function usePlayer(initial) {
   // double-clic rapide ne peut pas consommer deux fois les mêmes ressources.
   // `opts` : { rate, city } = la taxe de la ville où l'on fabrique (voir utils/cityTax.js)
   const craft = useCallback((itemId, opts = {}) => {
-    setPlayer((prev) => applyCraft(prev, itemId, `craft-${Date.now()}-${craftCounter++}`, Math.random, opts));
+    setPlayer((prev) => bagGuard(prev, applyCraft(prev, itemId, `craft-${Date.now()}-${craftCounter++}`, Math.random, opts)));
   }, []);
 
   // Raffinage : `times` unités d'une ressource raffinée (la validation est refaite sur l'état le plus récent)
   const refine = useCallback((id, times = 1, opts = {}) => {
-    setPlayer((prev) => applyRefine(prev, id, times, Math.random, opts).player);
+    setPlayer((prev) => bagGuard(prev, applyRefine(prev, id, times, Math.random, opts).player));
   }, []);
 
   const brew = useCallback((id, times = 1, opts = {}) => {
-    setPlayer((prev) => applyBrew(prev, id, times, Math.random, opts).player);
+    setPlayer((prev) => bagGuard(prev, applyBrew(prev, id, times, Math.random, opts).player));
   }, []);
 
   // Récompenses d'un combat gagné (xp, or, ressources, objets)
@@ -115,7 +119,11 @@ export function usePlayer(initial) {
 
   // Récolte d'un nœud sur la carte (ressource + xp de métier)
   const gather = useCallback((nodeId, qty, find = null) => {
-    setPlayer((prev) => applyGather(prev, nodeId, qty, find).player);
+    setPlayer((prev) => {
+      let next = applyGather(prev, nodeId, qty, find).player;
+      if (bagGuard(prev, next) !== next) next = applyGather(prev, nodeId, qty, null).player;      // pas de place pour la trouvaille
+      return bagGuard(prev, next);
+    });
   }, []);
 
   // --- Outils de test (à retirer quand le combat donnera les vrais drops) ---
@@ -134,7 +142,7 @@ export function usePlayer(initial) {
   return {
     player, setPlayer, stats,
     equipItem, unequipSlot, addCaracPoint,
-    craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, spellbook,
+    craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, bag, spellbook,
   };
 }
 

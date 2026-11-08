@@ -418,6 +418,24 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("Sac : emplacements, objets et ressources, agrandissement payant, rangement au coffre", async () => {
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 5000; s.player.inventory = s.player.inventory.slice(0, 6); s.player.resources = {}; delete s.player.bagUpgrades; s.savedAt = Date.now() + 2000; return s; })());
+    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-sac")) { sessionStorage.setItem("ui-sac", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
+    await page.reload(); await page.waitForTimeout(800);
+    await tab("Sac").click(); await page.waitForTimeout(300);
+    assert.ok(await page.locator("[data-bag]").isVisible(), "écran du sac");
+    const read = async () => (await page.locator("[data-bag-count]").innerText()).replace(/\s/g, "").match(/^(\d+)\/(\d+)$/).slice(1).map(Number);
+    const [used, cap] = await read();
+    assert.equal(cap, 20, "20 emplacements au départ");
+    assert.equal(used, (await page.locator("[data-bag-item]").count()) + (await page.locator("[data-bag-res]").count()), "emplacements = objets + types de ressources");
+    await page.locator("[data-bag-upgrade]").click(); await page.waitForTimeout(200);
+    assert.equal((await read())[1], 25, "agrandi de 5");
+    if (process.env.SHOT_SAC) await page.screenshot({ path: process.env.SHOT_SAC });
+    const items = await page.locator("[data-bag-item]").count();
+    if (items) { await page.locator("[data-bag-deposit-item]").first().click(); await page.waitForTimeout(200); assert.equal(await page.locator("[data-bag-item]").count(), items - 1, "objet rangé au coffre"); assert.equal((await read())[0], used - 1); }
+    assert.deepEqual(errors, []);
+  });
+
   console.log(`\n${passed} étapes réussies, aucune erreur dans la console.`);
 } catch (e) {
   console.error("\nÉchec du test d'interface.");

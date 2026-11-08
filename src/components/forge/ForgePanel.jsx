@@ -12,6 +12,7 @@ import { canCraft, canRefine, maxRefine, canBrew, maxBrew, professionOf } from "
 import { perkLines, isMasterwork } from "../../utils/perks.js";
 import { itemStatLines } from "../../utils/itemText.js";
 import UpgradePanel from "./UpgradePanel.jsx";
+import { roomFor, bagUsed, bagCapacity } from "../../utils/bag.js";
 import { upgradablePieces, canUpgrade } from "../../utils/upgrade.js";
 
 const UPGRADE = "__upgrade__";     // section « Amélioration » de la colonne des métiers
@@ -78,7 +79,8 @@ function ProfessionButton({ profession, state, selected, onClick }) {
   );
 }
 
-function RecipeCard({ itemId, check, onCraft }) {
+function RecipeCard({ itemId, check: base, noRoom = false, onCraft }) {
+  const check = noRoom && base.ok ? { ...base, ok: false, noRoom: true } : base;
   const item = ITEMS[itemId];
   const recipe = RECIPES[itemId];
   const rc = RARITY_ITEM_COLOR[item.rarity] || color.parchmentDim;
@@ -88,6 +90,7 @@ function RecipeCard({ itemId, check, onCraft }) {
   if (check.lacksLevel) blocker = `Niveau ${check.minLevel} requis`;
   else if (check.lacksResources) blocker = "Ressources manquantes";
   else if (check.lacksGold) blocker = "Or insuffisant";
+  else if (check.noRoom) blocker = "Sac plein";
 
   return (
     <div style={{
@@ -156,7 +159,8 @@ function RecipeCard({ itemId, check, onCraft }) {
 // (la même carte sert à l'Alchimiste : `brew` choisit la table des potions)
 function RefineCard({ id, player, onRefine, brew = false, fx = {} }) {
   const rec = (brew ? ALCHEMY : REFINING)[id], out = RESOURCES[id];
-  const max = brew ? maxBrew(player, id, fx) : maxRefine(player, id, fx), check = brew ? canBrew(player, id, 1, fx) : canRefine(player, id, 1, fx);
+  const noRoom = !roomFor(player, { produces: [id], consumes: rec.ingredients });
+  const max = noRoom ? 0 : brew ? maxBrew(player, id, fx) : maxRefine(player, id, fx), check = brew ? canBrew(player, id, 1, fx) : canRefine(player, id, 1, fx);
   const effect = !brew ? "" : rec.heal ? ` · rend ${Math.round(rec.heal * 100)} % des PV` : rec.revive ? ` · relève un héros tombé à ${Math.round(rec.revive * 100)} % des PV` : "";
   const rc = RESOURCE_RARITIES[out.rarity]?.color || color.mist;
   const btn = (n, label) => {
@@ -169,6 +173,7 @@ function RefineCard({ id, player, onRefine, brew = false, fx = {} }) {
   if (check.lacksLevel) blocker = `Niveau ${check.minLevel} requis`;
   else if (check.lacksResources) blocker = "Matières manquantes";
   else if (check.lacksGold) blocker = "Or insuffisant";
+  else if (noRoom) blocker = "Sac plein";
   return (
     <div {...{ [brew ? "data-brew-recipe" : "data-refine-recipe"]: id }} style={{ background: color.panel, border: `1px solid ${max > 0 ? color.gold + "66" : color.line}`, borderRadius: radius.md, padding: 12, display: "flex", gap: 12, opacity: check.lacksLevel ? 0.6 : 1 }}>
       <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: radius.sm, background: color.panelRaised, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -335,7 +340,7 @@ export default function ForgePanel({ player, city = { key: "aldenmoor", name: "A
           {refineIds && refineIds.map((id) => <RefineCard key={id} id={id} player={player} fx={fx} onRefine={handleRefine} />)}
           {brewIds && brewIds.map((id) => <RefineCard key={id} id={id} brew player={player} fx={fx} onRefine={handleBrew} />)}
           {!gatherNodes && !refineIds && recipes.map(({ itemId }) => (
-            <RecipeCard key={itemId} itemId={itemId} check={canCraft(player, itemId, fx)} onCraft={handleCraft} />
+            <RecipeCard key={itemId} itemId={itemId} check={canCraft(player, itemId, fx)} noRoom={!roomFor(player, { newItems: 1, consumes: RECIPES[itemId].ingredients })} onCraft={handleCraft} />
           ))}
         </div>
       </div>
