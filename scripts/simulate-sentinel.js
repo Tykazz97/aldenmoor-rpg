@@ -7,6 +7,7 @@ import { createCombat, advance, castSpell, endTurn } from "../src/combat/engine.
 import { buildSpellBar } from "../src/utils/spellbook.js";
 import { BUILDS, makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
 import { ensureSentinelEnemy, SENT_ROUNDS } from "../src/utils/sentinelFight.js";
+import { ensureDefenderEnemy } from "../src/utils/sentinelDefense.js";
 import { totalPoints } from "../src/utils/sentinelBuild.js";
 import { SENT_STAT_KEYS } from "../src/data/sentinel.js";
 
@@ -20,9 +21,9 @@ function pickSpell(state) {
   }
   return best;
 }
-export function fight(player, key, seed, party, maxRounds = SENT_ROUNDS) {
+export function fight(player, key, seed, party, maxRounds = SENT_ROUNDS, defKeys = []) {
   const stats = calcStats(player);
-  let st = createCombat({ stats, weaponType: BUILDS[player.classKey].wtype, classKey: player.classKey, level: player.level, enemyKeys: [key], spells: buildSpellBar(player), seed, maxRounds,
+  let st = createCombat({ stats, weaponType: BUILDS[player.classKey].wtype, classKey: player.classKey, level: player.level, enemyKeys: [key, ...defKeys], spells: buildSpellBar(player), seed, maxRounds, objective: "sentinel",
     allies: party ? Object.keys(CLASSES).filter((k) => k !== player.classKey).map((k) => botSpec(k, player.level)) : [] });
   for (let guard = 0; st.phase !== "victory" && st.phase !== "defeat" && guard < 20000; guard++) {
     if (st.phase === "running") { st = advance(st).state; continue; }
@@ -39,10 +40,14 @@ export function guildWith(level, plan = "equilibre") {
   else if (plan !== "aucun") { pts[plan] = Math.ceil(t * 0.6); pts[plan === "chance" ? "vitalite" : "chance"] = t - pts[plan]; }
   return { id: `sim-${plan}-${level}`, level, sentBuild: { pts } };
 }
-export function evaluate(classKey, level, party, n = N, plan = "equilibre") {
-  const player = makeBotPlayer(classKey, level), key = ensureSentinelEnemy(guildWith(level, plan));
+// n défenseurs de ce niveau (classes tournantes : guerrier, magicien, assassin)
+export function defendersOf(level, n) {
+  return ["guerrier", "magicien", "assassin"].slice(0, n).map((classKey, i) => ({ id: `def-${classKey}-${level}`, name: `Def${i}`, classKey, level }));
+}
+export function evaluate(classKey, level, party, n = N, plan = "equilibre", nDef = 0) {
+  const player = makeBotPlayer(classKey, level), key = ensureSentinelEnemy(guildWith(level, plan)), defKeys = defendersOf(level, nDef).map(ensureDefenderEnemy);
   let wins = 0, hp = 0, rounds = 0;
-  for (let seed = 1; seed <= n; seed++) { const e = fight(player, key, seed, party); if (e.phase === "victory") { wins++; hp += e.player.hp / e.player.maxHp; } rounds += e.round; }
+  for (let seed = 1; seed <= n; seed++) { const e = fight(player, key, seed, party, SENT_ROUNDS, defKeys); if (e.phase === "victory") { wins++; hp += e.player.hp / e.player.maxHp; } rounds += e.round; }
   return { win: wins / n, hp: wins ? hp / wins : 0, rounds: rounds / n };
 }
 if (process.argv[1].endsWith("simulate-sentinel.js")) {

@@ -11,6 +11,7 @@ import EngagePopup from "./EngagePopup.jsx";
 import SentinelTag from "./SentinelTag.jsx";
 import { sentinelOwner } from "../../utils/sentinel.js";
 import { sentinelEncounter } from "../../utils/sentinelFight.js";
+import { defenderBots } from "../../utils/sentinelDefense.js";
 import { guildsOf, winAttackAction, loseAttackAction } from "../../utils/guildActions.js";
 import BuildingModal from "./BuildingModal.jsx";
 import { useHeroLoop } from "./useHeroLoop.js";
@@ -364,7 +365,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
             const G = guildsOf(player), g = G && sentinelOwner(G, map.regionKey);
             if (!g) return;
             syncPos();
-            setFight({ group: null, enc: sentinelEncounter(g, map.regionKey), party });
+            const enc = sentinelEncounter(g, map.regionKey, defenderBots(g, getLivePopulation(player), Date.now())); setFight({ group: null, enc, party });
           }} />}
 
           {toast && <div key={toast.id} className="mp-toast">{toast.text}</div>}

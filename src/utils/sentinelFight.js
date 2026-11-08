@@ -8,6 +8,7 @@ import { SENT_BY_KEY } from "../data/sentinel.js";
 import { makeBotPlayer } from "../sim/partyBots.js";
 import { calcStats } from "./calcStats.js";
 import { sharesOf, equippedSpells } from "./sentinelBuild.js";
+import { ensureDefenderEnemy } from "./sentinelDefense.js";
 
 export const SENT_ROUNDS = 12;                 // tours de table à tenir pour que la défense gagne
 export const SENT_SHIELD_MS = 60 * 60 * 1000;  // une sentinelle qui a tenu bon est intouchable pendant 1 h
@@ -45,13 +46,16 @@ export function ensureSentinelEnemy(guild) {
   return key;
 }
 
-// La rencontre à jouer (comme les autres rencontres, avec en plus `sentinel` : ce qui sert à régler l'issue)
-export function sentinelEncounter(guild, region) {
+// La rencontre à jouer (comme les autres rencontres, avec en plus `sentinel` : ce qui sert à régler l'issue). La sentinelle est toujours le
+// premier ennemi (e0) : l'attaque est gagnée dès qu'elle tombe ; les défenseurs (bots de la guilde connectés, 3 au plus) la suivent.
+export function sentinelEncounter(guild, region, defenders = []) {
   const r = SENT_BY_KEY[region];
   const key = ensureSentinelEnemy(guild);
+  const defs = defenders.map((b) => ensureDefenderEnemy(b));
   return {
-    id: `sentinelle:${region}`, name: `Sentinelle de ${guild.name}`, level: `Guilde niv. ${guild.level}`, enemies: [key],
-    banner: `Sentinelle de ${guild.name}`, desc: `Tue la sentinelle avant la fin du ${SENT_ROUNDS}e tour.`,
-    sentinel: { region, gid: guild.id, maxRounds: SENT_ROUNDS, emblem: guild.emblem },
+    id: `sentinelle:${region}`, name: `Sentinelle de ${guild.name}`, level: `Guilde niv. ${guild.level}`, enemies: [key, ...defs],
+    banner: `Sentinelle de ${guild.name}`,
+    desc: defs.length ? `Abats la sentinelle avant la fin du ${SENT_ROUNDS}e tour, malgré ses ${defs.length} défenseur${defs.length > 1 ? "s" : ""}.` : `Abats la sentinelle avant la fin du ${SENT_ROUNDS}e tour.`,
+    sentinel: { region, gid: guild.id, maxRounds: SENT_ROUNDS, emblem: guild.emblem, defenders: defenders.map((b) => ({ id: b.id, name: b.name, classKey: b.classKey, level: b.level })) },
   };
 }

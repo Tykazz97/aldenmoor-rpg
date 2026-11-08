@@ -30,6 +30,9 @@ import { makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
 import { evaluate, fight, guildWith } from "./simulate-sentinel.js";
 import { bagFree } from "../src/utils/bag.js";
 import { bankFree } from "../src/utils/bank.js";
+import { defenderBots, ensureDefenderEnemy, DEFENDERS_MAX } from "../src/utils/sentinelDefense.js";
+import { isActive, STEP_MS } from "../src/sim/lives.js";
+import { enemySlots } from "../src/components/combat/stage.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -428,6 +431,62 @@ test("moteur : soutiens (défense, régénération, bouclier, soin, rempart) et 
   assert.ok(reduced < plain * 0.7 && reduced > 0, `rempart : ${reduced} < ${plain}`);
   const sh2 = hitOn({ kind: "shield", turns: 3, value: 100000 });
   assert.equal(sh2.h.amount, 0); assert.ok(sh2.h.absorbed > 0); assert.equal(sh2.c.player.hp, sh2.c.player.maxHp, "tout est absorbé");
+});
+
+test("les défenseurs : des membres connectés de la guilde, 3 au plus, jamais d'étranger ni le joueur", () => {
+  const sample = pop.slice(0, 40), members = Object.fromEntries(sample.map((b) => [b.id, {}]));
+  const g = { id: "gdef", level: 20, members: { ...members, player: {} } };
+  let found = null;
+  for (let h = 0; h < 48 && !found; h++) { const t = T0 + h * 3600_000; const d = defenderBots(g, pop, t); if (d.length === DEFENDERS_MAX) found = { t, d }; }
+  assert.ok(found, "à un moment, trois membres sont connectés");
+  for (const b of found.d) { assert.ok(g.members[b.id] && b.id !== "player"); assert.ok(isActive(b, Math.floor(found.t / STEP_MS))); }
+  assert.deepEqual(defenderBots(g, pop, found.t).map((b) => b.id), found.d.map((b) => b.id), "stable pendant l'heure");
+  assert.equal(defenderBots({ id: "vide", members: {} }, pop, found.t).length, 0, "sans membre, pas de défenseur");
+  assert.equal(defenderBots({ id: "x", members: { [pop[200].id]: {} } }, pop.slice(0, 100), found.t).length, 0, "un membre absent de la population est ignoré");
+});
+
+test("un défenseur est un monstre aux vraies caractéristiques du simulé, retourné, sans butin", () => {
+  const bot = pop.find((b) => b.level >= 15) || pop[0];
+  const k = ensureDefenderEnemy(bot), d = enemyDef(k);
+  assert.ok(d.defender && d.flip && d.extra && d.img && d.stats.hp > 0 && d.stats.atkPhys + d.stats.atkMagie > 0);
+  assert.ok(d.actions.length >= 1 && d.actions.every((a) => a.power > 0 && a.type !== "buff" && a.name), "sorts d'attaque seulement, tous nommés");
+  assert.equal(d.xp, 0); assert.equal(d.gold, null); assert.deepEqual(d.drops, []);
+});
+
+test("rencontre défendue : la sentinelle d'abord, puis ses défenseurs ; quatre emplacements à l'écran", () => {
+  const g = { ...guildWith(20), name: "Les Gardes", id: "gdef2" };
+  const defs = pop.filter((b) => b.level >= 5).slice(0, 3);
+  const enc = sentinelEncounter(g, "marais", defs);
+  assert.equal(enc.enemies.length, 4); assert.ok(enc.enemies[0].startsWith("sentinelle_")); assert.ok(enc.enemies.slice(1).every((k) => k.startsWith("defenseur_")));
+  assert.equal(enc.sentinel.defenders.length, 3); assert.match(enc.desc, /3 défenseurs/);
+  assert.equal(sentinelEncounter(g, "marais").enemies.length, 1, "sans défenseur : la sentinelle seule");
+  const slots = enemySlots(enc.enemies.map((key) => ({ key })));
+  assert.equal(slots.length, 4); assert.equal(new Set(slots.map((x) => `${x.x}/${x.b}`)).size, 4, "quatre places distinctes");
+});
+
+test("objectif sentinelle : on gagne dès qu'elle tombe, ses défenseurs fussent-ils debout ; le temps joue pour eux", () => {
+  const level = 10, g = { ...guildWith(level), name: "G", id: "gdef3" };
+  const defs = [{ id: "d-a", name: "Aa", classKey: "guerrier", level }, { id: "d-b", name: "Bb", classKey: "magicien", level }];
+  const keys = [ensureSentinelEnemy(g), ...defs.map(ensureDefenderEnemy)];
+  const player = makeBotPlayer("guerrier", level), st = calcStats(player);
+  let c = createCombat({ stats: st, weaponType: "epee", classKey: "guerrier", level, enemyKeys: keys, spells: [], seed: 3, objective: "sentinel", maxRounds: 12 });
+  c.enemies[0].hp = 1; c.enemies[0].alive = false;      // la sentinelle est à terre, les défenseurs sont intacts
+  const ev = []; const s2 = structuredClone(c);
+  s2.phase = "running"; const r = advance(s2); assert.ok(r.events.some((x) => x.type === "victory") || r.state.phase === "victory", "victoire : la sentinelle est tombée");
+  assert.ok(r.state.enemies[1].alive && r.state.enemies[2].alive, "les défenseurs sont toujours debout");
+  // sans objectif, il faudrait tous les abattre
+  const c2 = createCombat({ stats: st, weaponType: "epee", classKey: "guerrier", level, enemyKeys: keys, spells: [], seed: 3 });
+  c2.enemies[0].alive = false; const r2 = advance(c2); assert.notEqual(r2.state.phase, "victory");
+  // le temps : un joueur qui ne fait que passer son tour perd, sentinelle debout
+  let t = createCombat({ stats: st, weaponType: "epee", classKey: "guerrier", level: 1, enemyKeys: [keys[0]], spells: [], seed: 4, objective: "sentinel", maxRounds: 2 });
+  for (let i = 0; i < 200 && t.phase !== "defeat" && t.phase !== "victory"; i++) t = t.phase === "running" ? advance(t).state : endTurn(t).state;
+  assert.notEqual(t.phase, "victory");
+});
+
+test("avec trois défenseurs l'attaque reste jouable à trois (niveau 20 : 25 à 90 %), et plus dure que sans défenseur", () => {
+  const sans = evaluate("guerrier", 20, true, 24, "equilibre", 0), avec = evaluate("guerrier", 20, true, 24, "equilibre", 3);
+  assert.ok(avec.win >= 0.2 && avec.win <= 0.92, `avec 3 défenseurs : ${avec.win}`);
+  assert.ok(avec.win < sans.win, `${avec.win} < ${sans.win}`);
 });
 
 enableSimMarket(false);

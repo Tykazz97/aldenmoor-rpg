@@ -66,7 +66,7 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
   // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
   const allySpecs = useMemo(() => givenAllies || (party ? buildAllies(player, player.companions, getLivePopulation(player)) : []), []); // eslint-disable-line
   const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, heroSpriteUrl(a.look)])), [allySpecs]);
-  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry, maxRounds: encounter.sentinel?.maxRounds ?? null }), []); // eslint-disable-line
+  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry, maxRounds: encounter.sentinel?.maxRounds ?? null, objective: encounter.sentinel ? "sentinel" : null }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
   const [speed, setSpeed] = useState(1);
@@ -200,9 +200,9 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
                   <div className="cb-shadow" />
                   <div className="cb-idle" style={{ animationDelay: `${i * 0.5}s` }}>
                     <div ref={(el) => { spriteRefs.current[en.id] = el; }}>
-                      {encounter.sentinel?.emblem && enemyDef(en.key).extra
+                      {encounter.sentinel?.emblem && enemyDef(en.key).extra && !enemyDef(en.key).defender
                         ? <SentinelSprite emblem={encounter.sentinel.emblem} seed={encounter.sentinel.gid} width={Math.round(sl.h * 320 / 736)} />
-                        : <img className={`cb-sprite ${enraged[en.id] ? "rage" : ""}`} src={enemyDef(en.key).img} alt={en.name} style={{ height: sl.h }} draggable={false} />}
+                        : <img className={`cb-sprite ${enraged[en.id] ? "rage" : ""}`} src={enemyDef(en.key).img} alt={en.name} style={{ height: sl.h, ...(enemyDef(en.key).flip ? { transform: "scaleX(-1)" } : null) }} draggable={false} />}
                     </div>
                   </div>
                 </div>

@@ -456,6 +456,12 @@ try {
     const founder = Object.keys(sims.lives)[0];
     const g = createGuild(G, { founder, name: "Les Gardiens de Test", step: s.player.market.bucket });
     g.level = 3; g.gold = 9999;
+    // trois membres connectés en ce moment (les plus jeunes, pour que l'attaque réussisse ; SENT_DEF_NEAR=1 : les plus proches de mon niveau, pour la capture d'écran) : ils défendent la sentinelle
+    const { getPopulation } = await import("../src/sim/population.js");
+    const { isActive, STEP_MS } = await import("../src/sim/lives.js");
+    const { addMember } = await import("../src/utils/guildCore.js");
+    const online = getPopulation().filter((b) => sims.lives[b.id] && b.id !== founder && isActive(b, Math.floor(Date.now() / STEP_MS))).sort((a, b) => process.env.SENT_DEF_NEAR ? Math.abs(sims.lives[a.id].level - s.player.level) - Math.abs(sims.lives[b.id].level - s.player.level) : sims.lives[a.id].level - sims.lives[b.id].level).slice(0, 3);
+    for (const b of online) addMember(G, g, b.id, s.player.market.bucket);
     placeSentinel(G, g, "prairies_sauvages", s.player.market.bucket);
     Object.assign(sentinelsOf(g).prairies_sauvages, { gold: 400, res: { croc_de_loup: 7 } });
     rebuildSent(G);
@@ -467,10 +473,13 @@ try {
     const gold0 = (await save()).player.gold;
     await page.locator('[data-map-sentinel="prairies_sauvages"]').waitFor({ timeout: 15000 });
     assert.match(await page.locator('[data-map-sentinel]').innerText(), /Les Gardiens de Test/);
+    const nDef = online.length + 0;
+    if (nDef) assert.match(await page.locator('[data-map-sentinel]').innerText(), /défenseur/, "la plaque annonce les défenseurs connectés");
     if (process.env.SHOT_SENT_MAP) await page.screenshot({ path: process.env.SHOT_SENT_MAP });
     await page.locator('[data-sentinel-attack="group"]').click();
     await page.locator(".cb-spell:not([disabled]), .cb-overlay").first().waitFor({ timeout: 20000 });   // (une sentinelle sans point tombe parfois avant le premier tour du joueur)
     if (process.env.SHOT_SENT_FIGHT) await page.screenshot({ path: process.env.SHOT_SENT_FIGHT });
+    if (nDef) assert.equal(await page.locator(".cb-actor").count(), 3 + 1 + nDef, "les défenseurs sont à l'écran avec la sentinelle (un défenseur trop faible peut déjà être à terre)");
     for (let i = 0; i < 300 && !(await page.locator(".cb-overlay").count()); i++) {
       const sp = page.locator(".cb-spell:not([disabled])");
       if (await sp.count()) await sp.first().click();

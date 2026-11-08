@@ -100,7 +100,7 @@ export const PARTY_DROP_MULT = { 1: 1, 2: 1.25, 3: 1.5 };
 // Un héros tombé dans la salle précédente se relève avec au moins DUNGEON_REVIVE de ses PV max.
 export const DUNGEON_REVIVE = 0.2;
 // `maxRounds` : au-delà de ce nombre de tours de table, les ennemis ont tenu bon et le combat est perdu (attaque d'une sentinelle).
-export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, allies = [], seed = Date.now() >>> 0, carry = null, maxRounds = null }) {
+export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, allies = [], seed = Date.now() >>> 0, carry = null, maxRounds = null, objective = null }) {
   const s = { seed: seed >>> 0 };
 
   const player = makeHero({ id: "player", name: "Héros", stats, weaponType, classKey, level, spells });
@@ -139,6 +139,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     turns: 0,       // nombre de tours joués par le joueur
     hpScale,        // multiplicateur de PV des ennemis (aussi appliqué aux renforts appelés)
     maxRounds,      // nombre de tours de table à ne pas dépasser (null : pas de limite)
+    objective,      // "sentinel" : le combat est gagné dès que le premier ennemi (la sentinelle) tombe, ses défenseurs fussent-ils debout (null : tuer tout le monde)
     player,
     allies: allyHeroes,
     enemies,
@@ -370,7 +371,7 @@ function checkEnd(s, events) {
   if (!s.player.alive) {
     s.phase = "defeat";
     events.push({ type: "defeat" });
-  } else if (aliveEnemies(s).length === 0) {
+  } else if (s.objective === "sentinel" ? !s.enemies[0].alive : aliveEnemies(s).length === 0) {
     s.phase = "victory";
     s.rewards = rollRewards(s);
     events.push({ type: "victory", rewards: s.rewards });

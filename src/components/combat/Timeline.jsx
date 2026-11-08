@@ -24,7 +24,7 @@ export default function Timeline({ timeline, activeId, dead, cs, heroSrc, allySr
         const state = i === activeIdx ? "active" : activeIdx >= 0 && i < activeIdx ? "done" : "";
         return (
           <div key={id} className={`cb-tl ${isHero ? "hero" : "foe"} ${ally ? "ally" : ""} ${state}`} title={id === "player" ? "Toi" : ally ? ally.name : en.name}>
-            <img src={src} alt="" style={isHero ? { objectPosition: "50% 12%", transform: "scale(1.7) translateY(14%)" } : { transform: en.miniBoss ? "scale(1.3)" : "scale(1.4)" }} />
+            <img src={src} alt="" style={isHero || (en && enemyDef(en.key).defender) ? { objectPosition: "50% 12%", transform: "scale(1.7) translateY(14%)" } : { transform: en.miniBoss ? "scale(1.3)" : "scale(1.4)" }} />
             {letters[id] && <b>{letters[id]}</b>}
           </div>
         );

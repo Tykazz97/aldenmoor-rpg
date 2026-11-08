@@ -26,8 +26,8 @@ const SUMMON_POS = [{ x: 40, b: 78 }, { x: 53, b: 44 }];
 // Un emplacement par ennemi du combat, puis un par renfort prévu
 export function enemySlots(list) {
   const n = list.length;
-  const xs = n === 1 ? [72] : n === 2 ? [62, 82] : [57, 72, 87];
-  const bs = n === 3 ? [78, 52, 78] : n === 2 ? [66, 66] : [60];
+  const xs = n === 1 ? [72] : n === 2 ? [62, 82] : n === 3 ? [57, 72, 87] : [76, 54, 65, 91];
+  const bs = n >= 4 ? [64, 80, 46, 80] : n === 3 ? [78, 52, 78] : n === 2 ? [66, 66] : [60];
   const base = list.map((e, i) => ({ x: xs[i], b: bs[i], h: enemyDef(e.key).spriteHeight || 200 }));
   const extra = plannedSummons(list).slice(0, SUMMON_POS.length).map((key, i) => ({ ...SUMMON_POS[i], h: enemyDef(key).spriteHeight || 200 }));
   return [...base, ...extra];
