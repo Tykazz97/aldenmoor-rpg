@@ -1,5 +1,6 @@
 /* Hôtel des ventes : mise en page (les couleurs reprennent styles/theme.js) */
-.hv { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.hv { display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: 1; overflow-y: auto; padding-right: 6px; }
+.hv > * { flex-shrink: 0; }
 .hv-top { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; }
 .hv-gold { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #d9b568; }
 .hv-chip { font-size: 12px; color: #a89f8c; background: #14141f; border: 1px solid #2a2a3d; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }

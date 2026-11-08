@@ -165,6 +165,9 @@ try {
       assert.ok((await page.locator("[data-rank-row]").count()) >= 100, `liste ${s}`);
       assert.equal(await page.locator('[data-rank-row][data-me="1"]').count(), 1, `ma ligne reste visible (${s})`);
     }
+    // on peut descendre jusqu'au bas de la liste (le 100e de la liste est atteignable)
+    const sc = await page.evaluate(() => { const el = document.querySelector("[data-ranking]"); el.scrollTop = el.scrollHeight; const rows = [...document.querySelectorAll("[data-rank-row]")], last = rows[rows.length - 1].getBoundingClientRect(); return { scrolled: el.scrollTop > 0, lastVisible: last.bottom <= window.innerHeight + 2 }; });
+    assert.ok(sc.scrolled && sc.lastVisible, "la liste du classement défile jusqu'en bas");
     await page.locator("[data-rank-search]").fill("zzzzzz"); await page.waitForTimeout(150);
     assert.equal(await page.locator("[data-rank-row]").count(), 0);
     await page.locator("[data-rank-search]").fill("");

@@ -63,18 +63,18 @@ export default function RankingPanel({ player }) {
   };
 
   return (
-    <div data-ranking style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 1000 }}>
-      <div style={{ fontSize: 12, color: color.mist, lineHeight: 1.5 }}>
+    <div data-ranking style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 1000, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 6 }}>
+      <div style={{ fontSize: 12, color: color.mist, lineHeight: 1.5, flexShrink: 0 }}>
         Tous les aventuriers d'Aldenmoor, toi compris, mis à jour en direct : les simulés avancent par pas de 10 minutes. Le temps de jeu compte quand l'onglet est ouvert et que tu joues.
       </div>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", flexShrink: 0 }}>
         <Summary sort="niveau" label="Niveau" rank={myRanks.niveau} total={total} value={`niveau ${mine.level}`} on={sort === "niveau"} onClick={() => setSort("niveau")} />
         <Summary sort="or" label="Fortune" rank={myRanks.or} total={total} value={`${num(mine.gold)} or`} on={sort === "or"} onClick={() => setSort("or")} />
         <Summary sort="metier" label={m ? PROFESSIONS[m].name : "Meilleur métier"} rank={myRanks.metier} total={total} value={(() => { const p = professionOf(mine, m); return p ? `${PROFESSIONS[p.key].name} ${p.level}` : "—"; })()} on={sort === "metier"} onClick={() => setSort("metier")} />
         <Summary sort="heures" label="Temps de jeu" rank={myRanks.heures} total={total} value={formatHours(mine.hours)} on={sort === "heures"} onClick={() => setSort("heures")} />
       </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", flexShrink: 0 }}>
         <input data-rank-search value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un joueur…" aria-label="Chercher un joueur" style={{ flex: "1 1 180px", maxWidth: 260, background: color.panel, border, borderRadius: radius.md, color: color.parchment, padding: "7px 11px", fontSize: 13, fontFamily: font.body }} />
         <select aria-label="Classe" value={cls} onChange={(e) => setCls(e.target.value)} style={{ background: color.panel, border, borderRadius: radius.md, color: color.parchment, padding: "7px 8px", fontSize: 12.5, fontFamily: font.body }}>
           <option value="">Toutes les classes</option>
@@ -87,7 +87,7 @@ export default function RankingPanel({ player }) {
         <span style={{ fontSize: 12, color: color.mist }}>{filtered.length} aventurier{filtered.length > 1 ? "s" : ""}</span>
       </div>
 
-      <div style={{ background: color.panel, border, borderRadius: radius.md, overflow: "hidden" }}>
+      <div style={{ background: color.panel, border, borderRadius: radius.md, overflow: "hidden", flexShrink: 0 }}>
         <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 10, padding: "9px 14px", borderBottom: border }}>
           <span style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.07em" }}>Rang</span>
           <span style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.07em" }}>Aventurier</span>
@@ -102,7 +102,7 @@ export default function RankingPanel({ player }) {
         )}
         {filtered.length === 0 && <div style={{ padding: 24, textAlign: "center", fontSize: 12.5, color: color.mist }}>Aucun aventurier ne correspond.</div>}
       </div>
-      {filtered.length > TOP && <div style={{ fontSize: 11.5, color: color.mist }}>Les {TOP} premiers sont affichés ; ta ligne reste visible en bas.</div>}
+      {filtered.length > TOP && <div style={{ fontSize: 11.5, color: color.mist, flexShrink: 0 }}>Les {TOP} premiers sont affichés ; ta ligne reste visible en bas.</div>}
     </div>
   );
 }
