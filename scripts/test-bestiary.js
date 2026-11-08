@@ -5,6 +5,9 @@ import { ENEMIES } from "../src/data/zones.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";
 import { createCombat, advance, castSpell, endTurn, PARTY_DROP_MULT } from "../src/combat/engine.js";
+import { gearSections, gearCount, recipeOf, itemDrops, resourceSources, setTotals, itemStats, gearMatches, setClass } from "../src/utils/gearbook.js";
+import { SETS } from "../src/data/items.js";
+import { RECIPES } from "../src/data/recipes.js";
 import { dropMultiplier, dropRate, dropVisibleFor, bestiarySections, spellsOf, spellFrequencies, phasesOf, effectText, matchesSearch, pct, expectedQty } from "../src/utils/bestiary.js";
 
 let n = 0;
@@ -116,6 +119,56 @@ test("recherche : par nom de monstre ou de butin", () => {
   assert.equal(matchesSearch(ENEMIES.loup_des_plaines, "croc de loup", nameOf), true);
   assert.equal(matchesSearch(ENEMIES.sanglier_sauvage, "croc de loup", nameOf), false);
   assert.equal(matchesSearch(ENEMIES.sanglier_sauvage, "", nameOf), true);
+});
+
+test("livre d'équipement : tous les équipements du jeu y sont, une seule fois (clés de donjon exclues)", () => {
+  const ids = gearSections().flatMap((s) => s.entries.map((e) => e.key));
+  assert.equal(new Set(ids).size, ids.length, "pas de doublon");
+  assert.equal(gearCount(), ids.length);
+  for (const it of Object.values(ITEMS)) assert.equal(ids.includes(it.id), it.type !== "cle", `${it.id}`);
+  for (const set of Object.values(SETS)) assert.equal(set.pieces.length, 5, set.key);
+});
+
+test("chaque équipement a une origine : une recette complète ou un monstre qui le lâche", () => {
+  for (const id of gearSections().flatMap((s) => s.entries.map((e) => e.key))) {
+    const r = recipeOf(id), d = itemDrops(id);
+    assert.ok(r || d.length, `${id} : ni recette ni drop`);
+    if (r) {
+      assert.deepEqual(Object.fromEntries(r.ingredients.map((g) => [g.id, g.qty])), RECIPES[id].ingredients, `${id} : ingrédients identiques à la recette`);
+      assert.ok(r.minLevel >= 1 && r.gold > 0 && r.profession);
+      for (const g of r.ingredients) assert.ok(RESOURCES[g.id], `${id} : ressource inconnue ${g.id}`);
+    }
+  }
+});
+
+test("chaque ressource d'une recette a une provenance connue (raffinage, récolte ou monstre)", () => {
+  for (const id of gearSections().flatMap((s) => s.entries.map((e) => e.key))) {
+    for (const g of recipeOf(id)?.ingredients || []) assert.ok(resourceSources(g.id).length > 0, `${id} : d'où vient ${g.id} ?`);
+  }
+});
+
+test("stats du livre : celles de l'objet, total du set = somme des pièces, classe de chaque set connue", () => {
+  const it = ITEMS.plastron_fossoyeur;
+  assert.deepEqual(itemStats(it).map((s) => [s.key, s.value]), [["def_phys", 16], ["hp", 27]]);
+  const set = SETS.fossoyeur, tot = Object.fromEntries(setTotals(set).map((s) => [s.key, s.value]));
+  assert.equal(tot.def_phys, set.pieces.reduce((n, id) => n + (ITEMS[id].def_phys || 0), 0));
+  for (const s of Object.values(SETS)) assert.ok(setClass(s), `classe du set ${s.key}`);
+  assert.equal(setClass(SETS.veteran), "guerrier");
+});
+
+test("les armes uniques et reliques ont des sources avec le bon taux", () => {
+  const veilleur = itemDrops("lame_du_veilleur");
+  assert.equal(veilleur.length, 1);
+  assert.equal(veilleur[0].drop.forClass, "guerrier");
+  assert.equal(itemDrops("medaillon_veuvage_eternel")[0].drop.fixed, true);
+});
+
+test("recherche d'équipement : par nom, par set ou par ressource de la recette", () => {
+  assert.equal(gearMatches(ITEMS.plastron_garou, "veste"), true);
+  assert.equal(gearMatches(ITEMS.plastron_garou, "loup-garou"), true);
+  assert.equal(gearMatches(ITEMS.plastron_garou, "croc de pleine lune"), true);
+  assert.equal(gearMatches(ITEMS.plastron_veteran, "croc de pleine lune"), false);
+  assert.equal(gearMatches(ITEMS.plastron_veteran, ""), true);
 });
 
 console.log(`\n${n} tests OK`);

@@ -164,6 +164,27 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("bestiaire, équipements : fiche d'une pièce, recette avec ressources et provenance, set, recherche", async () => {
+    await tab("Bestiaire").click();
+    await page.locator('[data-mode-btn="equipements"]').click();
+    await page.locator("[data-gearbook]").waitFor();
+    assert.equal(await page.locator("[data-gear-entry]").count(), 88, "les 88 équipements sont listés");
+    await page.locator('[data-gear-entry="plastron_garou"]').click();
+    assert.equal(await page.locator("[data-ingredient]").count(), 5, "5 ingrédients pour la veste du Loup-Garou");
+    assert.ok((await page.locator('[data-ingredient="griffe_de_garou"]').innerText()).includes("Loup-garou"), "provenance de la griffe");
+    assert.equal(await page.locator("[data-set-piece]").count(), 5, "les 5 pièces du set");
+    await page.locator('[data-set-piece="gants_garou"]').click();
+    assert.ok(await page.locator('[data-gear-detail="gants_garou"]').isVisible(), "clic sur une pièce du set");
+    await page.locator('[data-gear-entry="lame_du_veilleur"]').click();
+    assert.ok((await page.locator("[data-item-source]").first().innerText()).includes("Veilleur"), "source d'une arme unique");
+    await page.locator("[data-bestiary-search]").fill("croc de pleine lune");
+    assert.ok((await page.locator("[data-gear-entry]").count()) >= 1 && (await page.locator("[data-gear-entry]").count()) < 10, "recherche par ressource");
+    await page.locator("[data-bestiary-search]").fill("");
+    await page.locator('[data-mode-btn="monstres"]').click();
+    await page.locator("[data-bestiary-detail]").waitFor();
+    assert.deepEqual(errors, []);
+  });
+
   await step("combat complet : carte → monstres → victoire → butin → retour à la carte", async () => {
     // on place le héros dans les Prairies, près des loups (et on vérifie que la barre du grimoire est bien celle du combat)
     const mod = JSON.stringify(await (async () => { const s = await save(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; return s; })());
