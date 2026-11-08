@@ -110,7 +110,7 @@ export function stepGuilds(sims, population, step) {
       continue;
     }
     if (life.level >= SIM_JOIN_MIN_LEVEL && h01(`${id}:join:${step}`) < JOIN_P_BASE + JOIN_P_SOCIAL * socialOf(id)) {
-      const open = Object.values(G.byId).filter((x) => !isFull(x));
+      const open = Object.values(G.byId).filter((x) => !isFull(x) && life.level >= (x.minLevel || 0));
       if (!open.length) continue;
       const pick = makeRng(hashString(`gj:${id}:${step}`)).weighted(open.map((x) => [x, memberCount(x) + 3]));
       addMember(G, pick, id, step, activityOf(life.quests), life.played);

@@ -11,7 +11,7 @@ import {
 import { bonusFromPaliers, guildBonusOf, withBonus, NO_BONUS } from "../src/utils/guildBonus.js";
 import {
   createGuildAction, joinGuildAction, leaveGuildAction, donateAction, depositAction, withdrawAction, buyPalierAction, buyTabAction,
-  kickAction, transferAction, setRankAction, syncPlayerGuild, myGuild, guildList, memberRows,
+  kickAction, transferAction, setRankAction, setMinLevelAction, syncPlayerGuild, myGuild, guildList, memberRows,
 } from "../src/utils/guildActions.js";
 import { PALETTE, SHAPES, MOTIFS, SYMBOLS, EMBLEM_DEFAULT, cleanEmblem, randomEmblem } from "../src/data/emblems.js";
 import { stepGuilds, appointRanks } from "../src/sim/guilds.js";
@@ -554,6 +554,31 @@ test("blason : choisi à la création, nettoyé, tiré au sort pour les simulés
   const G = newGuilds(); const a = createGuild(G, { founder: "x", name: "Sim A", step: 0 }), b = createGuild(G, { founder: "y", name: "Sim B", step: 0 });
   assert.ok(a.emblem && b.emblem, "les guildes des simulés ont un blason"); assert.notDeepEqual(a.emblem, b.emblem);
   assert.ok(SHAPES.length >= 8 && MOTIFS.length >= 7 && PALETTE.length === 16 && SYMBOLS.length >= 10);
+});
+
+test("niveau minimum : le chef le règle, le joueur trop bas est refusé, les simulés trop bas aussi", () => {
+  let p = createGuildAction(withMarket({ level: 12 }), "Les Exigeants", T0).player;
+  const gid = myGuild(p).id;
+  assert.equal(setMinLevelAction(p, 99, T0).level, 50, "plafonné au niveau maximum");
+  p = setMinLevelAction(p, 10, T0).player;
+  assert.equal(myGuild(p).minLevel, 10);
+  const other = withMarket({ level: 5 }); other.market = structuredClone(p.market);
+  other.market.sims.guilds.of.player && delete other.market.sims.guilds.of.player;
+  other.market.sims.guilds.byId[gid].members.player && delete other.market.sims.guilds.byId[gid].members.player;
+  other.market.sims.guilds.byId[gid].leader = pop[0].id;
+  assert.equal(joinGuildAction(other, gid, T0).reason, "niveau_requis");
+  assert.equal(joinGuildAction({ ...other, level: 10 }, gid, T0).ok, true);
+  const q = setMinLevelAction(p, 0, T0).player;
+  assert.equal(myGuild(q).minLevel, undefined, "0 = ouvert à tous");
+  // simulés : pas d'arrivée sous le niveau minimum
+  const run = (min) => {
+    const w = structuredClone(p.market.sims), g = w.guilds.byId[gid]; if (min) g.minLevel = min; else delete g.minLevel;
+    for (const b of pop) w.lives[b.id].level = 12;
+    for (let st = 6; st < 6 * 24 * 20; st += 6) stepGuilds(w, pop, st);
+    return Object.keys(g.members).filter((id) => id !== "player").length;
+  };
+  assert.ok(run(0) > 0, "sans minimum, des simulés rejoignent");
+  assert.equal(run(13), 0, "niveau 12 < minimum 13 : aucun simulé ne rejoint");
 });
 
 enableSimMarket(false);

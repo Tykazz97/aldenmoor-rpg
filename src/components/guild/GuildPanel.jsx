@@ -2,14 +2,14 @@ import React, { useState, useMemo } from "react";
 import "./guild.css";
 import { RESOURCES, RESOURCE_ORDER } from "../../data/resources.js";
 import {
-  GUILD_MAX_MEMBERS, GUILD_CREATE_COST, GUILD_MAX_LEVEL, GUILD_NAME_MAX, PALIERS, TABS, TAB_SLOTS, QUEST_TYPES, BONUS_KEYS, BONUS_LABELS,
+  GUILD_MAX_MEMBERS, GUILD_CREATE_COST, GUILD_MAX_LEVEL, MAX_JOIN_LEVEL, GUILD_NAME_MAX, PALIERS, TABS, TAB_SLOTS, QUEST_TYPES, BONUS_KEYS, BONUS_LABELS,
   BONUS_ICONS, guildXpToNext, RANK_LABELS, RANK_ICONS,
 } from "../../data/guild.js";
 import { bonusFromPaliers } from "../../utils/guildBonus.js";
 import { memberCount, nextPalier, nextTab, palierProblem, tabProblem, tabUsed, nameProblem, newGuilds, cleanName } from "../../utils/guildCore.js";
 import {
   REASONS, guildList, myGuild, memberRows, createGuildAction, joinGuildAction, leaveGuildAction, donateAction, depositAction, withdrawAction,
-  buyPalierAction, buyTabAction, kickAction, transferAction, setRankAction, rankOf, canSpend, canWithdraw, canKick, ranksAssignable,
+  buyPalierAction, buyTabAction, setMinLevelAction, kickAction, transferAction, setRankAction, rankOf, canSpend, canWithdraw, canKick, ranksAssignable,
 } from "../../utils/guildActions.js";
 import { classLabel, classIcon } from "../../utils/ranking.js";
 import { getPopulation } from "../../sim/population.js";
@@ -72,7 +72,7 @@ function Browse({ player, run }) {
             <div className="gd-cols"><span>Guilde</span><span className="gd-r">Niveau</span><span className="gd-r">Membres</span><span className="hide-s">Chef</span><span className="gd-r hide-s">Paliers</span><span /></div>
             <div className="gd-list">
               {shown.map((g) => {
-                const full = memberCount(g) >= GUILD_MAX_MEMBERS;
+                const low = (player.level || 1) < (g.minLevel || 0), full = memberCount(g) >= GUILD_MAX_MEMBERS;
                 return (
                   <div key={g.id} className="gd-list-row" data-gd-row={g.id}>
                     <span className="nm"><Emblem emblem={g.emblem} seed={g.id} size={22} /><span style={{ overflow: "hidden", textOverflow: "ellipsis" }}><span className="gd-tag">[{g.tag}]</span>{g.name}</span></span>
@@ -80,7 +80,7 @@ function Browse({ player, run }) {
                     <span className="gd-num gd-r">{memberCount(g)}/{GUILD_MAX_MEMBERS}</span>
                     <span className="hide-s" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#a89f8c" }}>{g.leader === "player" ? "Toi" : names.get(g.leader) || g.leader}</span>
                     <span className="gd-num gd-r hide-s">{g.pal}/{PALIERS.length}</span>
-                    <span className="gd-r"><button className="gd-mini" data-gd-join={g.id} disabled={full} onClick={() => run(() => joinGuildAction(player, g.id), `Bienvenue chez ${g.name} !`)}>{full ? "Pleine" : "Rejoindre"}</button></span>
+                    <span className="gd-r"><button className="gd-mini" data-gd-join={g.id} disabled={full || low} title={low ? `Niveau ${g.minLevel} minimum` : ""} onClick={() => run(() => joinGuildAction(player, g.id), `Bienvenue chez ${g.name} !`)}>{full ? "Pleine" : low ? `Niv. ${g.minLevel}` : "Rejoindre"}</button></span>
                   </div>
                 );
               })}
@@ -94,6 +94,26 @@ function Browse({ player, run }) {
 }
 
 // ---------------------------------------------------------------- aperçu : quêtes, dons, bonus, journal
+// Recrutement : niveau minimum pour rejoindre (joueurs comme simulés) ; chef et bras droit
+function Recruitment({ player, g, run }) {
+  const [val, setVal] = useState(String(g.minLevel || ""));
+  const spend = canSpend(g, "player"), cur = g.minLevel || 0;
+  return (
+    <div className="gd-card" data-gd-recruit>
+      <div className="gd-h">Recrutement</div>
+      <div className="gd-note">Niveau minimum pour rejoindre la guilde. Les aventuriers simulés le respectent aussi ; ceux déjà dans la guilde restent. Laisse vide pour accepter tout le monde.</div>
+      <div className="gd-line">
+        <span>Niveau minimum : <b data-gd-minlevel>{cur || "aucun"}</b></span>
+        {spend && <>
+          <input className="gd-input num" data-gd-minlevel-input value={val} inputMode="numeric" onChange={(e) => setVal(e.target.value.replace(/[^\d]/g, "").slice(0, 2))} placeholder={`0 à ${MAX_JOIN_LEVEL}`} aria-label="Niveau minimum" />
+          <button className="gd-btn" data-gd-minlevel-save disabled={(Number(val) || 0) === cur || Number(val) > MAX_JOIN_LEVEL} onClick={() => run(() => setMinLevelAction(player, Number(val) || 0), "Recrutement mis à jour.")}>Enregistrer</button>
+        </>}
+        {!spend && <span className="gd-sub">Seuls le chef et le bras droit le règlent.</span>}
+      </div>
+    </div>
+  );
+}
+
 function Overview({ player, g, run }) {
   const [amount, setAmount] = useState("");
   const bonus = bonusFromPaliers(g.pal);
@@ -129,6 +149,7 @@ function Overview({ player, g, run }) {
           <span className="gd-sub">Tu as {num(player.gold)} or</span>
         </div>
       </div>
+      <Recruitment player={player} g={g} run={run} />
       <div className="gd-card">
         <div className="gd-h">Tes bonus de guilde</div>
         <BonusChips bonus={bonus} />

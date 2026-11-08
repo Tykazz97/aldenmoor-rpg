@@ -204,6 +204,10 @@ try {
     await page.locator("[data-gd-donate-amount]").fill("500");
     await page.locator("[data-gd-donate]").click(); await page.waitForTimeout(200);
     assert.match((await page.locator("[data-gd-treasury]").innerText()).replace(/\s/g, ""), /^500$/, "500 or dans la caisse");
+    assert.equal((await page.locator("[data-gd-minlevel]").innerText()).trim(), "aucun", "recrutement ouvert à tous");
+    await page.locator("[data-gd-minlevel-input]").fill("7");
+    await page.locator("[data-gd-minlevel-save]").click(); await page.waitForTimeout(200);
+    assert.equal((await page.locator("[data-gd-minlevel]").innerText()).trim(), "7", "niveau minimum enregistré");
     await page.locator("[data-gd-donate-amount]").fill("2500");
     await page.locator("[data-gd-donate]").click(); await page.waitForTimeout(200);
     await page.locator('[data-gd-tab="sentinelles"]').click();

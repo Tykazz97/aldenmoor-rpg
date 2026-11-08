@@ -8,7 +8,7 @@
 // ============================================================
 import { rebuildSent, placeProblem, placeSentinel, removeProblem, removeSentinel, collectStock, sentinelsOf } from "./sentinel.js";
 import { marketOf } from "./market.js";
-import { GUILD_CREATE_COST, QUEST_TYPES, TAB_SLOTS, RANKS } from "../data/guild.js";
+import { MAX_JOIN_LEVEL, GUILD_CREATE_COST, QUEST_TYPES, TAB_SLOTS, RANKS } from "../data/guild.js";
 import {
   newGuilds, guildFor, activityOf, addProgress, addContribution, nameProblem, createGuild, addMember, removeMember, isFull, memberCount,
   palierProblem, tabProblem, buyPalier, buyTab, logOf, tabFree, cleanName, rankOf, canSpend, canWithdraw, canKick, ranksAssignable, setRank, passLead,
@@ -47,6 +47,7 @@ export const REASONS = {
   sentinelle_max: "Ta guilde tient déjà autant de sentinelles que son niveau le permet.",
   pas_de_sentinelle: "Il n'y a pas de sentinelle dans cette région.",
   stock_plein: "Relève d'abord le butin de la sentinelle.",
+  niveau_requis: "Ton niveau est trop bas pour rejoindre cette guilde.",
 };
 
 const fail = (player, reason) => ({ ok: false, reason, player });
@@ -132,6 +133,7 @@ export function joinGuildAction(player, gid, now = Date.now()) {
   const g = o.G.byId[gid];
   if (!g) return fail(player, "introuvable");
   if (isFull(g)) return fail(player, "pleine");
+  if ((player.level || 1) < (g.minLevel || 0)) return fail(player, "niveau_requis");
   addMember(o.G, g, "player", o.m.bucket, activityOf(player.quests));
   logOf(g, o.m.bucket, `${player.name || "Un aventurier"} rejoint la guilde.`);
   return { ok: true, guild: g, player: commit(player, o.m, o.G) };
@@ -291,4 +293,14 @@ export function collectSentinelAction(player, region = "all", now = Date.now()) 
   for (const k of keys) { const c = collectStock(r.g, k, r.step); total.gold += c.gold; total.moved += c.moved; total.left += c.left; }
   if (!total.gold && !total.moved) return fail(player, total.left ? "plein" : "aucun");
   return { ok: true, ...total, player: commit(player, r.m, r.G) };
+}
+
+// Niveau minimum pour rejoindre (0 = ouvert à tous) ; chef et bras droit
+export function setMinLevelAction(player, level, now = Date.now()) {
+  const r = mine(player, now, { need: "spend" });
+  if (r.error) return fail(player, r.error);
+  const n = Math.min(MAX_JOIN_LEVEL, Math.max(0, Math.floor(Number(level)) || 0));
+  if (n) r.g.minLevel = n; else delete r.g.minLevel;
+  logOf(r.g, r.step, n ? `Niveau minimum pour rejoindre : ${n}.` : "La guilde est ouverte à tous les niveaux.");
+  return { ok: true, level: n, player: commit(player, r.m, r.G) };
 }

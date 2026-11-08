@@ -12,6 +12,7 @@
 export const GUILD_MAX_MEMBERS = 50;
 export const GUILD_CREATE_COST = 10000;
 export const GUILD_MAX_LEVEL = 50;
+export const MAX_JOIN_LEVEL = 50;                 // niveau minimum le plus haut qu'une guilde puisse exiger (le niveau maximum d'un personnage)
 export const GUILD_NAME_MIN = 3;
 export const GUILD_NAME_MAX = 24;
 
