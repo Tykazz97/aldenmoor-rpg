@@ -8,6 +8,7 @@
 //              départ), pl (pas joués vus), n (points de contribution) } }, log: [ { t (pas), txt } ] }
 // Tout est déterministe : mêmes données, mêmes noms, mêmes quêtes.
 // ============================================================
+import { cleanEmblem, randomEmblem } from "../data/emblems.js";
 import {
   GUILD_MAX_MEMBERS, GUILD_MAX_LEVEL, GUILD_NAME_MIN, GUILD_NAME_MAX, guildXpToNext, PALIERS, TABS, TAB_SLOTS,
   QUEST_SLOTS, QUEST_TYPES, QUEST_LEVEL_GROWTH, QUEST_MIN_MEMBERS, LOG_MAX, NAME_FIRST, NAME_LAST, RANK_POWER, CAN_SPEND, CAN_WITHDRAW,
@@ -114,11 +115,12 @@ export function addProgress(g, step, type, n) {
 }
 
 // ---- création, arrivées et départs ----
-export function createGuild(G, { founder, name, step, act = { k: 0, g: 0, c: 0 }, pl = 0 }) {
+export function createGuild(G, { founder, name, step, act = { k: 0, g: 0, c: 0 }, pl = 0, emblem }) {
   const id = `g${G.seq++}`;
   const g = {
     id, name: cleanName(name), tag: tagOf(name), leader: founder, deputy: null, founded: step, level: 1, xp: 0, gold: 0, pal: 0, tabs: 1,
     bank: [{ res: {}, items: [] }], quests: [], qseq: 1, members: {}, log: [],
+    emblem: emblem ? cleanEmblem(emblem) : randomEmblem(`${id}:${name}`),
   };
   G.byId[id] = g;
   addMember(G, g, founder, step, act, pl);

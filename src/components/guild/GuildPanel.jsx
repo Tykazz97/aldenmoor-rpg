@@ -13,6 +13,9 @@ import {
 } from "../../utils/guildActions.js";
 import { classLabel, classIcon } from "../../utils/ranking.js";
 import { getPopulation } from "../../sim/population.js";
+import Emblem from "./Emblem.jsx";
+import EmblemEditor from "./EmblemEditor.jsx";
+import { EMBLEM_DEFAULT } from "../../data/emblems.js";
 
 const num = (n) => Math.round(n).toLocaleString("fr-FR");
 const ago = (m, t) => { const min = Math.max(0, (m.bucket - t) * 10); return min < 60 ? `il y a ${Math.max(1, Math.round(min))} min` : min < 1440 ? `il y a ${Math.round(min / 60)} h` : `il y a ${Math.round(min / 1440)} j`; };
@@ -35,6 +38,7 @@ function BonusChips({ bonus, only }) {
 function Browse({ player, run }) {
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
+  const [emblem, setEmblem] = useState({ ...EMBLEM_DEFAULT });
   const list = guildList(player);
   const G = player.market?.sims?.guilds || newGuilds();
   const problem = name.trim() ? nameProblem(G, name) : null;
@@ -48,8 +52,10 @@ function Browse({ player, run }) {
         <div className="gd-note">Jusqu'à {GUILD_MAX_MEMBERS} membres, une caisse, un coffre partagé et des bonus qui montent avec le niveau de la guilde. Fonder coûte <b className="gd-gold">{num(GUILD_CREATE_COST)} or</b>.</div>
         <input className="gd-input" data-gd-create-name value={name} maxLength={GUILD_NAME_MAX} onChange={(e) => setName(e.target.value)} placeholder="Nom de la guilde" aria-label="Nom de la guilde" />
         <div className="gd-sub" style={{ minHeight: 16, color: problem ? "#e0796a" : undefined }}>{problem ? REASONS[problem] : name.trim() ? "Ce nom est libre." : "3 à 24 caractères."}</div>
+        <div className="gd-label">Blason</div>
+        <EmblemEditor emblem={emblem} onChange={setEmblem} />
         <div className="gd-line">
-          <button className="gd-btn" data-gd-create disabled={!name.trim() || !!problem || !rich} onClick={() => run(() => createGuildAction(player, name), "Ta guilde est fondée !", () => setName(""))}>Fonder · {num(GUILD_CREATE_COST)} or</button>
+          <button className="gd-btn" data-gd-create disabled={!name.trim() || !!problem || !rich} onClick={() => run(() => createGuildAction(player, name, Date.now(), emblem), "Ta guilde est fondée !", () => setName(""))}>Fonder · {num(GUILD_CREATE_COST)} or</button>
           <span className="gd-sub">Tu as <b className="gd-gold">{num(player.gold)}</b> or{rich ? "" : " (il t'en manque)"}</span>
         </div>
       </div>
@@ -68,7 +74,7 @@ function Browse({ player, run }) {
                 const full = memberCount(g) >= GUILD_MAX_MEMBERS;
                 return (
                   <div key={g.id} className="gd-list-row" data-gd-row={g.id}>
-                    <span className="nm"><span className="gd-tag">[{g.tag}]</span>{g.name}</span>
+                    <span className="nm"><Emblem emblem={g.emblem} seed={g.id} size={22} /><span style={{ overflow: "hidden", textOverflow: "ellipsis" }}><span className="gd-tag">[{g.tag}]</span>{g.name}</span></span>
                     <span className="gd-num gd-r">{g.level}</span>
                     <span className="gd-num gd-r">{memberCount(g)}/{GUILD_MAX_MEMBERS}</span>
                     <span className="hide-s" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#a89f8c" }}>{g.leader === "player" ? "Toi" : names.get(g.leader) || g.leader}</span>
@@ -305,7 +311,9 @@ function Mine({ player, g, run }) {
     <>
       <div className="gd-card">
         <div className="gd-top">
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, display: "flex", gap: 14, alignItems: "center" }}>
+            <Emblem emblem={g.emblem} seed={g.id} size={52} />
+            <div style={{ minWidth: 0 }}>
             <div className="gd-title" data-gd-name><span className="gd-tag" style={{ fontSize: 13 }}>[{g.tag}]</span>{g.name}</div>
             <div className="gd-stats" style={{ marginTop: 4 }}>
               <span>Niveau <b data-gd-level>{g.level}</b>/{GUILD_MAX_LEVEL}</span>
@@ -313,6 +321,7 @@ function Mine({ player, g, run }) {
               <span>Caisse <b>{num(g.gold)}</b> or</span>
               <span>Paliers <b>{g.pal}</b>/{PALIERS.length}</span>
               <span data-gd-myrank={rank}>Ton rang : <b>{RANK_LABELS[rank]}</b></span>
+            </div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>

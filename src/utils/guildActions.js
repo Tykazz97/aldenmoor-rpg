@@ -13,6 +13,7 @@ import {
   palierProblem, tabProblem, buyPalier, buyTab, logOf, tabFree, cleanName, rankOf, canSpend, canWithdraw, canKick, ranksAssignable, setRank, passLead,
 } from "./guildCore.js";
 import { donate } from "../sim/guilds.js";
+import { cleanEmblem } from "../data/emblems.js";
 import { getPopulation } from "../sim/population.js";
 
 export const REASONS = {
@@ -104,14 +105,14 @@ function mine(player, now, { need = null } = {}) {
   return { ...o, g, step: o.m.bucket };
 }
 
-export function createGuildAction(player, name, now = Date.now()) {
+export function createGuildAction(player, name, now = Date.now(), emblem = null) {
   const o = open(player, now);
   if (!o) return fail(player, "pas_de_monde");
   if (guildFor(o.G, "player")) return fail(player, "deja_membre");
   const problem = nameProblem(o.G, name);
   if (problem) return fail(player, problem);
   if (player.gold < GUILD_CREATE_COST) return fail(player, "or");
-  const g = createGuild(o.G, { founder: "player", name: cleanName(name), step: o.m.bucket, act: activityOf(player.quests) });
+  const g = createGuild(o.G, { founder: "player", name: cleanName(name), step: o.m.bucket, act: activityOf(player.quests), emblem: cleanEmblem(emblem) });
   return { ok: true, guild: g, player: commit(player, o.m, o.G, { gold: player.gold - GUILD_CREATE_COST }) };
 }
 

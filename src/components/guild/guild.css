@@ -11,7 +11,7 @@
 .gd-label { font-size: 10px; color: #74748a; text-transform: uppercase; letter-spacing: .07em; }
 .gd-gold { font-family: 'JetBrains Mono', monospace; color: #d9b568; }
 .gd-num { font-family: 'JetBrains Mono', monospace; color: #d9d0bd; }
-.gd-row2 { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 14px; align-items: start; }
+.gd-row2 { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 14px; align-items: start; }
 .gd-input { background: #0a0a0f; border: 1px solid #2a2a3d; border-radius: 8px; color: #d9d0bd; padding: 8px 11px; font-size: 13px; font-family: inherit; min-width: 0; }
 .gd-input.num { width: 110px; font-family: 'JetBrains Mono', monospace; }
 .gd-btn { background: #b8923f; color: #0a0a0f; border: 0; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -95,3 +95,18 @@
   .gd-mrow { grid-template-columns: minmax(120px, 2fr) 44px 70px auto; }
   .gd-mrow .hide-s { display: none; }
 }
+
+/* blason */
+.gd-emblem { display: flex; gap: 14px; align-items: flex-start; }
+.gd-em-prev { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px; background: #0a0a0f; border: 1px solid #2a2a3d; border-radius: 10px; flex-shrink: 0; }
+.gd-em-opts { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+.gd-ch { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.gd-choice { width: 36px; height: 38px; display: flex; align-items: center; justify-content: center; background: #1c1c2b; color: #d9d0bd; border: 1px solid #2a2a3d; border-radius: 7px; cursor: pointer; padding: 0; }
+.gd-choice:hover { border-color: #3a3a52; }
+.gd-choice.on { border-color: #d9b568; background: #262638; }
+.gd-sw { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.gd-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #2a2a3d; cursor: pointer; padding: 0; }
+.gd-swatch:hover { border-color: #74748a; }
+.gd-swatch.on { border-color: #fff; box-shadow: 0 0 0 1px #d9b568; }
+.gd-list-row .nm { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 760px) { .gd-emblem { flex-direction: column; align-items: stretch; } .gd-em-prev { align-self: center; } }

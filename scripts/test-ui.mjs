@@ -182,8 +182,14 @@ try {
     await page.locator("[data-gd-create-name]").waitFor({ timeout: 20000 });
     assert.ok(await page.locator("[data-guild]").isVisible(), "écran des guildes");
     await page.locator("[data-gd-create-name]").fill("Les Veilleurs de Test");
+    assert.ok(await page.locator("[data-gd-emblem-editor]").isVisible(), "éditeur de blason");
+    for (const k of ["shape-3", "motif-5", "c1-9", "c2-0", "sym-2", "c3-12"]) await page.locator(`[data-gd-em="${k}"]`).click();
+    await page.locator("[data-gd-em-random]").click(); await page.waitForTimeout(100);
+    for (const k of ["shape-4", "motif-2", "c1-9", "c2-0", "sym-3", "c3-12"]) await page.locator(`[data-gd-em="${k}"]`).click();
+    await page.screenshot({ path: "/tmp/claude-0/gd-create.png" });
     await page.locator("[data-gd-create]").click();
     await page.locator("[data-gd-name]").waitFor({ timeout: 5000 });
+    assert.ok(await page.locator("[data-gd-name]").locator("xpath=ancestor::div[contains(@class,'gd-top')]").locator("[data-emblem]").isVisible(), "blason affiché en en-tête");
     assert.match(await page.locator("[data-gd-name]").innerText(), /Les Veilleurs de Test/);
     assert.equal((await page.locator("[data-gd-level]").innerText()).trim(), "1");
     assert.equal(await page.locator("[data-gd-quest]").count(), 3, "trois quêtes en cours");

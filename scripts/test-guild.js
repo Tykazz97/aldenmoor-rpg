@@ -13,6 +13,7 @@ import {
   createGuildAction, joinGuildAction, leaveGuildAction, donateAction, depositAction, withdrawAction, buyPalierAction, buyTabAction,
   kickAction, transferAction, setRankAction, syncPlayerGuild, myGuild, guildList, memberRows,
 } from "../src/utils/guildActions.js";
+import { PALETTE, SHAPES, MOTIFS, SYMBOLS, EMBLEM_DEFAULT, cleanEmblem, randomEmblem } from "../src/data/emblems.js";
 import { stepGuilds, appointRanks } from "../src/sim/guilds.js";
 import { applyRefine, applyCraft } from "../src/utils/crafting.js";
 import { applyGather, rollHarvest } from "../src/utils/gathering.js";
@@ -537,6 +538,22 @@ test("sauvegarde abîmée : des guildes illisibles sont remplacées sans planter
   assert.deepEqual(Object.keys(w.guilds), ["v", "seq", "byId", "of"]);
   const r = createGuildAction(p, "Après la panne", T0);
   assert.ok(r.ok, "on peut fonder malgré tout");
+});
+
+test("blason : choisi à la création, nettoyé, tiré au sort pour les simulés", () => {
+  const e = { shape: 3, motif: 5, c1: 2, c2: 12, sym: 1, c3: 0 };
+  const r = createGuildAction(withMarket(), "Les Corbeaux", T0, e);
+  assert.deepEqual(myGuild(r.player).emblem, e, "le blason choisi est gardé");
+  const bad = createGuildAction(withMarket(), "Les Brisés", T0, { shape: 99, motif: -1, c1: "x", c2: 1.5, sym: 999, c3: 3 });
+  assert.deepEqual(myGuild(bad.player).emblem, { ...EMBLEM_DEFAULT, c3: 3 }, "valeurs impossibles : remplacées par celles par défaut");
+  assert.deepEqual(myGuild(createGuildAction(withMarket(), "Sans Blason", T0).player).emblem, EMBLEM_DEFAULT, "sans blason : celui par défaut");
+  assert.deepEqual(cleanEmblem(null), EMBLEM_DEFAULT); assert.deepEqual(cleanEmblem("x"), EMBLEM_DEFAULT);
+  assert.deepEqual(randomEmblem("a"), randomEmblem("a"), "même graine, même blason");
+  assert.notDeepEqual(randomEmblem("a"), randomEmblem("b"));
+  for (let i = 0; i < 300; i++) { const x = randomEmblem(`s${i}`); assert.deepEqual(cleanEmblem(x), x); assert.notEqual(x.c1, x.c2); }
+  const G = newGuilds(); const a = createGuild(G, { founder: "x", name: "Sim A", step: 0 }), b = createGuild(G, { founder: "y", name: "Sim B", step: 0 });
+  assert.ok(a.emblem && b.emblem, "les guildes des simulés ont un blason"); assert.notDeepEqual(a.emblem, b.emblem);
+  assert.ok(SHAPES.length >= 8 && MOTIFS.length >= 7 && PALETTE.length === 16 && SYMBOLS.length >= 10);
 });
 
 enableSimMarket(false);
