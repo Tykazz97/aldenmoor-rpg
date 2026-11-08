@@ -151,6 +151,9 @@ Même manoir (mêmes salles, décors et visuels), choisi par le bouton **Diffici
 - **Médaillon du Veuvage éternel** : 0,3 % exactement sur le boss. +1 PA, +15 % de dommages finaux, 4 % de vol de vie et +10 % de butin ; il prend l'emplacement de relique (un seul), donc on peut posséder les deux Médaillons mais en porter un seul. Le Médaillon de base ne tombe que dans le donjon normal, l'éternel que dans le difficile.
 Simulés (`sim/lifeDungeon.js`, état `life.djh`) : ils visent la clé difficile après un premier donjon normal réussi et à partir du niveau 26, avec l'essence de deuil gagnée par eux ; ils tentent d'abord la difficile (si leurs chances mesurées dépassent 30 %), sinon la normale. Les deux donjons partagent le repos de deux jours.
 
+## Emplacements de récolte
+Sur chaque carte de région, les nœuds sont regroupés **par métier en trois coins** (`data/maps.js`) : la forêt (frênes et chênes) pour le bûcheron, la mine (filons de fer et de cuivre) pour le mineur, le champ d'herbes (orties et sauge) pour l'herboriste. Chaque coin tient dans environ 6 tuiles autour de son centre, loin des groupes de monstres, de l'arrivée et des deux autres coins, et choisi près du décor qui lui va (arbres, rochers, étangs). Une tuile libre sépare toujours deux nœuds, et aucun nœud ne ferme un passage. `scripts/test-nodes.js` vérifie tout ça.
+
 ## Taxe de fabrication des villes
 
 Fabriquer, raffiner et distiller n'ont plus de coût fixe : on paie une **taxe de la ville** (`utils/cityTax.js`), un pourcentage du **prix de ce qu'on obtient** (pour un objet : ses ingrédients plus sa main-d'œuvre, `itemValue` ; pour une matière raffinée ou une potion : sa valeur ; au moins 1 or). **1 % par défaut**, réglable plus tard de **0 % à 5 %** par la guilde qui contrôlera la ville. L'or des recettes (`gold`) reste dans les données comme main-d'œuvre : il compte dans le prix de l'objet et donne l'xp du métier, mais n'est plus dépensé.
