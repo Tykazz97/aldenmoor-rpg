@@ -1,5 +1,5 @@
 // Constantes de mise en scène et petites fonctions pures du combat (sans React).
-import { ENEMIES } from "../../data/zones.js";
+import { enemyDef } from "../../data/zones.js";
 
 export const HERO_X = 17;       // % de la largeur de l'arène
 export const HERO_B = 64;       // px depuis le bas
@@ -17,7 +17,7 @@ export const isHeroId = (id) => id === "player" || String(id).startsWith("ally")
 
 // Renforts que les ennemis du combat peuvent appeler (phases avec `summon`), dans l'ordre d'apparition
 export function plannedSummons(list) {
-  return list.flatMap((e) => (ENEMIES[e.key].phases || []).flatMap((ph) => ph.summon || []));
+  return list.flatMap((e) => (enemyDef(e.key).phases || []).flatMap((ph) => ph.summon || []));
 }
 
 // Emplacements des renforts : devant le boss, entre lui et le héros
@@ -28,8 +28,8 @@ export function enemySlots(list) {
   const n = list.length;
   const xs = n === 1 ? [72] : n === 2 ? [62, 82] : [57, 72, 87];
   const bs = n === 3 ? [78, 52, 78] : n === 2 ? [66, 66] : [60];
-  const base = list.map((e, i) => ({ x: xs[i], b: bs[i], h: ENEMIES[e.key].spriteHeight || 200 }));
-  const extra = plannedSummons(list).slice(0, SUMMON_POS.length).map((key, i) => ({ ...SUMMON_POS[i], h: ENEMIES[key].spriteHeight || 200 }));
+  const base = list.map((e, i) => ({ x: xs[i], b: bs[i], h: enemyDef(e.key).spriteHeight || 200 }));
+  const extra = plannedSummons(list).slice(0, SUMMON_POS.length).map((key, i) => ({ ...SUMMON_POS[i], h: enemyDef(key).spriteHeight || 200 }));
   return [...base, ...extra];
 }
 

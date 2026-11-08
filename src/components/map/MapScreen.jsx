@@ -8,6 +8,10 @@ import WorldMap from "./WorldMap.jsx";
 import CityCrowd from "./CityCrowd.jsx";
 import CityChat from "./CityChat.jsx";
 import EngagePopup from "./EngagePopup.jsx";
+import SentinelTag from "./SentinelTag.jsx";
+import { sentinelOwner } from "../../utils/sentinel.js";
+import { sentinelEncounter } from "../../utils/sentinelFight.js";
+import { guildsOf, winAttackAction, loseAttackAction } from "../../utils/guildActions.js";
 import BuildingModal from "./BuildingModal.jsx";
 import { useHeroLoop } from "./useHeroLoop.js";
 import { useCityChat } from "./useCityChat.js";
@@ -222,6 +226,20 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
         stats={stats}
         onRewards={onRewards}
         onExit={(victory) => {
+          if (fight.enc.sentinel) {
+            const region = fight.enc.sentinel.region;
+            if (victory) {
+              const r = winAttackAction(playerRef.current, region);
+              onPlayerChange?.((p) => { const x = winAttackAction(p, region); return x.ok ? x.player : p; });
+              const got = r.ok ? [r.gold ? `${r.gold} or` : null, ...Object.entries({ ...r.res, ...r.bank }).map(([id, q]) => `${RESOURCES[id]?.name || id} ×${q}`)].filter(Boolean).join(", ") : "";
+              showToast(r.ok ? `Sentinelle détruite !${got ? ` Butin : ${got}.` : ""}${Object.keys(r.bank).length ? " (une partie est au coffre)" : ""}${Object.keys(r.lost).length ? " (sac et coffre pleins : une partie est perdue)" : ""}` : "Sentinelle détruite.");
+            } else {
+              onPlayerChange?.((p) => { const x = loseAttackAction(p, region); return x.ok ? x.player : p; });
+              showToast("La sentinelle a tenu bon : protégée 1 h.");
+            }
+            setFight(null);
+            return;
+          }
           if (victory) {
             setWorld((w) => ({ ...w, pos: { ...posRef.current }, cleared: { ...w.cleared, [fight.group.id]: Date.now() } }));
             showToast(`Victoire : ${fight.enc.name} dispersé.`);
@@ -342,6 +360,12 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
 
           <div className="mp-vignette" />
           <Minimap map={map} groups={groups} nodes={nodes} dotRef={dotRef} />
+          {!isCity && !popup && <SentinelTag player={player} region={map.regionKey} now={now} onAttack={(party) => {
+            const G = guildsOf(player), g = G && sentinelOwner(G, map.regionKey);
+            if (!g) return;
+            syncPos();
+            setFight({ group: null, enc: sentinelEncounter(g, map.regionKey), party });
+          }} />}
 
           {toast && <div key={toast.id} className="mp-toast">{toast.text}</div>}
 

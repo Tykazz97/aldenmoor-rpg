@@ -438,6 +438,46 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("Sentinelle : la plaque s'affiche sur la carte, on l'attaque en groupe, on la détruit et son stock est à nous", async () => {
+    const { createGuild } = await import("../src/utils/guildCore.js");
+    const { placeSentinel, sentinelsOf, rebuildSent } = await import("../src/utils/sentinel.js");
+    const s = await save();
+    const sims = s.player.market?.sims; assert.ok(sims && sims.lives, "le monde des simulés est dans la sauvegarde");
+    const G = sims.guilds || (sims.guilds = { v: 1, seq: 1, byId: {}, of: {} });
+    const founder = Object.keys(sims.lives)[0];
+    const g = createGuild(G, { founder, name: "Les Gardiens de Test", step: s.player.market.bucket });
+    g.level = 3; g.gold = 9999;
+    placeSentinel(G, g, "prairies_sauvages", s.player.market.bucket);
+    Object.assign(sentinelsOf(g).prairies_sauvages, { gold: 400, res: { croc_de_loup: 7 } });
+    rebuildSent(G);
+    s.player.resources = {}; s.player.inventory = (s.player.inventory || []).slice(0, 6);
+    s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; s.savedAt = Date.now() + 2000;
+    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-sentinelle")) { sessionStorage.setItem("ui-sentinelle", "1"); localStorage.setItem("aldenmoor:save", m); } }, JSON.stringify(s));
+    await page.reload(); await page.waitForTimeout(800);
+    await tab("Carte").click(); await page.waitForTimeout(1000);
+    const gold0 = (await save()).player.gold;
+    await page.locator('[data-map-sentinel="prairies_sauvages"]').waitFor({ timeout: 15000 });
+    assert.match(await page.locator('[data-map-sentinel]').innerText(), /Les Gardiens de Test/);
+    if (process.env.SHOT_SENT_MAP) await page.screenshot({ path: process.env.SHOT_SENT_MAP });
+    await page.locator('[data-sentinel-attack="group"]').click();
+    await page.locator(".cb-spell:not([disabled])").first().waitFor({ timeout: 20000 });
+    if (process.env.SHOT_SENT_FIGHT) await page.screenshot({ path: process.env.SHOT_SENT_FIGHT });
+    for (let i = 0; i < 300 && !(await page.locator(".cb-overlay").count()); i++) {
+      const sp = page.locator(".cb-spell:not([disabled])");
+      if (await sp.count()) await sp.first().click();
+      else if (await page.locator(".cb-btn:not([disabled])", { hasText: "Fin du tour" }).count()) await page.keyboard.press("Space");
+      await page.waitForTimeout(400);
+    }
+    assert.match((await page.locator(".cb-card h2").innerText()).toLowerCase(), /sentinelle détruite/);
+    await page.locator("[data-sentinel-claim]").click(); await page.waitForTimeout(800);
+    assert.equal(await page.locator(".cb-root").count(), 0, "retour à la carte");
+    assert.equal(await page.locator("[data-map-sentinel]").count(), 0, "la sentinelle a disparu de la région");
+    const after = (await save()).player;
+    assert.ok(after.gold >= gold0 + 400, "les 400 or du stock sont à moi");
+    assert.equal(after.resources.croc_de_loup, 7, "les ressources du stock aussi");
+    assert.deepEqual(errors, []);
+  });
+
   await step("Sac : emplacements, objets et ressources, agrandissement payant, rangement au coffre", async () => {
     const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 5000; s.player.inventory = s.player.inventory.slice(0, 6); s.player.resources = {}; delete s.player.bagUpgrades; s.savedAt = Date.now() + 2000; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-sac")) { sessionStorage.setItem("ui-sac", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);

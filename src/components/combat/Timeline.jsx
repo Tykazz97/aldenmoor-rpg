@@ -1,5 +1,5 @@
 import React from "react";
-import { ENEMIES } from "../../data/zones.js";
+import { enemyDef } from "../../data/zones.js";
 
 // Frise de l'ordre de jeu (comme dans Dofus)
 export default function Timeline({ timeline, activeId, dead, cs, heroSrc, allySrc = {} }) {
@@ -20,7 +20,7 @@ export default function Timeline({ timeline, activeId, dead, cs, heroSrc, allySr
         const isHero = id === "player" || isAllyId(id);
         const ally = isAllyId(id) ? cs.allies.find((a) => a.id === id) : null;
         const en = isHero ? null : cs.enemies.find((e) => e.id === id);
-        const src = id === "player" ? heroSrc : ally ? allySrc[id] : ENEMIES[en.key].img;
+        const src = id === "player" ? heroSrc : ally ? allySrc[id] : enemyDef(en.key).img;
         const state = i === activeIdx ? "active" : activeIdx >= 0 && i < activeIdx ? "done" : "";
         return (
           <div key={id} className={`cb-tl ${isHero ? "hero" : "foe"} ${ally ? "ally" : ""} ${state}`} title={id === "player" ? "Toi" : ally ? ally.name : en.name}>

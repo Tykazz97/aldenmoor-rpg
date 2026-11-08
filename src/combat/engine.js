@@ -17,7 +17,7 @@
 // phase : "running" | "playerTurn" | "victory" | "defeat"
 // ============================================================
 
-import { ENEMIES } from "../data/zones.js";
+import { enemyDef, ENEMY_EXTRA } from "../data/zones.js";
 import { WEAPON_TYPES, UNARMED_SPELLS } from "../data/weapons.js";
 import { classSpellsAt } from "../data/classes.js";
 
@@ -99,7 +99,8 @@ export const PARTY_DROP_MULT = { 1: 1, 2: 1.25, 3: 1.5 };
 // `carry` : PV des héros à l'entrée du combat, pour enchaîner des salles de donjon sans soin entre elles : { player: pv, allies: [pv, ...] }.
 // Un héros tombé dans la salle précédente se relève avec au moins DUNGEON_REVIVE de ses PV max.
 export const DUNGEON_REVIVE = 0.2;
-export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, allies = [], seed = Date.now() >>> 0, carry = null }) {
+// `maxRounds` : au-delà de ce nombre de tours de table, les ennemis ont tenu bon et le combat est perdu (attaque d'une sentinelle).
+export function createCombat({ stats, weaponType = null, classKey = null, level = 1, enemyKeys, spells = null, allies = [], seed = Date.now() >>> 0, carry = null, maxRounds = null }) {
   const s = { seed: seed >>> 0 };
 
   const player = makeHero({ id: "player", name: "Héros", stats, weaponType, classKey, level, spells });
@@ -112,7 +113,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
   const hpScale = PARTY_HP_SCALE[1 + allyHeroes.length] ?? PARTY_HP_SCALE[3];
 
   const enemies = enemyKeys.map((key, i) => {
-    const def = ENEMIES[key];
+    const def = enemyDef(key);
     if (!def || !def.stats) throw new Error(`Ennemi sans stats de combat : ${key}`);
     const hp = Math.round(def.stats.hp * hpScale);
     return {
@@ -137,6 +138,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     cursor: 0,      // position du prochain combattant à jouer dans `order`
     turns: 0,       // nombre de tours joués par le joueur
     hpScale,        // multiplicateur de PV des ennemis (aussi appliqué aux renforts appelés)
+    maxRounds,      // nombre de tours de table à ne pas dépasser (null : pas de limite)
     player,
     allies: allyHeroes,
     enemies,
@@ -253,7 +255,7 @@ function summonEnemies(s, events, summoner, keys) {
   const room = MAX_ENEMIES - aliveEnemies(s).length;
   const added = [];
   for (const key of keys.slice(0, Math.max(0, room))) {
-    const def = ENEMIES[key];
+    const def = enemyDef(key);
     const id = `e${s.enemies.length}`;
     const hp = Math.round(def.stats.hp * (s.hpScale || 1));
     const en = { id, key, name: def.name, miniBoss: false, hp, maxHp: hp, stats: { ...def.stats }, effects: [], alive: true, phasesDone: [], summoned: true };
@@ -269,7 +271,7 @@ function summonEnemies(s, events, summoner, keys) {
 
 // Phase de rage des mini-boss quand leurs PV passent sous un seuil
 function checkPhases(s, events, enemy) {
-  const def = ENEMIES[enemy.key];
+  const def = enemyDef(enemy.key);
   (def.phases || []).forEach((ph, i) => {
     if (enemy.phasesDone.includes(i)) return;
     if (enemy.hp / enemy.maxHp < ph.below) {
@@ -332,7 +334,8 @@ function rollRewards(s) {
   const mult = (1 + (s.player.dropBonus || 0) / 100) * groupMult;
   for (const e of s.enemies) {
     if (e.summoned) continue;   // les renforts appelés en combat ne rapportent rien
-    const def = ENEMIES[e.key];
+    if (ENEMY_EXTRA[e.key]) continue;   // la sentinelle d'une guilde ne rapporte rien ici : son stock est réglé après le combat
+    const def = enemyDef(e.key);
     rewards.xp += Math.round((def.xp || 0) * soloXp);
     rewards.kills[e.key] = (rewards.kills[e.key] || 0) + 1;
     if (def.gold) rewards.gold += randInt(s, def.gold[0], def.gold[1]);
@@ -387,7 +390,7 @@ function pickHeroTarget(s) {
 // Un ennemi dépense ses PA en enchaînant des actions, comme le joueur
 function enemyAct(s, events, enemy, budget) {
   let pa = budget;
-  const all = ENEMIES[enemy.key].actions;
+  const all = enemyDef(enemy.key).actions;
   while (pa > 0 && enemy.alive && s.phase === "running") {
     const options = all.filter((a) => (a.pa ?? ACTION_PA) <= pa && (a.needsPhase == null || enemy.phasesDone.includes(a.needsPhase)));
     if (!options.length) break;
@@ -415,6 +418,7 @@ export function advance(state) {
   let guard = 0;
   while (s.phase === "running" && guard++ < 1000) {
     if (s.cursor >= s.order.length) {
+      if (s.maxRounds && s.round >= s.maxRounds) { s.phase = "defeat"; events.push({ type: "defeat", reason: "temps" }); break; }
       s.round += 1;
       if (s.order.length === 0) s.order = buildOrder(s);   // une seule fois : l'ordre ne change plus
       s.cursor = 0;

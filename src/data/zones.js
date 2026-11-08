@@ -416,3 +416,7 @@ for (const base of Object.values(ENEMIES).filter((e) => e.dungeon)) {
   hard.img = base.img; hard.spriteHeight = base.spriteHeight;
   ENEMIES[hard.key] = hard;
 }
+
+// Monstres fabriqués au moment du combat (la sentinelle d'une guilde) : hors du bestiaire, des quêtes et des tables de butin
+export const ENEMY_EXTRA = {};
+export const enemyDef = (key) => ENEMIES[key] || ENEMY_EXTRA[key];

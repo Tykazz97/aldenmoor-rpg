@@ -133,3 +133,13 @@ export function collectStock(g, region, step) {
   if (gold || moved) logOf(g, step, `Relève de la sentinelle de ${SENT_BY_KEY[region].name} : ${gold} or, ${moved} ressource${moved > 1 ? "s" : ""}.`);
   return { gold, moved, left };
 }
+
+// ---- attaquer la sentinelle d'une autre guilde ----
+// null = possible ; sinon la raison. `myId` : l'id de mon propre rattachement ("player")
+export function attackProblem(G, region, now = Date.now(), myId = "player") {
+  const owner = sentinelOwner(G, region);
+  if (!owner || !sentinelsOf(owner)[region]) return "pas_de_sentinelle";
+  if (G.of?.[myId] === owner.id) return "sienne";
+  if ((sentinelsOf(owner)[region].shield || 0) > now) return "protegee";
+  return null;
+}

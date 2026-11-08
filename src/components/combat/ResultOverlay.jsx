@@ -9,6 +9,19 @@ import { hasLost } from "../../utils/bag.js";
 // Écran de fin de combat : butin en cas de victoire, relance en cas de défaite
 // `dungeon` : { index, total } quand c'est une salle de donjon (on enchaîne la suite, et une défaite met fin à l'expédition)
 export default function ResultOverlay({ ended, cs, encounter, player, backLabel, dungeon = null, onClaim, onRestart, onExit }) {
+  if (ended === "victory" && encounter.sentinel) {
+    return (
+      <div className="cb-overlay">
+        <div className="cb-card">
+          <h2>Sentinelle détruite</h2>
+          <div className="sub">{encounter.name}. Son stock te revient, et la guilde pourra en poser une autre.</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button className="cb-btn primary" data-sentinel-claim onClick={onClaim}>Récupérer le butin</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (ended === "victory" && cs.rewards) {
     const preview = applyRewards(player, cs.rewards);
     const newSpells = classSpellsAt(player.classKey, preview.player.level).filter((sp) => sp.level > player.level);
@@ -61,6 +74,19 @@ export default function ResultOverlay({ ended, cs, encounter, player, backLabel,
           <div className="sub">Le groupe est repoussé hors du manoir. Le butin des salles déjà gagnées est à toi, mais la clé est perdue.</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
             <button className="cb-btn primary" onClick={() => onExit(false)}>Sortir du manoir</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (ended === "defeat" && encounter.sentinel) {
+    return (
+      <div className="cb-overlay">
+        <div className="cb-card lose">
+          <h2>La sentinelle a tenu bon</h2>
+          <div className="sub">Elle est protégée pendant 1 h : personne ne peut l'attaquer d'ici là. Tu ne perds rien.</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button className="cb-btn primary" onClick={() => onExit(false)}>{backLabel}</button>
           </div>
         </div>
       </div>

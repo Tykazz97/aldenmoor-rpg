@@ -14,6 +14,16 @@ import { createPlayer } from "../src/utils/newPlayer.js";
 import { enableSimMarket, newMarket } from "../src/utils/market.js";
 import { getPopulation } from "../src/sim/population.js";
 import { makeRng } from "../src/sim/rng.js";
+import { winAttackAction, loseAttackAction, attackCheck } from "../src/utils/guildActions.js";
+import { attackProblem } from "../src/utils/sentinel.js";
+import { ensureSentinelEnemy, sentinelStats, sentinelEncounter, SENT_ROUNDS, SENT_SHIELD_MS } from "../src/utils/sentinelFight.js";
+import { ENEMY_EXTRA, enemyDef } from "../src/data/zones.js";
+import { createCombat, advance } from "../src/combat/engine.js";
+import { calcStats } from "../src/utils/calcStats.js";
+import { makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
+import { evaluate, fight } from "./simulate-sentinel.js";
+import { bagFree } from "../src/utils/bag.js";
+import { bankFree } from "../src/utils/bank.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -195,6 +205,104 @@ test("les simulés : le monde tourne, les sentinelles se remplissent et sont rel
   let step = sims.step;
   for (let i = 0; i < 6 * 12; i++) { stepLivesOne(sims, pop, step, { merchant: false, keep: 120, onFight: feeder }); stepGuilds(sims, pop, step); step++; }
   assert.ok(g.log.some((l) => /Relève de la sentinelle/.test(l.txt)), "le chef a relevé du butin gagné par les simulés");
+});
+
+// ---------------------------------------------------------------- attaquer une sentinelle
+// Un monde où une guilde simulée tient la sentinelle des Prairies, avec un butin dans son stock
+const worldWithSentinel = (stock = { gold: 500, res: { croc_de_loup: 12, fourrure_grise: 3 } }, extra = {}) => {
+  const p = withMarket(extra);
+  const sims = p.market.sims, G = sims.guilds || (sims.guilds = newGuilds());
+  const g = createGuild(G, { founder: pop[0].id, name: "Les Gardiens", step: p.market.bucket });
+  g.level = 8; g.gold = 9999;
+  placeSentinel(G, g, "prairies_sauvages", p.market.bucket);
+  Object.assign(sentinelsOf(g).prairies_sauvages, { gold: stock.gold, res: { ...stock.res } });
+  return { p, G, g };
+};
+
+test("le monstre de la sentinelle : fabriqué à part, hors du bestiaire, plus fort avec le niveau de la guilde", () => {
+  const before = Object.keys(ENEMIES).length;
+  const k5 = ensureSentinelEnemy(5), k20 = ensureSentinelEnemy(20);
+  assert.equal(Object.keys(ENEMIES).length, before, "le bestiaire n'a pas bougé");
+  assert.ok(ENEMY_EXTRA[k5] && enemyDef(k5) === ENEMY_EXTRA[k5] && !ENEMIES[k5]);
+  assert.ok(sentinelStats(20).hp > sentinelStats(5).hp && sentinelStats(20).atkPhys > sentinelStats(5).atkPhys);
+  assert.equal(enemyDef(k5).actions.length, 3, "trois sorts de base");
+  assert.equal(enemyDef(k5).img, "/assets/sentinel/golem.png");
+  const { g } = worldWithSentinel();
+  const enc = sentinelEncounter(g, "prairies_sauvages");
+  assert.deepEqual(enc.enemies, [k5.replace("5", "8")]); assert.equal(enc.sentinel.maxRounds, SENT_ROUNDS); assert.equal(enc.sentinel.gid, g.id);
+});
+
+test("combat : la limite de tours donne la défaite ; la sentinelle ne rapporte ni xp, ni or, ni compte de monstres tués", () => {
+  const pl = makeBotPlayer("guerrier", 8), key = ensureSentinelEnemy(8);
+  const slow = fight(pl, key, 1, false, 1);
+  assert.equal(slow.phase, "defeat", "un seul tour de table permis : la sentinelle a tenu");
+  const win = fight(makeBotPlayer("guerrier", 8), key, 1, true);
+  assert.equal(win.phase, "victory");
+  assert.deepEqual(win.rewards, { xp: 0, gold: 0, resources: {}, items: [], kills: {} });
+});
+
+test("attaquer : impossible sans sentinelle, sur la sienne ; protégée 1 h après une défaite, puis de nouveau possible", () => {
+  const { p } = worldWithSentinel();
+  assert.equal(attackCheck(p, "champs_calcines", T0), "pas_de_sentinelle");
+  assert.equal(attackCheck(p, "prairies_sauvages", T0), null);
+  const lose = loseAttackAction(p, "prairies_sauvages", T0);
+  assert.ok(lose.ok);
+  assert.equal(attackCheck(lose.player, "prairies_sauvages", T0 + 1000), "protegee");
+  assert.equal(attackCheck(lose.player, "prairies_sauvages", T0 + SENT_SHIELD_MS - 1000), "protegee");
+  assert.equal(attackCheck(lose.player, "prairies_sauvages", T0 + SENT_SHIELD_MS + 1000), null);
+  assert.equal(winAttackAction(lose.player, "prairies_sauvages", T0 + 1000).reason, "protegee");
+  assert.equal(loseAttackAction(p, "champs_calcines", T0).reason, "pas_de_sentinelle");
+  // ma propre sentinelle
+  let q = myGuildP({ market: structuredClone(p.market) });
+  q = donateAction(q, 6000, T0).player; q = placeSentinelAction(q, "champs_calcines", T0).player;
+  assert.equal(attackCheck(q, "champs_calcines", T0), "sienne");
+  assert.equal(winAttackAction(q, "champs_calcines", T0).reason, "sienne");
+});
+
+test("victoire : tout le stock va au joueur, la sentinelle disparaît et la guilde peut en reposer une", () => {
+  const { p, g } = worldWithSentinel();
+  const gold0 = p.gold;
+  const r = winAttackAction(p, "prairies_sauvages", T0);
+  assert.ok(r.ok); assert.equal(r.gold, 500); assert.equal(r.player.gold, gold0 + 500);
+  assert.equal(r.player.resources.croc_de_loup, 12); assert.equal(r.player.resources.fourrure_grise, 3);
+  assert.deepEqual(r.bank, {}); assert.deepEqual(r.lost, {});
+  const G2 = guildsOf(r.player), g2 = G2.byId[g.id];
+  assert.equal(sentinelsOf(g2).prairies_sauvages, undefined); assert.equal(G2.sent.prairies_sauvages, undefined);
+  assert.ok(g2.log.some((l) => /détruite/.test(l.txt)));
+  assert.equal(placeProblem(G2, g2, "prairies_sauvages"), null, "la guilde peut en poser une autre (elle repaie)");
+  assert.equal(attackCheck(r.player, "prairies_sauvages", T0), "pas_de_sentinelle");
+  assert.equal(winAttackAction(r.player, "prairies_sauvages", T0).reason, "pas_de_sentinelle");
+});
+
+test("victoire, sac plein : le butin file au coffre personnel ; si tout est plein, le reste est perdu", () => {
+  const res = {}; for (let i = 0; i < 6; i++) res[`rare_${i}`] = 1;
+  const { p } = worldWithSentinel({ gold: 0, res });
+  // sac : une seule place libre
+  const resources = {}, n = bagFree(p) - 1;
+  for (let i = 0; i < n; i++) resources[`remplissage_${i}`] = 1;
+  const full = { ...p, resources };
+  assert.equal(bagFree(full), 1);
+  const r = winAttackAction(full, "prairies_sauvages", T0);
+  assert.equal(Object.keys(r.res).length, 1, "une ressource tient dans le sac");
+  assert.equal(Object.keys(r.bank).length, 5, "le reste va au coffre");
+  assert.equal(bagFree(r.player), 0); assert.equal(Object.keys(r.player.bank.resources).length, 5);
+  // coffre aussi presque plein
+  const bank = { items: [], resources: {} }; const bn = bankFree({ ...full, bank }) - 2;
+  for (let i = 0; i < bn; i++) bank.resources[`coffre_${i}`] = 1;
+  const r2 = winAttackAction({ ...full, bank }, "prairies_sauvages", T0);
+  assert.equal(Object.keys(r2.res).length, 1); assert.equal(Object.keys(r2.bank).length, 2); assert.equal(Object.keys(r2.lost).length, 3);
+  // ajouter à une pile déjà là ne demande pas de place
+  const r3 = winAttackAction({ ...p, resources: { ...resources, rare_0: 4 } }, "prairies_sauvages", T0);
+  assert.equal(r3.player.resources.rare_0, 5);
+});
+
+test("équilibre : trois attaquants viennent à bout d'une sentinelle seule ; seul, c'est plus dur (l'assassin y laisse sa peau)", () => {
+  for (const level of [8, 20]) for (const cls of ["guerrier", "assassin", "magicien"]) {
+    const party = evaluate(cls, level, true, 8);
+    assert.ok(party.win >= 0.9, `à trois (${cls}, niv ${level}) : ${party.win}`);
+    assert.ok(party.rounds >= 2 && party.rounds < SENT_ROUNDS, "le combat dure, sans atteindre la limite");
+  }
+  assert.ok(evaluate("assassin", 8, false, 8).win < 0.7, "seul, l'assassin n'y arrive pas à tous les coups");
 });
 
 enableSimMarket(false);

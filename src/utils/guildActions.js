@@ -6,8 +6,12 @@
 // Les actions du joueur (monstres vaincus, récoltes, fabrications) comptent pour les quêtes de sa guilde : on lit ses compteurs
 // de quêtes (utils/counters.js) et on ajoute la différence depuis la dernière fois (syncPlayerGuild).
 // ============================================================
-import { rebuildSent, placeProblem, placeSentinel, removeProblem, removeSentinel, collectStock, sentinelsOf } from "./sentinel.js";
+import { attackProblem, rebuildSent, placeProblem, placeSentinel, removeProblem, removeSentinel, collectStock, sentinelsOf } from "./sentinel.js";
 import { marketOf } from "./market.js";
+import { SENT_BY_KEY } from "../data/sentinel.js";
+import { SENT_SHIELD_MS } from "./sentinelFight.js";
+import { bagFree } from "./bag.js";
+import { bankFree } from "./bank.js";
 import { MAX_JOIN_LEVEL, GUILD_CREATE_COST, QUEST_TYPES, TAB_SLOTS, RANKS } from "../data/guild.js";
 import {
   newGuilds, guildFor, activityOf, addProgress, addContribution, nameProblem, createGuild, addMember, removeMember, isFull, memberCount,
@@ -15,7 +19,6 @@ import {
 } from "./guildCore.js";
 import { donate } from "../sim/guilds.js";
 import { cleanEmblem } from "../data/emblems.js";
-import { bagFree } from "./bag.js";
 import { getPopulation } from "../sim/population.js";
 
 export const REASONS = {
@@ -48,6 +51,8 @@ export const REASONS = {
   pas_de_sentinelle: "Il n'y a pas de sentinelle dans cette région.",
   stock_plein: "Relève d'abord le butin de la sentinelle.",
   niveau_requis: "Ton niveau est trop bas pour rejoindre cette guilde.",
+  sienne: "C'est la sentinelle de ta propre guilde.",
+  protegee: "Cette sentinelle vient de tenir bon : elle est protégée pour le moment.",
 };
 
 const fail = (player, reason) => ({ ok: false, reason, player });
@@ -303,4 +308,48 @@ export function setMinLevelAction(player, level, now = Date.now()) {
   if (n) r.g.minLevel = n; else delete r.g.minLevel;
   logOf(r.g, r.step, n ? `Niveau minimum pour rejoindre : ${n}.` : "La guilde est ouverte à tous les niveaux.");
   return { ok: true, level: n, player: commit(player, r.m, r.G) };
+}
+
+// Le joueur a battu la sentinelle : tout son stock lui revient (sac d'abord, puis coffre personnel ; ce qui ne tient nulle part est perdu),
+// et la sentinelle disparaît : la guilde pourra en poser une autre.
+// Renvoie { ok, gold, res (reçu dans le sac), bank (reçu au coffre), lost }
+export function winAttackAction(player, region, now = Date.now()) {
+  const o = open(player, now);
+  if (!o) return fail(player, "pas_de_monde");
+  rebuildSent(o.G);
+  const problem = attackProblem(o.G, region, now);
+  if (problem) return fail(player, problem);
+  const g = o.G.byId[o.G.sent[region]], s = sentinelsOf(g)[region];
+  const gold = Math.floor(s.gold || 0);
+  const resources = { ...player.resources }, bank = { ...(player.bank || { items: [], resources: {} }), resources: { ...(player.bank?.resources || {}) } };
+  let bagRoom = bagFree(player), bankRoom = bankFree(player);
+  const got = { res: {}, bank: {}, lost: {} };
+  for (const [id, q] of Object.entries(s.res || {})) {
+    if (!(q > 0)) continue;
+    if (resources[id] > 0) { resources[id] += q; got.res[id] = q; }
+    else if (bagRoom > 0) { resources[id] = q; bagRoom--; got.res[id] = q; }
+    else if (bank.resources[id] > 0) { bank.resources[id] += q; got.bank[id] = q; }
+    else if (bankRoom > 0) { bank.resources[id] = q; bankRoom--; got.bank[id] = q; }
+    else got.lost[id] = q;
+  }
+  removeSentinel(o.G, g, region, o.m.bucket);
+  logOf(g, o.m.bucket, `Ta sentinelle de ${SENT_BY_KEY[region].name} a été détruite par ${player.name || "un aventurier"}.`);
+  return { ok: true, gold, ...got, player: commit(player, o.m, o.G, { gold: player.gold + gold, resources, bank }) };
+}
+
+// Le joueur a perdu : la sentinelle a tenu bon, elle est intouchable pendant 1 h
+export function loseAttackAction(player, region, now = Date.now()) {
+  const o = open(player, now);
+  if (!o) return fail(player, "pas_de_monde");
+  rebuildSent(o.G);
+  const g = o.G.sent?.[region] && o.G.byId[o.G.sent[region]];
+  if (!g || !sentinelsOf(g)[region]) return fail(player, "pas_de_sentinelle");
+  g.sentinels[region].shield = now + SENT_SHIELD_MS;
+  return { ok: true, player: commit(player, o.m, o.G) };
+}
+
+// Peut-on attaquer ? (pour griser le bouton et dire pourquoi)
+export function attackCheck(player, region, now = Date.now()) {
+  const G = guildsOf(player);
+  return G ? attackProblem(G, region, now) : "pas_de_monde";
 }
