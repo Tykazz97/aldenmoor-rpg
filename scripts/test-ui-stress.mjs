@@ -37,7 +37,7 @@ try {
   const writeSave = async (raw) => { await page.goto(URL + "blank.html"); await page.waitForTimeout(1200); await writeOnBlank(raw); await page.waitForTimeout(300); };
   // le jeu garde aussi une copie « filet » dans le localStorage à la fermeture (la plus récente gagne) : on l'efface
   const writeOnBlank = (raw) => page.evaluate((v) => new Promise((res, rej) => { localStorage.removeItem("aldenmoor:save"); const r = indexedDB.open("aldenmoor"); r.onsuccess = () => { const t = r.result.transaction("kv", "readwrite"); t.objectStore("kv").put(v, "save"); t.oncomplete = () => { r.result.close(); res(true); }; t.onerror = () => rej(t.error); }; }), raw);
-  const TABS = ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Bestiaire", "Carte"];
+  const TABS = ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Bestiaire", "Classement", "Carte"];
   const crashed = async () => (await page.getByText("Télécharger ma sauvegarde").count()) > 0;
 
   const openAllTabs = async (label) => {

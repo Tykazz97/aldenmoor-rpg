@@ -10,6 +10,7 @@ import BankPanel from "./components/city/BankPanel.jsx";
 import MarketPanel from "./components/city/MarketPanel.jsx";
 import QuestPanel from "./components/city/QuestPanel.jsx";
 import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
+import RankingPanel from "./components/ranking/RankingPanel.jsx";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
@@ -28,6 +29,7 @@ const TAB_TITLES = {
   sac: "Sac & Inventaire",
   journal: "Journal de quêtes",
   bestiaire: "Bestiaire",
+  classement: "Classement",
 };
 
 // Sans sauvegarde : création du personnage. Avec : le jeu, sauvegardé automatiquement.
@@ -75,6 +77,18 @@ function Game({ initial, onNewCharacter }) {
     const t = setTimeout(advanceMarket, 20);                      // tranche suivante : le rendu a eu le temps de passer
     return () => clearTimeout(t);
   }, [behind, player.market?.bucket, advanceMarket]);
+
+  // Temps de jeu (classement) : on compte 30 s toutes les 30 s tant que l'onglet est visible et que tu as bougé, cliqué ou tapé dans les 5 dernières minutes
+  const lastInput = useRef(Date.now());
+  useEffect(() => {
+    const touch = () => { lastInput.current = Date.now(); };
+    const evs = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"];
+    evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible" && Date.now() - lastInput.current < 5 * 60 * 1000) setPlayer((p) => ({ ...p, playSec: (p.playSec || 0) + 30 }));
+    }, 30000);
+    return () => { evs.forEach((e) => window.removeEventListener(e, touch)); clearInterval(id); };
+  }, [setPlayer]);
 
   // Sauvegarde automatique (un peu différée pour ne pas écrire à chaque changement)
   const latest = useRef({ player, world });
@@ -172,7 +186,8 @@ function Game({ initial, onNewCharacter }) {
         </div>
       )}
       {activeTab === "bestiaire" && <BestiaryPanel player={player} stats={stats} />}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab === "classement" && <RankingPanel player={player} />}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }

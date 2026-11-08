@@ -117,11 +117,11 @@ export const shareOf = (bot, traits) => (traits.focus === "xp" ? RUSH_XP : trait
 //   gear: { emplacement: idObjet }  (équipement porté),  bag: { res: { idRessource: quantité }, items: [idObjet, ...] } }
 export function initialLife(bot, mode = "generated", seed = 1) {
   const t = traitsOf(bot);
-  if (mode === "fresh") return { id: bot.id, level: 1, xp: 0, gold: 0, kills: 0, gathers: 0, prof: { key: t.primary, level: 1, xp: 0 }, pro: {}, crafted: 0, gear: starterGear(bot.classKey), bag: emptyBag(), quests: emptyQuests() };
+  if (mode === "fresh") return { id: bot.id, played: 0, level: 1, xp: 0, gold: 0, kills: 0, gathers: 0, prof: { key: t.primary, level: 1, xp: 0 }, pro: {}, crafted: 0, gear: starterGear(bot.classKey), bag: emptyBag(), quests: emptyQuests() };
   const r = makeRng(hashString(`init:${bot.id}:${seed}`));
   const level = bot.level;
   const profLevel = Math.max(1, Math.min(MAX_PROFESSION_LEVEL, Math.round(level * (bot.activity === "recolteur" ? 1.3 : 0.6) * (0.7 + r() * 0.6))));
-  return { id: bot.id, level, xp: Math.floor(r() * xpToNext(level)), gold: Math.round(level * (20 + r() * 60)), kills: level * 12, gathers: profLevel * 8, prof: { key: t.primary, level: profLevel, xp: Math.floor(r() * xpForLevel(profLevel)) }, pro: {}, crafted: 0, gear: tierGear(bot.classKey, level), bag: emptyBag(), quests: emptyQuests() };
+  return { id: bot.id, played: Math.round(level * 9), level, xp: Math.floor(r() * xpToNext(level)), gold: Math.round(level * (20 + r() * 60)), kills: level * 12, gathers: profLevel * 8, prof: { key: t.primary, level: profLevel, xp: Math.floor(r() * xpForLevel(profLevel)) }, pro: {}, crafted: 0, gear: tierGear(bot.classKey, level), bag: emptyBag(), quests: emptyQuests() };
 }
 
 export const emptyBag = () => ({ res: {}, items: [] });
@@ -154,6 +154,7 @@ export function rollDrops(life, bot, enemy, rng) {
 // Un pas de 10 minutes (modifie `life`)
 export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
   if (!isActive(bot, step, traits)) return life;
+  life.played = (life.played || 0) + 1;                          // pas de 10 minutes passés en jeu (affiché en heures au classement)
   const rng = makeRng(hashString(`${bot.id}:${step}`));
   const share = shareOf(bot, traits);
   const roll = rng();
@@ -236,7 +237,7 @@ export function liveBots(world, population) {
 // Anciennes sauvegardes (sans sac) : on ajoute un sac vide plutôt que de tout effacer
 export function migrateWorld(w, population = []) {
   const byId = new Map(population.map((b) => [b.id, b]));
-  if (w && w.lives && typeof w.lives === "object") for (const l of Object.values(w.lives)) if (l && typeof l === "object") { if (!l.bag) l.bag = emptyBag(); if (!l.quests) l.quests = emptyQuests(); if (!l.pro) l.pro = {}; if (l.crafted == null) l.crafted = 0; if (!l.gear) { const b = byId?.get(l.id); l.gear = b ? tierGear(b.classKey, l.level) : {}; } }
+  if (w && w.lives && typeof w.lives === "object") for (const l of Object.values(w.lives)) if (l && typeof l === "object") { if (!l.bag) l.bag = emptyBag(); if (!l.quests) l.quests = emptyQuests(); if (!l.pro) l.pro = {}; if (l.played == null) l.played = Math.round((l.level || 1) * 9); if (l.crafted == null) l.crafted = 0; if (!l.gear) { const b = byId?.get(l.id); l.gear = b ? tierGear(b.classKey, l.level) : {}; } }
   return w;
 }
 

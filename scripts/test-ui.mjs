@@ -52,7 +52,7 @@ try {
   });
 
   await step("tous les onglets s'ouvrent sans erreur", async () => {
-    for (const n of ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Bestiaire", "Carte"]) {
+    for (const n of ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Bestiaire", "Classement", "Carte"]) {
       await tab(n).click(); await page.waitForTimeout(250);
       assert.equal(await page.locator("button", { hasText: n }).first().isVisible(), true, n);
     }
@@ -153,6 +153,21 @@ try {
     assert.match(await page.locator("[data-hv-slots-board]").innerText(), /niveau 5/);
     await page.locator('[data-act="cancel"]').first().click(); await page.waitForTimeout(200);
     assert.equal(await page.locator('[data-slot="used"]').count(), 2);
+    assert.deepEqual(errors, []);
+  });
+
+  await step("Classement : je suis dans la liste, le tri et la recherche fonctionnent", async () => {
+    await tab("Classement").click(); await page.waitForTimeout(500);
+    assert.ok(await page.locator("[data-ranking]").isVisible(), "écran du classement");
+    assert.equal(await page.locator('[data-rank-row][data-me="1"]').count(), 1, "ma ligne est dans le classement");
+    for (const s of ["niveau", "or", "metier", "heures"]) {
+      await page.locator(`[data-rank-sort="${s}"]`).click(); await page.waitForTimeout(120);
+      assert.ok((await page.locator("[data-rank-row]").count()) >= 100, `liste ${s}`);
+      assert.equal(await page.locator('[data-rank-row][data-me="1"]').count(), 1, `ma ligne reste visible (${s})`);
+    }
+    await page.locator("[data-rank-search]").fill("zzzzzz"); await page.waitForTimeout(150);
+    assert.equal(await page.locator("[data-rank-row]").count(), 0);
+    await page.locator("[data-rank-search]").fill("");
     assert.deepEqual(errors, []);
   });
 

@@ -39,6 +39,7 @@ export function createPlayer({ name, classKey, gender = "m", testMode = false })
     resources: {},
     bank: emptyBank(),
     professions: emptyProfessions(PROFESSION_ORDER),
+    playSec: 0,                       // temps de jeu, en secondes (classement)
   };
 }
 
@@ -49,7 +50,7 @@ export function repairPlayer(p) {
   const fresh = createPlayer({ name: p.name, classKey: p.classKey, gender: p.gender });
   const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
   const out = { ...p };
-  for (const k of ["level", "xp", "baseHp", "hp", "caracPoints", "gold"]) if (typeof out[k] !== "number" || Number.isNaN(out[k])) out[k] = fresh[k];
+  for (const k of ["level", "xp", "baseHp", "hp", "caracPoints", "gold", "playSec"]) if (typeof out[k] !== "number" || Number.isNaN(out[k])) out[k] = fresh[k];
   if (!Array.isArray(out.inventory)) out.inventory = [];
   out.inventory = out.inventory.filter((it) => it && typeof it === "object" && it.id);
   for (const k of ["resources", "caracs", "equipped", "bank", "professions"]) if (!isObj(out[k])) out[k] = fresh[k];
