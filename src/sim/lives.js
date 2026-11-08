@@ -105,9 +105,11 @@ export function isActive(bot, step, traits = traitsOf(bot)) {
 }
 
 // Part de ses séances passée à combattre / récolter, selon l'activité. Un acharné suit son objectif : l'xp (combats, donjon) ou les métiers (récolte, raffinage, fabrication)
-const SHARES = { combattant: { fight: 0.75, gather: 0.1, craft: 0.15 }, recolteur: { fight: 0.15, gather: 0.6, craft: 0.25 }, marchand: { fight: 0.25, gather: 0.25, craft: 0.5 }, flaneur: { fight: 0.25, gather: 0.1, craft: 0.15 } };
+const SHARES = { combattant: { fight: 0.75, gather: 0.1, craft: 0.15 }, recolteur: { fight: 0.15, gather: 0.6, craft: 0.25 }, artisan: { fight: 0.12, gather: 0.18, craft: 0.7 }, marchand: { fight: 0.25, gather: 0.25, craft: 0.5 }, flaneur: { fight: 0.25, gather: 0.1, craft: 0.15 } };
 const RUSH_XP = { fight: 0.85, gather: 0.04, craft: 0.11 }, RUSH_METIERS = { fight: 0.06, gather: 0.5, craft: 0.44 };
-export const shareOf = (bot, traits) => (traits.focus === "xp" ? RUSH_XP : traits.focus === "metiers" ? RUSH_METIERS : SHARES[bot.activity] || SHARES.flaneur);
+// un acharné des métiers suit sa vocation : le récolteur passe ses séances à récolter, l'artisan à raffiner et fabriquer
+const RUSH_RECOLTE = { fight: 0.05, gather: 0.78, craft: 0.17 }, RUSH_ARTISAN = { fight: 0.05, gather: 0.2, craft: 0.75 };
+export const shareOf = (bot, traits) => (traits.focus === "xp" ? RUSH_XP : traits.focus === "metiers" ? (bot.activity === "recolteur" ? RUSH_RECOLTE : bot.activity === "artisan" ? RUSH_ARTISAN : RUSH_METIERS) : SHARES[bot.activity] || SHARES.flaneur);
 
 // --- État d'un simulé --------------------------------------------------------------------------------------------------
 // { id, level, xp, gold, kills, gathers, crafted, prof: { key, level, xp }  (métier de récolte),

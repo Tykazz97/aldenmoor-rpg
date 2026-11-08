@@ -398,13 +398,24 @@ await test("coffre : seul le trop-plein est vendu (d'abord celui du coffre), et 
   assert.ok(life.gold > g, "le surplus est bradé contre de l'or");
 });
 
+await test("rôles : récolteur, artisan, combattant… passent leurs séances différemment, et les acharnés suivent leur vocation", () => {
+  const acts = new Set(pop.map((b) => b.activity));
+  for (const a of ["combattant", "recolteur", "artisan", "marchand", "flaneur"]) assert.ok(acts.has(a), `rôle ${a} présent`);
+  const share = (activity, focus = null) => shareOf({ activity }, { focus });
+  assert.ok(share("recolteur").gather > 0.5 && share("artisan").craft > 0.6 && share("combattant").fight > 0.7);
+  assert.ok(share("recolteur", "metiers").gather > share("artisan", "metiers").gather, "l'acharné récolteur récolte plus que l'acharné artisan");
+  assert.ok(share("artisan", "metiers").craft > share("recolteur", "metiers").craft, "l'acharné artisan fabrique plus");
+  assert.ok(share("flaneur", "xp").fight > 0.8);
+  for (const a of ["combattant", "recolteur", "artisan", "marchand", "flaneur", "acharné"]) { const s = a === "acharné" ? share("flaneur", "xp") : share(a); assert.ok(s.fight + s.gather <= 1 + 1e-9 && s.fight > 0 && s.gather > 0, a); }   // le reste des séances va à l'atelier
+});
+
 await test("profils de joueur : occasionnels, réguliers et acharnés (xp ou métiers), stables et dans les bonnes proportions", () => {
   const count = (f) => pop.filter((b) => f(traitsOf(b))).length;
   const occ = count((t) => t.profile === "occasionnel"), reg = count((t) => t.profile === "regulier"), ach = count((t) => t.profile === "acharne");
   assert.equal(occ + reg + ach, pop.length);
   assert.ok(Math.abs(occ / pop.length - PROFILE_MIX.occasionnel) < 0.1, `occasionnels ${occ}`);
   assert.ok(Math.abs(reg / pop.length - PROFILE_MIX.regulier) < 0.1, `réguliers ${reg}`);
-  assert.ok(ach >= 8 && ach <= 35, `acharnés ${ach}`);
+  assert.ok(ach / pop.length >= 0.04 && ach / pop.length <= 0.18, `acharnés ${ach}`);
   assert.ok(count((t) => t.focus === "xp") >= 1 && count((t) => t.focus === "metiers") >= 1, "les deux objectifs existent");
   for (const b of pop) { const t = traitsOf(b); assert.equal(t.focus !== null, t.profile === "acharne"); assert.deepEqual(traitsOf(b), t, "stable"); }
   const avg = (profile, key) => { const g = pop.map(traitsOf).filter((t) => t.profile === profile); return g.reduce((s, t) => s + t[key], 0) / g.length; };
@@ -466,7 +477,7 @@ await test("boss : après un mois, beaucoup ont vaincu des boss (jamais sous le 
     for (const id of [...Object.values(l.gear), ...l.bag.items, ...(l.bank?.items || [])]) if (ITEMS[id]?.rarity === "legendaire" && ITEMS[id].classKey) { relics++; assert.equal(ITEMS[id].classKey, b.classKey, `${id} sur un ${b.classKey}`); }
   }
   assert.ok(withBoss > 100 && total > 300, `${withBoss} simulés, ${total} victoires`);
-  assert.ok(relics <= 40, `${relics} armes uniques`);
+  assert.ok(relics <= 0.2 * pop.length, `${relics} armes uniques`);
 });
 
 console.log(`\n${n} tests passent.`);

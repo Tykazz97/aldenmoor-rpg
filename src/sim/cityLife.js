@@ -32,6 +32,7 @@ function pointsOfInterest(map) {
 const WEIGHTS = {
   combattant: [["portail", 30], ["panneau", 30], ["plaza", 25], ["fontaine", 15]],
   recolteur: [["atelier", 30], ["coffre", 30], ["plaza", 25], ["fontaine", 15]],
+  artisan: [["atelier", 55], ["coffre", 20], ["marche", 10], ["plaza", 15]],
   marchand: [["marche", 55], ["coffre", 15], ["plaza", 20], ["fontaine", 10]],
   flaneur: [["fontaine", 35], ["plaza", 40], ["marche", 8], ["atelier", 8], ["panneau", 9]],
 };

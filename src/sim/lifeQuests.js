@@ -20,7 +20,7 @@ export const QUEST_STALE_DAYS = 2;                 // une quête non terminée a
 // Les préférences de type de quête selon l'activité
 const PREF = {
   combattant: { kill: 3, gather: 0.5, deliver: 1 }, recolteur: { kill: 0.5, gather: 3, deliver: 2 },
-  marchand: { kill: 0.5, gather: 1, deliver: 3 }, flaneur: { kill: 1, gather: 1, deliver: 1 },
+  artisan: { kill: 0.5, gather: 1.5, deliver: 2.5 }, marchand: { kill: 0.5, gather: 1, deliver: 3 }, flaneur: { kill: 1, gather: 1, deliver: 1 },
 };
 
 // Un joueur « de papier » pour appeler les fonctions de quêtes du jeu

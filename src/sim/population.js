@@ -10,7 +10,7 @@ import { MAX_LEVEL } from "../utils/progression.js";
 import { makeRng, hashString } from "./rng.js";
 import { makePseudo } from "./names.js";
 
-export const POPULATION_SIZE = 200;
+export const POPULATION_SIZE = 500;
 export const DEFAULT_SEED = 1337;
 // Traits de caractère et objectifs du moment : de quoi donner une personnalité à chacun
 const TRAITS = [
@@ -21,6 +21,7 @@ const TRAITS = [
 const GOALS = {
   combattant: ["tu veux monter de niveau en chassant", "tu cherches un groupe pour les Prairies", "tu veux battre le boss des prairies"],
   recolteur: ["tu montes ton métier de récolte", "il te manque des ressources pour un craft", "tu veux équiper ta classe en entier"],
+  artisan: ["tu montes tes métiers de fabrication", "tu fabriques ton set complet", "tu vises les recettes de haut niveau"],
   marchand: ["tu amasses un stock pour l'ouverture du marché", "tu surveilles les prix des ressources"],
   flaneur: ["tu découvres le jeu tranquillement", "tu cherches une guilde sympa", "tu discutes en attendant des amis"],
 };
@@ -29,7 +30,7 @@ const GREED = {
   "radin, compte chaque pièce": 0.28, "compétitif, veut être le meilleur": -0.04, "pragmatique et direct": 0.04, "serviable avec les débutants": -0.05,
   "grognon mais serviable": 0.02, "passionné d'artisanat": 0.06, "sarcastique": 0.1, "blagueur, adore taquiner": 0.08,
 };
-export const ACTIVITIES = ["combattant", "recolteur", "marchand", "flaneur"];
+export const ACTIVITIES = ["combattant", "recolteur", "artisan", "marchand", "flaneur"];
 
 // niveaux : beaucoup de débutants, de moins en moins de vétérans
 function rollLevel(rng) {
@@ -52,7 +53,7 @@ export function generateBot(rng, index, usedNames) {
   const outfit = own;
   const r = rng();
   if (!(level < 8 && r < 0.22) && r > 0.84) rng.pick(HERO_OUTFITS);
-  const activity = rng.weighted([["combattant", 36], ["recolteur", 28], ["marchand", 12], ["flaneur", 24]]);
+  const activity = rng.weighted([["combattant", 32], ["recolteur", 24], ["artisan", 16], ["marchand", 10], ["flaneur", 18]]);
   const id = `sim_${String(index + 1).padStart(3, "0")}`;
   const prng = makeRng(hashString(id));            // tirage à part : n'influence pas le reste de la population
   const trait = prng.pick(TRAITS), goal = prng.pick(GOALS[activity]);

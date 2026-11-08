@@ -5,7 +5,7 @@ import { getPopulation } from "../src/sim/population.js";
 import { enableSimMarket, newMarket, tickMarket, marketBehind, STEP_MS } from "../src/utils/market.js";
 import { SIM_START } from "../src/sim/config.js";
 import { ITEMS } from "../src/data/items.js";
-import { RESOURCES } from "../src/data/resources.js";
+import { RESOURCES, RESOURCE_ORDER } from "../src/data/resources.js";
 import { ALCHEMY, ALCHEMY_ORDER } from "../src/data/alchemy.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { PROFESSIONS, getCraftInfo } from "../src/data/professions.js";
@@ -128,6 +128,24 @@ for (const [name, label] of [["occasionnel", "occasionnels"], ["regulier", "rég
   if (!g.length) continue;
   const pro = (l) => Math.max(l.prof.level, ...Object.values(l.pro || {}).map((p) => p.level));
   console.log(`  ${label.padEnd(20)} ${String(g.length).padStart(3)} simulés : niveau médian ${med(g.map((l) => l.level))} (max ${Math.max(...g.map((l) => l.level))}), meilleur métier médian ${med(g.map(pro))}, or médian ${med(g.map((l) => l.gold))}, donjons ${g.reduce((a, l) => a + (l.dj?.runs || 0), 0)}, pièces achetées au marché ${g.reduce((a, l) => a + (l.gearBought || 0), 0)}, améliorations ${g.reduce((a, l) => a + (l.upgraded || 0), 0)} (${Math.round(g.reduce((a, l) => a + (l.upgradeGold || 0), 0) / g.length)} or par simulé), éclats/rares en poche ${g.reduce((a, l) => a + ["eclat_brut", "eclat_dense", "eclat_pur", "veine_d_acier", "petale_d_ame", "seve_d_ambre"].reduce((s, r) => s + (l.bag.res[r] || 0) + (l.bank?.resources?.[r] || 0), 0), 0)}`);
+}
+// par rôle (activité) : chacun passe ses séances différemment
+for (const act of ["combattant", "recolteur", "artisan", "marchand", "flaneur"]) {
+  const g = L.filter((l) => byId.get(l.id).activity === act);
+  if (!g.length) continue;
+  const pro = (l) => Math.max(l.prof.level, ...Object.values(l.pro || {}).map((p) => p.level));
+  console.log(`  rôle ${act.padEnd(11)} ${String(g.length).padStart(3)} simulés : niveau médian ${med(g.map((l) => l.level))}, meilleur métier médian ${med(g.map(pro))}, récoltes ${med(g.map((l) => l.gathers))}, combats ${med(g.map((l) => l.kills))}, pièces fabriquées ${med(g.map((l) => l.crafted || 0))}`);
+}
+// le colporteur est-il encore nécessaire ? offre des simulés seuls, par ressource
+const npcQty = {}, simQty = {};
+for (const x of m.listings) if (x.kind === "res") (x.seller === "npc" ? npcQty : simQty)[x.rid] = ((x.seller === "npc" ? npcQty : simQty)[x.rid] || 0) + x.qty;
+const rarities = {};
+for (const id of RESOURCE_ORDER) { const r = RESOURCES[id].rarity, t = (rarities[r] ||= { n: 0, noSim: 0, sim: 0, npc: 0 }); t.n++; if (!simQty[id]) t.noSim++; t.sim += simQty[id] || 0; t.npc += npcQty[id] || 0; }
+console.log(`  offre de ressources par rareté : ${Object.entries(rarities).map(([r, t]) => `${r} : ${t.n} types, ${t.noSim} sans aucun simulé vendeur, ${t.sim} unités des simulés / ${t.npc} du colporteur`).join(" ; ")}`);
+if (process.env.AUDIT_DIAG) {
+  const rows = RESOURCE_ORDER.map((id) => [id, L.reduce((n, l) => n + (l.bag.res[id] || 0), 0), L.reduce((n, l) => n + (l.bank?.resources?.[id] || 0), 0), L.filter((l) => (l.bank?.resources?.[id] || 0) > 40).length, simQty[id] || 0, npcQty[id] || 0]);
+  console.log("  ressource : en sac / en coffre / simulés avec >40 en coffre / annoncé par simulés / par colporteur");
+  for (const r of rows) console.log("   ", r.join(" | "));
 }
 console.log(`  annonces : ${m.listings.length} (dont ${m.listings.filter((x) => x.seller === "npc").length} du colporteur)`);
 if (problems.length) { console.log(`\n${problems.length} anomalie(s) :`); problems.forEach((p) => console.log("  ✖", p)); process.exitCode = 1; }

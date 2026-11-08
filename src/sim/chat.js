@@ -25,6 +25,14 @@ const BY_ACTIVITY = {
     "Ça pousse bien du côté de {zone}",
     "Je range mon sac au coffre et je repars récolter",
   ],
+  artisan: [
+    "Je fabrique {res} en série, besoin d'autre chose ?",
+    "Atelier : il me manque {res} pour mon craft",
+    "Qui vend {res} ? Je prends tout",
+    "Encore une pièce de fabriquée, mon métier monte bien",
+    "Je cherche {res}, le bon prix m'est égal",
+    "Je passe ma soirée à l'atelier",
+  ],
   marchand: [
     "Achète {res}, bon prix",
     "Vend {res}, MP",

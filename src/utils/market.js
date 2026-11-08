@@ -82,7 +82,7 @@ const bucketOf = (now) => Math.floor(now / STEP_MS);
 const accept = (ratio) => clamp((1.5 - ratio) / 0.7, 0, 1);            // 1 jusqu'à 0,8 × la référence, 0 à partir de 1,5 ×
 
 // ---- les bots du marché (toujours là, même si les joueurs simulés sont cachés dans la ville) ----
-const ACTIVITY_WEIGHT = { marchand: 3, recolteur: 2, combattant: 1.5, flaneur: 0.5 };
+const ACTIVITY_WEIGHT = { marchand: 3, recolteur: 2, artisan: 1.5, combattant: 1.5, flaneur: 0.5 };
 let BOTS = null;
 function bots() {
   if (!BOTS) {
