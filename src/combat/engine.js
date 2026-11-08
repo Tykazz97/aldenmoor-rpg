@@ -59,7 +59,7 @@ function makeHero({ id, name, stats, weaponType = null, classKey = null, level =
   const lifesteal = Math.max(0, pv.lifesteal || 0, ...bonuses.map((b) => b.lifesteal || 0));    // part des dégâts infligés rendue en PV
   const armorPen = Math.max(0, pv.armorPen || 0, ...bonuses.map((b) => b.armorPen || 0));      // part de DEF ignorée par tous les sorts
   const lastStand = pv.lastStand || 0;                                       // un coup fatal laisse ce % de PV (une fois par combat)
-  const paBonus = Math.max(0, pv.paBonus || 0);                              // PA en plus à chaque tour (relique de la Dame en Deuil)
+  const paBonus = Math.max(0, pv.paBonus || 0);                              // +1 PA définitif : le porteur a 7 PA au lieu de 6 (relique de la Dame en Deuil)
   const finalDamage = Math.max(0, pv.finalDamage || 0);                      // dommages finaux en plus, physiques comme magiques (0,10 = +10 %)
   return {
     id,

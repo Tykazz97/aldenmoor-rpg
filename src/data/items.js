@@ -324,7 +324,7 @@ ITEMS.medaillon_dame_en_deuil = {
   rarity: "legendaire",
   img: `${ICON_BASE}/accessories/medaillon_dame_en_deuil.png`,
   passive: { paBonus: 1, finalDamage: 0.10 },
-  passiveDesc: "Veuvage : +1 PA à chaque tour et +10 % de dommages finaux (physiques comme magiques)",
+  passiveDesc: "Veuvage : +1 PA définitif (7 PA au lieu de 6) et +10 % de dommages finaux (physiques comme magiques)",
 };
 
 // Version supérieure, butin de La Dame en Deuil du donjon difficile (0,3 % exactement). Elle prend la même place : elle remplace le Médaillon, elle ne s'y ajoute pas.
@@ -336,7 +336,7 @@ ITEMS.medaillon_veuvage_eternel = {
   img: `${ICON_BASE}/accessories/medaillon_veuvage_eternel.png`,
   dropBonus: 10,
   passive: { paBonus: 1, finalDamage: 0.15, lifesteal: 0.04 },
-  passiveDesc: "Veuvage éternel : +1 PA à chaque tour, +15 % de dommages finaux et 4 % des dégâts infligés rendus en PV",
+  passiveDesc: "Veuvage éternel : +1 PA définitif (7 PA au lieu de 6), +15 % de dommages finaux et 4 % des dégâts infligés rendus en PV",
 };
 
 export const ITEM_ORDER = Object.keys(ITEMS);
