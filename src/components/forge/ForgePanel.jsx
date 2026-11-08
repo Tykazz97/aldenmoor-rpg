@@ -269,9 +269,9 @@ export default function ForgePanel({ player, city = { key: "aldenmoor", name: "A
   return (
     <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 300px", gap: 20, height: "100%", minHeight: 0 }}>
       {/* Métiers */}
-      <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
         <BannerHeader icon="⚒" title="Métiers" />
-        <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div data-professions-list style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflowY: "auto" }}>
           {onUpgrade && (
             <>
               <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 0 }}>Équipement</div>

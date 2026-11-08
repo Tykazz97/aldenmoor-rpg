@@ -66,6 +66,14 @@ try {
     assert.match(await page.locator("[data-city-tax]").innerText(), /Atelier de Aldenmoor.*taxe de fabrication.*1 %/s, "la taxe de la ville est affichée");
     await page.locator("button", { hasText: "Forgeron" }).first().click(); await page.waitForTimeout(200);
     assert.ok((await page.locator("body").innerText()).includes("or de taxe"), "chaque recette indique sa taxe, plus de coût fixe");
+    // la liste des métiers défile : sur un écran bas, le dernier métier reste atteignable
+    const vp = page.viewportSize(); await page.setViewportSize({ width: vp.width, height: 560 }); await page.waitForTimeout(200);
+    const box = page.locator("[data-professions-list]");
+    assert.ok(await box.evaluate((e) => e.scrollHeight > e.clientHeight), "liste des métiers plus haute que l'écran");
+    await box.evaluate((e) => { e.scrollTop = e.scrollHeight; });
+    const last = box.locator("button").last(), lb = await last.boundingBox(), bb = await box.boundingBox();
+    assert.ok(lb.y >= bb.y - 1 && lb.y + lb.height <= bb.y + bb.height + 1, "le dernier métier est visible après défilement");
+    await page.setViewportSize(vp); await page.waitForTimeout(200);
   });
 
   await step("Atelier : le Bijoutier, le Bricoleur et les sets des nouvelles régions sont fabricables", async () => {
