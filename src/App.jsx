@@ -9,6 +9,7 @@ import { workshopOf } from "./data/cities.js";
 import BankPanel from "./components/city/BankPanel.jsx";
 import MarketPanel from "./components/city/MarketPanel.jsx";
 import QuestPanel from "./components/city/QuestPanel.jsx";
+import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
@@ -26,6 +27,7 @@ const TAB_TITLES = {
   marche: "Marché d'Aldenmoor",
   sac: "Sac & Inventaire",
   journal: "Journal de quêtes",
+  bestiaire: "Bestiaire",
 };
 
 // Sans sauvegarde : création du personnage. Avec : le jeu, sauvegardé automatiquement.
@@ -169,7 +171,8 @@ function Game({ initial, onNewCharacter }) {
           <QuestPanel player={player} onPlayerChange={setPlayer} />
         </div>
       )}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab === "bestiaire" && <BestiaryPanel player={player} stats={stats} />}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }

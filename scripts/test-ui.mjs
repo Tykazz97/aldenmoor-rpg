@@ -52,7 +52,7 @@ try {
   });
 
   await step("tous les onglets s'ouvrent sans erreur", async () => {
-    for (const n of ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Carte"]) {
+    for (const n of ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Bestiaire", "Carte"]) {
       await tab(n).click(); await page.waitForTimeout(250);
       assert.equal(await page.locator("button", { hasText: n }).first().isVisible(), true, n);
     }
@@ -141,6 +141,26 @@ try {
     const book = (await save()).player.spellbook;
     assert.equal(book.ranks.parade, 3);
     assert.ok(book.loadout.includes("seisme"));
+    assert.deepEqual(errors, []);
+  });
+
+  await step("bestiaire : fiche d'un monstre, sorts, butin ; le groupe et la recherche changent les pourcentages", async () => {
+    await tab("Bestiaire").click();
+    await page.locator("[data-bestiary-detail]").waitFor();
+    assert.ok((await page.locator("[data-bestiary-entry]").count()) >= 20, "tous les monstres sont listés");
+    await page.locator('[data-bestiary-entry="loup_garou"]').click();
+    assert.ok((await page.locator("[data-spell]").count()) >= 3, "sorts affichés");
+    const rate = async (id) => (await page.locator(`[data-drop-row="${id}"] [data-drop-rate]`).innerText()).replace(/\s/g, " ");
+    const solo = await rate("griffe_de_garou");
+    await page.locator('[data-group-btn="3"]').click();
+    const trio = await rate("griffe_de_garou");
+    assert.notEqual(solo, trio, `le trio change le taux (${solo} → ${trio})`);
+    await page.locator('[data-bestiary-entry="dame_en_deuil_difficile"]').click();
+    const fixed = await page.locator('[data-drop-row="medaillon_veuvage_eternel"] [data-drop-rate]').innerText();
+    assert.match(fixed, /0,3/, "taux fixe inchangé en trio");
+    await page.locator("[data-bestiary-search]").fill("croc de pleine lune");
+    assert.equal(await page.locator("[data-bestiary-entry]").count(), 1, "la recherche par butin retrouve le monstre");
+    await page.locator("[data-bestiary-search]").fill("");
     assert.deepEqual(errors, []);
   });
 
