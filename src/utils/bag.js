@@ -11,9 +11,9 @@
 //   - fabrication, raffinage, potions, achats, retraits (coffre, guilde, annonces), équipement qui revient au sac : refusé (bagGuard).
 // Les joueurs simulés ont leur propre sac (sim/lifeBank.js) : ils rangent le trop-plein au coffre, sans cette limite.
 // ============================================================
-export const BAG_START = 20;                                                // emplacements au départ
+export const BAG_START = 40;                                                // emplacements au départ
 export const BAG_STEP = 5;                                                  // emplacements gagnés par agrandissement
-export const BAG_UPGRADES = [150, 400, 900, 1800, 3200, 5500, 9000, 15000]; // prix de chaque agrandissement, dans l'ordre (60 emplacements au maximum)
+export const BAG_UPGRADES = [150, 400, 900, 1800, 3200, 5500, 9000, 15000]; // prix de chaque agrandissement, dans l'ordre (80 emplacements au maximum)
 
 export const bagUpgrades = (player) => player.bagUpgrades || 0;
 export const bagCapacity = (player) => BAG_START + BAG_STEP * bagUpgrades(player);

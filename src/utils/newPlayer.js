@@ -66,5 +66,5 @@ export function repairPlayer(p) {
   out.bank = { ...fresh.bank, ...out.bank };
   if (!Array.isArray(out.bank.items)) out.bank = { ...out.bank, items: [] };
   if (!isObj(out.bank.resources)) out.bank = { ...out.bank, resources: {} };
-  return grandfatherBag(out);                      // un sac qui contient déjà plus de 20 emplacements est agrandi sans frais (voir utils/bag.js)
+  return grandfatherBag(out);                      // un sac qui contient déjà plus que sa capacité est agrandi sans frais (voir utils/bag.js)
 }

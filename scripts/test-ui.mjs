@@ -426,10 +426,10 @@ try {
     assert.ok(await page.locator("[data-bag]").isVisible(), "écran du sac");
     const read = async () => (await page.locator("[data-bag-count]").innerText()).replace(/\s/g, "").match(/^(\d+)\/(\d+)$/).slice(1).map(Number);
     const [used, cap] = await read();
-    assert.equal(cap, 20, "20 emplacements au départ");
+    assert.equal(cap, 40, "40 emplacements au départ");
     assert.equal(used, (await page.locator("[data-bag-item]").count()) + (await page.locator("[data-bag-res]").count()), "emplacements = objets + types de ressources");
     await page.locator("[data-bag-upgrade]").click(); await page.waitForTimeout(200);
-    assert.equal((await read())[1], 25, "agrandi de 5");
+    assert.equal((await read())[1], 45, "agrandi de 5");
     if (process.env.SHOT_SAC) await page.screenshot({ path: process.env.SHOT_SAC });
     const items = await page.locator("[data-bag-item]").count();
     if (items) { await page.locator("[data-bag-deposit-item]").first().click(); await page.waitForTimeout(200); assert.equal(await page.locator("[data-bag-item]").count(), items - 1, "objet rangé au coffre"); assert.equal((await read())[0], used - 1); }
