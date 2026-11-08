@@ -10,7 +10,7 @@
 // ============================================================
 import {
   GUILD_MAX_MEMBERS, GUILD_MAX_LEVEL, GUILD_NAME_MIN, GUILD_NAME_MAX, guildXpToNext, PALIERS, TABS, TAB_SLOTS,
-  QUEST_SLOTS, QUEST_TYPES, QUEST_LEVEL_GROWTH, QUEST_MIN_MEMBERS, LOG_MAX, NAME_FIRST, NAME_LAST,
+  QUEST_SLOTS, QUEST_TYPES, QUEST_LEVEL_GROWTH, QUEST_MIN_MEMBERS, LOG_MAX, NAME_FIRST, NAME_LAST, RANK_POWER, CAN_SPEND, CAN_WITHDRAW,
 } from "../data/guild.js";
 import { makeRng, hashString } from "../sim/rng.js";
 
@@ -117,7 +117,7 @@ export function addProgress(g, step, type, n) {
 export function createGuild(G, { founder, name, step, act = { k: 0, g: 0, c: 0 }, pl = 0 }) {
   const id = `g${G.seq++}`;
   const g = {
-    id, name: cleanName(name), tag: tagOf(name), leader: founder, founded: step, level: 1, xp: 0, gold: 0, pal: 0, tabs: 1,
+    id, name: cleanName(name), tag: tagOf(name), leader: founder, deputy: null, founded: step, level: 1, xp: 0, gold: 0, pal: 0, tabs: 1,
     bank: [{ res: {}, items: [] }], quests: [], qseq: 1, members: {}, log: [],
   };
   G.byId[id] = g;
@@ -137,6 +137,7 @@ export function addMember(G, g, id, step, act = { k: 0, g: 0, c: 0 }, pl = 0) {
 export function removeMember(G, g, id, step) {
   delete g.members[id];
   delete G.of[id];
+  if (g.deputy === id) g.deputy = null;
   const left = Object.entries(g.members);
   if (!left.length) {
     const bank = g.bank;
@@ -145,7 +146,8 @@ export function removeMember(G, g, id, step) {
   }
   if (g.leader === id) {
     left.sort((a, b) => b[1].n - a[1].n || a[1].j - b[1].j || (a[0] < b[0] ? -1 : 1));
-    g.leader = left[0][0];
+    g.leader = g.deputy && g.members[g.deputy] ? g.deputy : left[0][0];       // le bras droit prend la suite
+    if (g.deputy === g.leader) g.deputy = null;
     logOf(g, step, "Un nouveau chef prend la tête de la guilde.");
   }
   return { disbanded: false };
@@ -193,3 +195,38 @@ export function buyTab(g, step) {
 // ---- coffre ----
 export const tabUsed = (tab) => tab.items.length + Object.keys(tab.res).length;
 export const tabFree = (tab) => TAB_SLOTS - tabUsed(tab);
+
+// ---- rangs ----
+export const rankOf = (g, id) => (g.leader === id ? "chef" : g.deputy === id ? "bras" : g.members[id]?.r === "officier" ? "officier" : "recrue");
+export const canSpend = (g, id) => CAN_SPEND.includes(rankOf(g, id));
+export const canWithdraw = (g, id) => CAN_WITHDRAW.includes(rankOf(g, id));
+// Exclure : seulement un rang strictement plus bas que le sien, et au moins officier pour le faire
+export const canKick = (g, actor, target) => { const a = rankOf(g, actor), t = rankOf(g, target); return actor !== target && RANK_POWER[a] >= 1 && RANK_POWER[a] > RANK_POWER[t]; };
+// Les rangs que `actor` peut donner à `target` (hors passation du commandement) : le chef nomme bras droit, officier, recrue ; le bras droit nomme officier et recrue
+export function ranksAssignable(g, actor, target) {
+  const a = rankOf(g, actor), t = rankOf(g, target);
+  if (actor === target || t === "chef") return [];
+  if (a === "chef") return ["bras", "officier", "recrue"].filter((r) => r !== t);
+  if (a === "bras" && (t === "officier" || t === "recrue")) return ["officier", "recrue"].filter((r) => r !== t);
+  return [];
+}
+// Donne un rang (un seul bras droit : l'ancien devient officier)
+export function setRank(g, id, rank, step) {
+  if (rank === "bras") {
+    if (g.deputy && g.deputy !== id && g.members[g.deputy]) g.members[g.deputy].r = "officier";
+    g.deputy = id; g.members[id].r = "recrue";
+  } else {
+    if (g.deputy === id) g.deputy = null;
+    g.members[id].r = rank === "officier" ? "officier" : "recrue";
+  }
+  logOf(g, step, `Nouveau rang : ${rank === "bras" ? "bras droit" : rank}.`);
+}
+// Passe le commandement : l'ancien chef devient bras droit
+export function passLead(g, to, step) {
+  const old = g.leader;
+  g.leader = to;
+  if (g.deputy === to) g.deputy = null;
+  if (g.deputy && g.members[g.deputy]) g.members[g.deputy].r = "officier";
+  g.deputy = g.members[old] ? old : null;
+  logOf(g, step, "Le chef passe la main.");
+}

@@ -68,6 +68,16 @@ export const QUEST_TYPES = {
 export const QUEST_LEVEL_GROWTH = 0.045;        // l'objectif grandit de 4,5 % par niveau de guilde
 export const QUEST_MIN_MEMBERS = 4;             // en dessous, l'objectif est calculé comme pour 4 membres
 
+// ---- Rangs ----
+// chef (un seul), bras droit (un seul), officiers, recrues. Dépôt et dons : tous. Dépenser la caisse (paliers, onglets) et retirer du coffre : chef et bras droit.
+// Exclure : chacun peut exclure les rangs en dessous du sien (le bras droit ne peut pas exclure le chef). Nommer : le chef nomme tout le monde ; le bras droit nomme les officiers.
+export const RANKS = ["chef", "bras", "officier", "recrue"];
+export const RANK_LABELS = { chef: "Chef", bras: "Bras droit", officier: "Officier", recrue: "Recrue" };
+export const RANK_ICONS = { chef: "♛", bras: "⚔", officier: "★", recrue: "" };
+export const RANK_POWER = { chef: 3, bras: 2, officier: 1, recrue: 0 };
+export const CAN_SPEND = ["chef", "bras"];          // paliers, onglets du coffre
+export const CAN_WITHDRAW = ["chef", "bras"];       // retirer du coffre
+
 // ---- Journal ----
 export const LOG_MAX = 30;
 

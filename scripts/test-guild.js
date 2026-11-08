@@ -6,14 +6,14 @@ import {
 } from "../src/data/guild.js";
 import {
   newGuilds, createGuild, addMember, removeMember, isFull, memberCount, fillQuests, questGoal, addProgress, addGuildXp, nameProblem,
-  palierProblem, tabProblem, buyPalier, buyTab, tagOf, makeGuildName, tabFree, guildFor,
+  palierProblem, tabProblem, buyPalier, buyTab, tagOf, makeGuildName, tabFree, guildFor, rankOf, canSpend, canWithdraw, canKick, ranksAssignable, setRank, passLead,
 } from "../src/utils/guildCore.js";
 import { bonusFromPaliers, guildBonusOf, withBonus, NO_BONUS } from "../src/utils/guildBonus.js";
 import {
   createGuildAction, joinGuildAction, leaveGuildAction, donateAction, depositAction, withdrawAction, buyPalierAction, buyTabAction,
-  kickAction, transferAction, syncPlayerGuild, myGuild, guildList, memberRows,
+  kickAction, transferAction, setRankAction, syncPlayerGuild, myGuild, guildList, memberRows,
 } from "../src/utils/guildActions.js";
-import { stepGuilds } from "../src/sim/guilds.js";
+import { stepGuilds, appointRanks } from "../src/sim/guilds.js";
 import { applyRefine, applyCraft } from "../src/utils/crafting.js";
 import { applyGather, rollHarvest } from "../src/utils/gathering.js";
 import { calcStats } from "../src/utils/calcStats.js";
@@ -272,6 +272,60 @@ test("le chef simulé dépense la caisse en paliers et les membres reçoivent le
   assert.equal(w.lives[pop[2].id].gb, undefined, "hors guilde : pas de bonus");
 });
 
+// ---------------------------------------------------------------- rangs
+const ranked = () => {
+  const G = newGuilds(), g = createGuild(G, { founder: "c", name: "Rangs", step: 0 });
+  for (const id of ["b", "o", "o2", "r", "r2"]) addMember(G, g, id, 0);
+  setRank(g, "b", "bras", 0); setRank(g, "o", "officier", 0); setRank(g, "o2", "officier", 0);
+  return { G, g };
+};
+test("rangs : chef, un seul bras droit, officiers, recrues ; dépenser et retirer = chef et bras droit", () => {
+  const { g } = ranked();
+  assert.deepEqual(["c", "b", "o", "r"].map((id) => rankOf(g, id)), ["chef", "bras", "officier", "recrue"]);
+  for (const [id, spend] of [["c", true], ["b", true], ["o", false], ["r", false]]) { assert.equal(canSpend(g, id), spend, id); assert.equal(canWithdraw(g, id), spend, id); }
+  setRank(g, "o", "bras", 1);
+  assert.equal(g.deputy, "o"); assert.equal(rankOf(g, "b"), "officier", "un seul bras droit : l'ancien devient officier");
+  setRank(g, "o", "recrue", 2);
+  assert.equal(g.deputy, null); assert.equal(rankOf(g, "o"), "recrue");
+});
+
+test("rangs : qui peut exclure qui, qui peut nommer qui", () => {
+  const { g } = ranked();
+  assert.ok(canKick(g, "c", "b") && canKick(g, "c", "o") && canKick(g, "c", "r"));
+  assert.ok(canKick(g, "b", "o") && canKick(g, "b", "r")); assert.ok(!canKick(g, "b", "c"));
+  assert.ok(canKick(g, "o", "r")); assert.ok(!canKick(g, "o", "b") && !canKick(g, "o", "o2") && !canKick(g, "o", "c"));
+  assert.ok(!canKick(g, "r", "r2") && !canKick(g, "c", "c"));
+  assert.deepEqual(ranksAssignable(g, "c", "r").sort(), ["bras", "officier"]);
+  assert.deepEqual(ranksAssignable(g, "c", "o"), ["bras", "recrue"]);
+  assert.deepEqual(ranksAssignable(g, "b", "r"), ["officier"]);
+  assert.deepEqual(ranksAssignable(g, "b", "o"), ["recrue"]);
+  assert.deepEqual(ranksAssignable(g, "b", "c"), []); assert.deepEqual(ranksAssignable(g, "o", "r"), []); assert.deepEqual(ranksAssignable(g, "c", "c"), []);
+});
+
+test("rangs : passer la main fait de l'ancien chef le bras droit ; le bras droit succède au chef qui part", () => {
+  const { G, g } = ranked();
+  passLead(g, "r", 5);
+  assert.equal(g.leader, "r"); assert.equal(g.deputy, "c"); assert.equal(rankOf(g, "b"), "officier");
+  const x = ranked();
+  removeMember(x.G, x.g, "c", 3);
+  assert.equal(x.g.leader, "b", "le bras droit prend la suite"); assert.equal(x.g.deputy, null);
+  removeMember(x.G, x.g, "r", 4); assert.equal(x.g.leader, "b");
+  void G;
+});
+
+test("rangs : le chef simulé nomme un bras droit et des officiers parmi les plus actifs (jamais le joueur)", () => {
+  const G = newGuilds(), g = createGuild(G, { founder: "c", name: "Nommés", step: 0 });
+  for (let i = 0; i < 20; i++) { addMember(G, g, `m${i}`, 0); g.members[`m${i}`].n = 100 - i; }
+  addMember(G, g, "player", 0); g.members.player.n = 500;
+  appointRanks(g, 1);
+  assert.equal(g.deputy, "m0");
+  assert.equal(Object.keys(g.members).filter((id) => rankOf(g, id) === "officier").length, Math.floor(22 / 8));
+  assert.equal(rankOf(g, "player"), "recrue");
+  const small = createGuild(newGuilds(), { founder: "c", name: "Petite", step: 0 });
+  addMember(newGuilds(), small, "x", 0); small.members.x.n = 9;
+  appointRanks(small, 1); assert.equal(small.deputy, null, "trop petite pour un bras droit");
+});
+
 // ---------------------------------------------------------------- actions du joueur
 enableSimMarket(true);
 const base = newMarket(T0);
@@ -333,6 +387,8 @@ test("coffre de guilde : dépôt et retrait de ressources et d'objets, onglet pl
   const { p, g } = sample();
   const item = { ...ITEMS[Object.keys(ITEMS)[0]], uid: "u1" };
   let me = { ...joinGuildAction(p, g.id, T0).player, resources: { ortie: 12, sauge: 3 }, inventory: [item] };
+  assert.equal(withdrawAction(me, 0, { kind: "res", id: "ortie", qty: 1 }, T0).reason, "droit", "une recrue ne retire pas");
+  myGuild(me).deputy = "player";                                  // bras droit : peut retirer
   const d1 = depositAction(me, 0, { kind: "res", id: "ortie", qty: 5 }, T0);
   assert.ok(d1.ok); assert.equal(d1.player.resources.ortie, 7); assert.equal(myGuild(d1.player).bank[0].res.ortie, 5);
   assert.equal(depositAction(d1.player, 0, { kind: "res", id: "ortie", qty: 99 }, T0).player.resources.ortie, undefined, "au plus ce qu'on a");
@@ -357,9 +413,9 @@ test("coffre de guilde : dépôt et retrait de ressources et d'objets, onglet pl
 test("paliers et onglets : réservés au chef, payés par la caisse", () => {
   const { p, g } = sample();
   const member = joinGuildAction(p, g.id, T0).player;
-  assert.equal(buyPalierAction(member, T0).reason, "chef");
-  assert.equal(buyTabAction(member, T0).reason, "chef");
-  assert.equal(kickAction(member, pop[0].id, T0).reason, "chef");
+  assert.equal(buyPalierAction(member, T0).reason, "droit");
+  assert.equal(buyTabAction(member, T0).reason, "droit");
+  assert.equal(kickAction(member, pop[0].id, T0).reason, "droit");
   const mine = createGuildAction(withMarket(), "Chef Suprême", T0).player;
   assert.equal(buyPalierAction(mine, T0).reason, "niveau");
   const g2 = myGuild(mine); g2.level = 12; g2.gold = PALIERS[0].cost + PALIERS[1].cost;
@@ -423,7 +479,10 @@ test("exclure et passer la main (chef seulement) ; les simulés exclus perdent l
   addMember(G, g, bot.id, 0);
   const t = transferAction(boss, bot.id, T0);
   assert.ok(t.ok); assert.equal(myGuild(t.player).leader, bot.id);
-  assert.equal(buyPalierAction(t.player, T0).reason, "chef");
+  assert.equal(myGuild(t.player).deputy, "player", "l'ancien chef devient bras droit");
+  assert.equal(buyPalierAction(t.player, T0).reason, "niveau", "le bras droit peut dépenser la caisse (ici le niveau manque)");
+  assert.equal(kickAction(t.player, bot.id, T0).reason, "droit", "mais pas exclure le chef");
+  assert.equal(transferAction(t.player, bot.id, T0).reason, "chef");
 });
 
 test("liste des membres : chef en tête, toi repéré", () => {
@@ -433,6 +492,37 @@ test("liste des membres : chef en tête, toi repéré", () => {
   assert.equal(rows[0].leader, true);
   assert.ok(rows.some((r) => r.you));
   assert.equal(rows.length, 2);
+});
+
+test("rangs : actions du joueur selon son rang", () => {
+  const { p, g } = sample();
+  const me = joinGuildAction(p, g.id, T0).player;
+  const G = me.market.sims.guilds, gg = myGuild(me);
+  for (let i = 1; i <= 3; i++) addMember(G, gg, `z${i}`, 0);
+  // recrue : ni paliers, ni retrait, ni exclusion, ni nomination
+  assert.equal(setRankAction(me, "z1", "officier", T0).reason, "droit");
+  assert.equal(kickAction(me, "z1", T0).reason, "droit");
+  assert.equal(transferAction(me, "z1", T0).reason, "chef");
+  // officier : exclut les recrues, pas plus
+  setRank(gg, "player", "officier", 0);
+  assert.ok(kickAction(me, "z1", T0).ok);
+  assert.equal(kickAction(me, pop[0].id, T0).reason, "droit");
+  assert.equal(buyTabAction(me, T0).reason, "droit");
+  // bras droit : nomme des officiers, dépense, ne nomme pas de bras droit
+  setRank(gg, "player", "bras", 0);
+  assert.notEqual(buyTabAction(me, T0).reason, "droit");
+  const o = setRankAction(me, "z2", "officier", T0);
+  assert.ok(o.ok); assert.equal(rankOf(myGuild(o.player), "z2"), "officier");
+  assert.equal(setRankAction(me, "z2", "bras", T0).reason, "droit");
+  assert.equal(setRankAction(me, pop[0].id, "recrue", T0).reason, "droit", "pas sur le chef");
+  // chef : nomme un bras droit ; l'ancien devient officier
+  const mine = createGuildAction(withMarket(), "Commandement", T0).player, mg = myGuild(mine);
+  addMember(mine.market.sims.guilds, mg, "z1", 0); addMember(mine.market.sims.guilds, mg, "z2", 0);
+  const a = setRankAction(mine, "z1", "bras", T0).player, b = setRankAction(a, "z2", "bras", T0).player;
+  assert.equal(myGuild(b).deputy, "z2"); assert.equal(rankOf(myGuild(b), "z1"), "officier");
+  assert.equal(setRankAction(mine, "z1", "chef", T0).reason, "droit", "on ne nomme pas un chef par là");
+  assert.equal(memberRows(b, myGuild(b))[0].rank, "chef");
+  assert.equal(memberRows(b, myGuild(b))[1].rank, "bras");
 });
 
 test("sauvegarde abîmée : des guildes illisibles sont remplacées sans planter", () => {

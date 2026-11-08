@@ -3,13 +3,13 @@ import "./guild.css";
 import { RESOURCES, RESOURCE_ORDER } from "../../data/resources.js";
 import {
   GUILD_MAX_MEMBERS, GUILD_CREATE_COST, GUILD_MAX_LEVEL, GUILD_NAME_MAX, PALIERS, TABS, TAB_SLOTS, QUEST_TYPES, BONUS_KEYS, BONUS_LABELS,
-  BONUS_ICONS, guildXpToNext,
+  BONUS_ICONS, guildXpToNext, RANK_LABELS, RANK_ICONS,
 } from "../../data/guild.js";
 import { bonusFromPaliers } from "../../utils/guildBonus.js";
 import { memberCount, nextPalier, nextTab, palierProblem, tabProblem, tabUsed, nameProblem, newGuilds, cleanName } from "../../utils/guildCore.js";
 import {
   REASONS, guildList, myGuild, memberRows, createGuildAction, joinGuildAction, leaveGuildAction, donateAction, depositAction, withdrawAction,
-  buyPalierAction, buyTabAction, kickAction, transferAction,
+  buyPalierAction, buyTabAction, kickAction, transferAction, setRankAction, rankOf, canSpend, canWithdraw, canKick, ranksAssignable,
 } from "../../utils/guildActions.js";
 import { classLabel, classIcon } from "../../utils/ranking.js";
 import { getPopulation } from "../../sim/population.js";
@@ -112,7 +112,7 @@ function Overview({ player, g, run }) {
       </div>
       <div className="gd-card">
         <div className="gd-h">Caisse de la guilde</div>
-        <div className="gd-note">La caisse paie les paliers de bonus et les onglets du coffre (le chef décide). Chacun peut y verser de l'or ; ça compte aussi pour la quête de dons.</div>
+        <div className="gd-note">La caisse paie les paliers de bonus et les onglets du coffre (le chef et le bras droit décident). Chacun peut y verser de l'or ; ça compte aussi pour la quête de dons.</div>
         <div className="gd-line">
           <span>Caisse : <b className="gd-gold" data-gd-treasury>{num(g.gold)}</b> or</span>
           <input className="gd-input num" data-gd-donate-amount value={amount} inputMode="numeric" onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ""))} placeholder="Montant" aria-label="Montant du don" />
@@ -136,12 +136,12 @@ function Overview({ player, g, run }) {
 }
 
 // ---------------------------------------------------------------- paliers
-function Paliers({ player, g, run, leader }) {
+function Paliers({ player, g, run, spend }) {
   const np = nextPalier(g), problem = palierProblem(g);
   return (
     <div className="gd-card">
       <div className="gd-h">Paliers de bonus</div>
-      <div className="gd-note">Un palier se débloque dans l'ordre : il faut le niveau de guilde requis et payer son prix avec la caisse. {leader ? "Tu es le chef : c'est à toi de les acheter." : "Seul le chef peut les acheter."}</div>
+      <div className="gd-note">Un palier se débloque dans l'ordre : il faut le niveau de guilde requis et payer son prix avec la caisse. {spend ? "Ton rang te permet de les acheter." : "Seuls le chef et le bras droit peuvent les acheter."}</div>
       <div className="gd-paliers">
         {PALIERS.map((p) => {
           const done = g.pal >= p.n, isNext = np?.n === p.n;
@@ -153,10 +153,10 @@ function Paliers({ player, g, run, leader }) {
                 <div className="gd-sub" style={{ marginTop: 4 }}>Niveau de guilde {p.level} · <span className="gd-gold">{num(p.cost)} or</span></div>
               </div>
               <div className="st">
-                {done ? <b style={{ color: "#8fd08a" }}>Débloqué ✓</b> : isNext && leader ? (
+                {done ? <b style={{ color: "#8fd08a" }}>Débloqué ✓</b> : isNext && spend ? (
                   <button className="gd-btn" data-gd-buy-palier disabled={!!problem} onClick={() => run(() => buyPalierAction(player), `Palier ${p.n} débloqué !`)}>Débloquer</button>
                 ) : isNext ? (problem === "niveau" ? `Niveau ${p.level} requis` : problem === "caisse" ? "Caisse insuffisante" : "Prêt") : "Verrouillé"}
-                {isNext && leader && problem ? <div style={{ marginTop: 4 }}>{problem === "niveau" ? `Niveau ${p.level} requis` : "Caisse insuffisante"}</div> : null}
+                {isNext && spend && problem ? <div style={{ marginTop: 4 }}>{problem === "niveau" ? `Niveau ${p.level} requis` : "Caisse insuffisante"}</div> : null}
               </div>
             </div>
           );
@@ -167,43 +167,53 @@ function Paliers({ player, g, run, leader }) {
 }
 
 // ---------------------------------------------------------------- membres
-function Members({ player, g, run, leader }) {
+function Members({ player, g, run }) {
   const [confirm, setConfirm] = useState(null);
   const rows = memberRows(player, g);
+  const me = rankOf(g, "player");
   return (
     <div className="gd-card">
       <div className="gd-h">Membres <span className="gd-sub">({rows.length}/{GUILD_MAX_MEMBERS})</span></div>
-      <div className="gd-note">Les points montrent la part de chacun dans les quêtes de la guilde.</div>
+      <div className="gd-note">Rangs : chef, bras droit (un seul), officiers et recrues. Chef et bras droit dépensent la caisse et retirent du coffre ; chacun peut exclure les rangs en dessous du sien (au moins officier) ; le chef nomme tous les rangs, le bras droit nomme les officiers. Les points montrent la part de chacun dans les quêtes.</div>
       <div>
-        <div className="gd-mrow" style={{ fontSize: 10, color: "#74748a", textTransform: "uppercase", letterSpacing: ".06em" }}><span>Membre</span><span style={{ textAlign: "right" }}>Niv.</span><span className="hide-s">Classe</span><span style={{ textAlign: "right" }}>Points</span><span /></div>
-        {rows.map((r) => (
-          <div key={r.id} className={`gd-mrow${r.you ? " me" : ""}`} data-gd-member={r.id}>
-            <span className="nm">{r.leader && <span className="gd-crown" title="Chef">♛</span>}{r.name}{r.you && <span className="gd-sub"> (toi)</span>}</span>
-            <span className="gd-num" style={{ textAlign: "right" }}>{r.level}</span>
-            <span className="hide-s" style={{ color: "#a89f8c" }}>{r.classKey ? `${classIcon(r.classKey)} ${classLabel(r.classKey)}` : "—"}</span>
-            <span className="gd-num" style={{ textAlign: "right" }}>{num(r.points)}</span>
-            <span style={{ display: "flex", gap: 4, justifyContent: "flex-end", minWidth: 90 }}>
-              {leader && !r.you && (confirm?.id === r.id ? (
-                <>
-                  <button className="gd-mini danger" onClick={() => { run(() => (confirm.kind === "kick" ? kickAction(player, r.id) : transferAction(player, r.id)), confirm.kind === "kick" ? `${r.name} est exclu.` : `${r.name} est le nouveau chef.`); setConfirm(null); }}>{confirm.kind === "kick" ? "Exclure ?" : "Passer la main ?"}</button>
-                  <button className="gd-mini" onClick={() => setConfirm(null)}>Non</button>
-                </>
-              ) : (
-                <>
-                  <button className="gd-mini" data-gd-promote={r.id} onClick={() => setConfirm({ id: r.id, kind: "lead" })}>Chef</button>
-                  <button className="gd-mini danger" data-gd-kick={r.id} onClick={() => setConfirm({ id: r.id, kind: "kick" })}>Exclure</button>
-                </>
-              ))}
-            </span>
-          </div>
-        ))}
+        <div className="gd-mrow" style={{ fontSize: 10, color: "#74748a", textTransform: "uppercase", letterSpacing: ".06em" }}><span>Membre</span><span style={{ textAlign: "right" }}>Niv.</span><span className="hide-s">Rang</span><span style={{ textAlign: "right" }}>Points</span><span /></div>
+        {rows.map((r) => {
+          const assign = ranksAssignable(g, "player", r.id), kick = canKick(g, "player", r.id);
+          return (
+            <div key={r.id} className={`gd-mrow${r.you ? " me" : ""}`} data-gd-member={r.id} data-rank={r.rank}>
+              <span className="nm">{RANK_ICONS[r.rank] && <span className="gd-crown" title={RANK_LABELS[r.rank]}>{RANK_ICONS[r.rank]}</span>}{r.name}{r.you && <span className="gd-sub"> (toi)</span>}</span>
+              <span className="gd-num" style={{ textAlign: "right" }}>{r.level}</span>
+              <span className="hide-s" style={{ color: r.rank === "recrue" ? "#74748a" : "#d9b568" }}>{RANK_LABELS[r.rank]}</span>
+              <span className="gd-num" style={{ textAlign: "right" }}>{num(r.points)}</span>
+              <span style={{ display: "flex", gap: 4, justifyContent: "flex-end", minWidth: 150 }}>
+                {confirm?.id === r.id ? (
+                  <>
+                    <button className="gd-mini danger" onClick={() => { run(() => (confirm.kind === "kick" ? kickAction(player, r.id) : transferAction(player, r.id)), confirm.kind === "kick" ? `${r.name} est exclu.` : `${r.name} est le nouveau chef.`); setConfirm(null); }}>{confirm.kind === "kick" ? "Exclure ?" : "Passer la main ?"}</button>
+                    <button className="gd-mini" onClick={() => setConfirm(null)}>Non</button>
+                  </>
+                ) : (
+                  <>
+                    {assign.length > 0 && (
+                      <select className="gd-input" data-gd-rank={r.id} value="" aria-label={`Rang de ${r.name}`} style={{ padding: "2px 4px", fontSize: 11 }} onChange={(e) => { const v = e.target.value; if (v) run(() => setRankAction(player, r.id, v), `${r.name} : ${RANK_LABELS[v].toLowerCase()}.`); }}>
+                        <option value="">Rang…</option>
+                        {assign.map((k) => <option key={k} value={k}>{RANK_LABELS[k]}</option>)}
+                      </select>
+                    )}
+                    {me === "chef" && !r.you && <button className="gd-mini" data-gd-promote={r.id} onClick={() => setConfirm({ id: r.id, kind: "lead" })}>Chef</button>}
+                    {kick && <button className="gd-mini danger" data-gd-kick={r.id} onClick={() => setConfirm({ id: r.id, kind: "kick" })}>Exclure</button>}
+                  </>
+                )}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------- coffre
-function Vault({ player, g, run, leader }) {
+function Vault({ player, g, run, spend, wd }) {
   const [tabIx, setTabIx] = useState(0);
   const tab = g.bank[Math.min(tabIx, g.bank.length - 1)], ix = Math.min(tabIx, g.bank.length - 1);
   const nt = nextTab(g), tp = tabProblem(g);
@@ -213,7 +223,7 @@ function Vault({ player, g, run, leader }) {
   return (
     <div className="gd-card" data-gd-vault>
       <div className="gd-h">Coffre de guilde</div>
-      <div className="gd-note">Chaque onglet a {TAB_SLOTS} emplacements (un objet ou un type de ressource par emplacement). Tout membre y dépose et y retire. Les onglets se paient avec la caisse, selon le niveau de la guilde.</div>
+      <div className="gd-note">Chaque onglet a {TAB_SLOTS} emplacements (un objet ou un type de ressource par emplacement). Tout membre y dépose ; seuls le chef et le bras droit retirent. Les onglets se paient avec la caisse, selon le niveau de la guilde.</div>
       <div className="gd-vtabs">
         {TABS.map((t, i) => {
           const owned = i < g.tabs;
@@ -226,30 +236,30 @@ function Vault({ player, g, run, leader }) {
         {nt && (
           <span className="gd-line" style={{ marginLeft: 8 }}>
             <span className="gd-sub">Prochain onglet : niveau {nt.level} · {num(nt.cost)} or</span>
-            {leader && <button className="gd-mini" data-gd-buy-tab disabled={!!tp} onClick={() => run(() => buyTabAction(player), `Onglet ${nt.n} acheté !`)}>Acheter{tp === "niveau" ? " (niveau)" : tp === "caisse" ? " (caisse)" : ""}</button>}
+            {spend && <button className="gd-mini" data-gd-buy-tab disabled={!!tp} onClick={() => run(() => buyTabAction(player), `Onglet ${nt.n} acheté !`)}>Acheter{tp === "niveau" ? " (niveau)" : tp === "caisse" ? " (caisse)" : ""}</button>}
           </span>
         )}
       </div>
       <div className="gd-vault">
         <div>
-          <div className="gd-label" style={{ marginBottom: 6 }}>Dans le coffre · <span data-gd-used>{used}</span>/{TAB_SLOTS} emplacements</div>
+          <div className="gd-label" style={{ marginBottom: 6 }}>Dans le coffre · <span data-gd-used>{used}</span>/{TAB_SLOTS} emplacements{wd ? "" : " · retrait réservé au chef et au bras droit"}</div>
           <div className="gd-slots" data-gd-slots>
             {resIds.map((id) => (
               <div key={id} className="gd-slot" data-gd-vres={id}>
                 <Ico src={RESOURCES[id]?.img} name={RESOURCES[id]?.name} />
                 <span className="nm">{RESOURCES[id]?.name || id} <b className="gd-num">×{num(tab.res[id])}</b></span>
-                <span className="acts">
-                  <button className="gd-mini" onClick={() => run(() => withdrawAction(player, ix, { kind: "res", id, qty: 1 }))}>1</button>
+                <span className="acts">{wd && (<>
+                  <button className="gd-mini" data-gd-withdraw={id} onClick={() => run(() => withdrawAction(player, ix, { kind: "res", id, qty: 1 }))}>1</button>
                   <button className="gd-mini" disabled={tab.res[id] < 10} onClick={() => run(() => withdrawAction(player, ix, { kind: "res", id, qty: 10 }))}>10</button>
                   <button className="gd-mini" onClick={() => run(() => withdrawAction(player, ix, { kind: "res", id, qty: tab.res[id] }))}>Tout</button>
-                </span>
+                </>)}</span>
               </div>
             ))}
             {tab.items.map((it) => (
               <div key={it.uid} className="gd-slot" data-gd-vitem={it.uid}>
                 <Ico src={it.img} name={it.name} />
                 <span className="nm">{it.name}</span>
-                <span className="acts"><button className="gd-mini" onClick={() => run(() => withdrawAction(player, ix, { kind: "item", uid: it.uid }))}>Retirer</button></span>
+                <span className="acts">{wd && <button className="gd-mini" onClick={() => run(() => withdrawAction(player, ix, { kind: "item", uid: it.uid }))}>Retirer</button>}</span>
               </div>
             ))}
             {used === 0 && <div className="gd-empty">Cet onglet est vide.</div>}
@@ -288,7 +298,7 @@ function Vault({ player, g, run, leader }) {
 function Mine({ player, g, run }) {
   const [tab, setTab] = useState("apercu");
   const [leaving, setLeaving] = useState(false);
-  const leader = g.leader === "player";
+  const leader = g.leader === "player", rank = rankOf(g, "player"), spend = canSpend(g, "player"), wd = canWithdraw(g, "player");
   const need = g.level >= GUILD_MAX_LEVEL ? 1 : guildXpToNext(g.level);
   const bonus = bonusFromPaliers(g.pal);
   return (
@@ -302,13 +312,13 @@ function Mine({ player, g, run }) {
               <span>Membres <b>{memberCount(g)}</b>/{GUILD_MAX_MEMBERS}</span>
               <span>Caisse <b>{num(g.gold)}</b> or</span>
               <span>Paliers <b>{g.pal}</b>/{PALIERS.length}</span>
-              <span>{leader ? "Tu es le chef ♛" : "Membre"}</span>
+              <span data-gd-myrank={rank}>Ton rang : <b>{RANK_LABELS[rank]}</b></span>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             {leaving ? (
               <>
-                <span className="gd-sub" style={{ maxWidth: 220 }}>{memberCount(g) === 1 ? "Tu es seul : la guilde disparaît (le coffre te revient)." : leader ? "Le membre le plus actif devient chef." : "Tu perds les bonus de la guilde."}</span>
+                <span className="gd-sub" style={{ maxWidth: 220 }}>{memberCount(g) === 1 ? "Tu es seul : la guilde disparaît (le coffre te revient)." : leader ? "Le bras droit (sinon le membre le plus actif) devient chef." : "Tu perds les bonus de la guilde."}</span>
                 <button className="gd-btn danger" data-gd-leave-confirm onClick={() => { run(() => leaveGuildAction(player), "Tu as quitté la guilde."); setLeaving(false); }}>Quitter</button>
                 <button className="gd-btn ghost" onClick={() => setLeaving(false)}>Rester</button>
               </>
@@ -327,9 +337,9 @@ function Mine({ player, g, run }) {
         ))}
       </div>
       {tab === "apercu" && <Overview player={player} g={g} run={run} />}
-      {tab === "membres" && <Members player={player} g={g} run={run} leader={leader} />}
-      {tab === "coffre" && <Vault player={player} g={g} run={run} leader={leader} />}
-      {tab === "paliers" && <Paliers player={player} g={g} run={run} leader={leader} />}
+      {tab === "membres" && <Members player={player} g={g} run={run} />}
+      {tab === "coffre" && <Vault player={player} g={g} run={run} spend={spend} wd={wd} />}
+      {tab === "paliers" && <Paliers player={player} g={g} run={run} spend={spend} />}
     </>
   );
 }

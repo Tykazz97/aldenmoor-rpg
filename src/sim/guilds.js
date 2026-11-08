@@ -13,7 +13,7 @@
 import { hashString, makeRng } from "./rng.js";
 import {
   newGuilds, activityOf, addProgress, addContribution, createGuild, addMember, removeMember, makeGuildName, isFull, memberCount,
-  palierProblem, tabProblem, buyPalier, buyTab, nextTab, guildFor,
+  palierProblem, tabProblem, buyPalier, buyTab, nextTab, guildFor, rankOf, setRank,
 } from "../utils/guildCore.js";
 import { bonusFromPaliers } from "../utils/guildBonus.js";
 import { GUILD_CREATE_COST, SIM_FOUND_GOLD, SIM_FOUND_MIN_LEVEL, SIM_DONATE_ABOVE, SIM_DONATE_SHARE, QUEST_TYPES } from "../data/guild.js";
@@ -55,6 +55,18 @@ export function donate(g, step, id, amount) {
   addContribution(g, id, amount * QUEST_TYPES.gold.xpPer);
 }
 
+// Le chef simulé nomme son bras droit (le plus actif) et un officier pour 8 membres, parmi les plus actifs. Il ne touche pas au rang du joueur.
+export const OFFICER_PER = 8, DEPUTY_MIN_MEMBERS = 6;
+export function appointRanks(g, step) {
+  const size = memberCount(g);
+  if (size < DEPUTY_MIN_MEMBERS) return;
+  const pool = Object.entries(g.members).filter(([id, m]) => id !== g.leader && id !== "player" && m.n > 0).sort((a, b) => b[1].n - a[1].n || a[1].j - b[1].j || (a[0] < b[0] ? -1 : 1));
+  if (!g.deputy && pool.length) { const top = pool.find(([id]) => rankOf(g, id) === "recrue" || rankOf(g, id) === "officier"); if (top) setRank(g, top[0], "bras", step); }
+  let officers = Object.keys(g.members).filter((id) => rankOf(g, id) === "officier").length;
+  const want = Math.floor(size / OFFICER_PER);
+  for (const [id] of pool) { if (officers >= want) break; if (rankOf(g, id) === "recrue") { setRank(g, id, "officier", step); officers++; } }
+}
+
 export function stepGuilds(sims, population, step) {
   const G = sims.guilds && typeof sims.guilds.byId === "object" && typeof sims.guilds.of === "object" ? sims.guilds : (sims.guilds = newGuilds());   // sauvegarde abîmée : on repart de zéro
   const lives = sims.lives;
@@ -71,6 +83,7 @@ export function stepGuilds(sims, population, step) {
       if (amount >= 1) { life.gold -= amount; donate(g, step, id, amount); }
     }
     if (g.leader !== "player") {
+      appointRanks(g, step);
       const pp = palierProblem(g);
       if (!pp) buyPalier(g, step);
       else if (pp !== "caisse" && !tabProblem(g) && g.gold >= nextTab(g).cost * 1.2) buyTab(g, step);

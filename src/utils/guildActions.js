@@ -7,10 +7,10 @@
 // de quêtes (utils/counters.js) et on ajoute la différence depuis la dernière fois (syncPlayerGuild).
 // ============================================================
 import { marketOf } from "./market.js";
-import { GUILD_CREATE_COST, QUEST_TYPES, TAB_SLOTS } from "../data/guild.js";
+import { GUILD_CREATE_COST, QUEST_TYPES, TAB_SLOTS, RANKS } from "../data/guild.js";
 import {
   newGuilds, guildFor, activityOf, addProgress, addContribution, nameProblem, createGuild, addMember, removeMember, isFull, memberCount,
-  palierProblem, tabProblem, buyPalier, buyTab, logOf, tabFree, cleanName,
+  palierProblem, tabProblem, buyPalier, buyTab, logOf, tabFree, cleanName, rankOf, canSpend, canWithdraw, canKick, ranksAssignable, setRank, passLead,
 } from "./guildCore.js";
 import { donate } from "../sim/guilds.js";
 import { getPopulation } from "../sim/population.js";
@@ -27,6 +27,7 @@ export const REASONS = {
   introuvable: "Cette guilde n'existe plus.",
   pleine: "Cette guilde est pleine (50 membres).",
   chef: "Seul le chef de la guilde peut faire ça.",
+  droit: "Ton rang dans la guilde ne te le permet pas.",
   caisse: "La caisse de la guilde ne contient pas assez d'or.",
   niveau: "Le niveau de la guilde est trop bas.",
   palier_max: "Tous les paliers sont débloqués.",
@@ -52,8 +53,8 @@ export function memberRows(player, g) {
   const lives = player?.market?.sims?.lives || {}, names = new Map(getPopulation().map((b) => [b.id, b]));
   return Object.entries(g.members).map(([id, m]) => {
     const bot = names.get(id), life = lives[id];
-    return { id, name: id === "player" ? (player.name || "Toi") : bot?.name || id, level: id === "player" ? player.level : life?.level || bot?.level || 1, classKey: id === "player" ? player.classKey : bot?.classKey, leader: g.leader === id, you: id === "player", points: Math.round(m.n), since: m.j };
-  }).sort((a, b) => Number(b.leader) - Number(a.leader) || b.points - a.points || (a.name < b.name ? -1 : 1));
+    return { id, name: id === "player" ? (player.name || "Toi") : bot?.name || id, level: id === "player" ? player.level : life?.level || bot?.level || 1, classKey: id === "player" ? player.classKey : bot?.classKey, leader: g.leader === id, rank: rankOf(g, id), you: id === "player", points: Math.round(m.n), since: m.j };
+  }).sort((a, b) => RANKS.indexOf(a.rank) - RANKS.indexOf(b.rank) || b.points - a.points || (a.name < b.name ? -1 : 1));
 }
 
 // ---------- écriture ----------
@@ -90,12 +91,15 @@ export function syncPlayerGuild(player) {
 }
 
 // Ouvre le marché, repère ma guilde (clonée) et met mon activité à jour ; null + raison si ce n'est pas possible
-function mine(player, now, { needLeader = false } = {}) {
+// `need` : "spend" (caisse), "withdraw" (coffre) ou "chef" ; sinon tout membre
+function mine(player, now, { need = null } = {}) {
   const o = open(player, now);
   if (!o) return { error: "pas_de_monde" };
   const g = guildFor(o.G, "player");
   if (!g) return { error: "pas_membre" };
-  if (needLeader && g.leader !== "player") return { error: "chef" };
+  if (need === "chef" && g.leader !== "player") return { error: "chef" };
+  if (need === "spend" && !canSpend(g, "player")) return { error: "droit" };
+  if (need === "withdraw" && !canWithdraw(g, "player")) return { error: "droit" };
   syncMember(g, player, o.m.bucket);
   return { ...o, g, step: o.m.bucket };
 }
@@ -172,7 +176,7 @@ export function depositAction(player, tabIndex, spec, now = Date.now()) {
 }
 
 export function withdrawAction(player, tabIndex, spec, now = Date.now()) {
-  const r = mine(player, now);
+  const r = mine(player, now, { need: "withdraw" });
   if (r.error) return fail(player, r.error);
   const tab = r.g.bank[tabIndex];
   if (!tab || tabIndex >= r.g.tabs) return fail(player, "onglet");
@@ -191,7 +195,7 @@ export function withdrawAction(player, tabIndex, spec, now = Date.now()) {
 }
 
 export function buyPalierAction(player, now = Date.now()) {
-  const r = mine(player, now, { needLeader: true });
+  const r = mine(player, now, { need: "spend" });
   if (r.error) return fail(player, r.error);
   const problem = palierProblem(r.g);
   if (problem) return fail(player, problem);
@@ -200,7 +204,7 @@ export function buyPalierAction(player, now = Date.now()) {
 }
 
 export function buyTabAction(player, now = Date.now()) {
-  const r = mine(player, now, { needLeader: true });
+  const r = mine(player, now, { need: "spend" });
   if (r.error) return fail(player, r.error);
   const problem = tabProblem(r.g);
   if (problem) return fail(player, problem);
@@ -208,12 +212,13 @@ export function buyTabAction(player, now = Date.now()) {
   return { ok: true, player: commit(player, r.m, r.G) };
 }
 
-// Le chef exclut un membre (le simulé perd les bonus de la guilde)
+// Exclure un membre d'un rang plus bas que le sien (le simulé exclu perd les bonus de la guilde)
 export function kickAction(player, id, now = Date.now()) {
-  const r = mine(player, now, { needLeader: true });
+  const r = mine(player, now);
   if (r.error) return fail(player, r.error);
   if (id === "player") return fail(player, "soi");
   if (!r.g.members[id]) return fail(player, "membre");
+  if (!canKick(r.g, "player", id)) return fail(player, "droit");
   removeMember(r.G, r.g, id, r.step);
   const life = r.m.sims.lives[id];
   let sims = null;
@@ -221,14 +226,25 @@ export function kickAction(player, id, now = Date.now()) {
   return { ok: true, player: commit(player, r.m, r.G, {}, sims) };
 }
 
+// Passer le commandement (chef) : l'ancien chef devient bras droit
 export function transferAction(player, id, now = Date.now()) {
-  const r = mine(player, now, { needLeader: true });
+  const r = mine(player, now, { need: "chef" });
   if (r.error) return fail(player, r.error);
   if (id === "player") return fail(player, "soi");
   if (!r.g.members[id]) return fail(player, "membre");
-  r.g.leader = id;
-  logOf(r.g, r.step, "Le chef passe la main.");
+  passLead(r.g, id, r.step);
   return { ok: true, player: commit(player, r.m, r.G) };
 }
 
-export { TAB_SLOTS };
+// Donner un rang : "bras", "officier" ou "recrue" (le chef nomme tout ; le bras droit nomme les officiers)
+export function setRankAction(player, id, rank, now = Date.now()) {
+  const r = mine(player, now);
+  if (r.error) return fail(player, r.error);
+  if (id === "player") return fail(player, "soi");
+  if (!r.g.members[id]) return fail(player, "membre");
+  if (!ranksAssignable(r.g, "player", id).includes(rank)) return fail(player, "droit");
+  setRank(r.g, id, rank, r.step);
+  return { ok: true, player: commit(player, r.m, r.G) };
+}
+
+export { TAB_SLOTS, rankOf, canSpend, canWithdraw, canKick, ranksAssignable };

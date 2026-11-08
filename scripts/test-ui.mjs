@@ -198,6 +198,7 @@ try {
     assert.equal(await page.locator("[data-gd-vtab]").count(), 6, "six onglets (un seul acheté)");
     await page.locator('[data-gd-tab="membres"]').click();
     assert.equal(await page.locator("[data-gd-member]").count(), 1, "je suis seul");
+    assert.equal(await page.locator("[data-gd-myrank]").getAttribute("data-gd-myrank"), "chef", "le fondateur est chef");
     await page.locator("[data-gd-leave]").click();
     await page.locator("[data-gd-leave-confirm]").click(); await page.waitForTimeout(300);
     assert.ok(await page.locator("[data-gd-create-name]").isVisible(), "retour à l'écran de fondation");
