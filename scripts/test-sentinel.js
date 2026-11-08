@@ -233,6 +233,8 @@ test("le monstre de la sentinelle : fabriqué à part, hors du bestiaire, plus f
   assert.ok(ENEMY_EXTRA[k5] && enemyDef(k5) === ENEMY_EXTRA[k5] && !ENEMIES[k5]);
   assert.ok(sentinelStats(g20).hp > sentinelStats(g5).hp && sentinelStats(g20).atkPhys > sentinelStats(g5).atkPhys);
   assert.ok(sentinelStats(guildWith(20, "vitalite")).hp > sentinelStats(guildWith(20, "aucun")).hp * 3, "la vitalité fait les PV");
+  const l1 = { id: "n", level: 1, sentBuild: { pts: { vitalite: 1 } } }, l1b = { id: "n", level: 1 };
+  assert.ok(sentinelStats(l1).hp < sentinelStats(l1b).hp * 1.3, "niveau 1 : un point ne change pas tout (+33 PV sur 300, pas +800)");
   assert.ok(sentinelStats(guildWith(20, "force")).atkPhys > sentinelStats(guildWith(20, "aucun")).atkPhys * 3, "la force fait les dégâts");
   assert.ok(sentinelStats(guildWith(20, "defense")).defPhys > sentinelStats(guildWith(20, "aucun")).defPhys * 3, "la défense réduit les dégâts");
   assert.equal(enemyDef(k5).img, "/assets/sentinel/golem.png");
@@ -251,10 +253,11 @@ test("la fiche : 3 points par niveau, 60 % au plus par caractéristique, la chan
   assert.equal(pointsProblem(g, { ...emptyPts(), vitalite: -1 }), "points"); assert.equal(pointsProblem(g, { ...emptyPts(), vitalite: 1.5 }), "points");
   setPoints(g, { ...emptyPts(), vitalite: 10, chance: 18 });
   assert.equal(spentPoints(g), 28); assert.equal(freePoints(g), 2);
-  assert.equal(sharesOf(g).chance, 0.6);
+  assert.equal(sharesOf(g).chance, 0.3, "niveau 10 : 18 points sur la référence de 60");
   assert.equal(lootMult({ level: 10 }), 0.6, "sans point : 0,6");
-  assert.ok(Math.abs(lootMult(g) - 1.44) < 1e-9);
-  assert.ok(lootShareOf(g) > lootShareOf({ level: 10 }) * 2);
+  assert.ok(Math.abs(lootMult(g) - 1.02) < 1e-9);
+  assert.ok(Math.abs(lootMult({ level: 30, sentBuild: { pts: { chance: 54 } } }) - 1.44) < 1e-9, "le maximum à partir du niveau 20");
+  assert.ok(lootShareOf(g) > lootShareOf({ level: 10 }) * 1.5);
   assert.ok(lootShareOf(g) <= 1, "jamais plus qu'un tirage de joueur");
   assert.equal(SENT_STATS.length, 5); assert.deepEqual(SENT_STAT_KEYS, ["vitalite", "force", "defense", "vitesse", "chance"]);
   assert.equal(resetCost({ level: 10 }), 1000);
@@ -262,7 +265,7 @@ test("la fiche : 3 points par niveau, 60 % au plus par caractéristique, la chan
   const keys = ["loup_des_plaines", "sanglier_sauvage", "bandit_des_routes"], r1 = makeRng(5), r2 = makeRng(5);
   let low = 0, high = 0;
   for (let i = 0; i < 2000; i++) { low += lootRoll(keys, r1, lootShareOf({ level: 10 })).gold; high += lootRoll(keys, r2, lootShareOf(g)).gold; }
-  assert.ok(high > low * 2, "tout en chance : plus de deux fois le butin");
+  assert.ok(high > low * 1.5, "beaucoup de chance : une fois et demie le butin");
 });
 
 test("les sorts : un de départ, un tous les 5 niveaux, 3 équipés au plus ; sans choix, les 3 plus forts débloqués", () => {
@@ -382,7 +385,7 @@ test("équilibre : trois attaquants viennent à bout d'une sentinelle seule ; se
     assert.ok(party.win >= 0.9, `à trois (${cls}, niv ${level}) : ${party.win}`);
     assert.ok(party.rounds >= 2 && party.rounds < SENT_ROUNDS, "le combat dure, sans atteindre la limite");
   }
-  assert.ok(evaluate("assassin", 8, false, 8).win < 0.7, "seul, l'assassin n'y arrive pas à tous les coups");
+  assert.ok(evaluate("assassin", 20, false, 8).win < 0.7, "seul, l'assassin n'y arrive pas à tous les coups");
 });
 
 // ---------------------------------------------------------------- les sorts de soutien et de zone dans le moteur

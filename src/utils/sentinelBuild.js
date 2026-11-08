@@ -3,7 +3,7 @@
 // Une seule fiche par guilde, pour toutes ses sentinelles. Sans `spells`, la sentinelle équipe d'elle-même ses 3 meilleurs sorts.
 // Pur (sans React ni moteur de combat).
 // ============================================================
-import { SENT_STAT_KEYS, SENT_POINTS_PER_LEVEL, SENT_SPELLS, SENT_SPELL_BY_ID, SENT_MAX_SPELLS, SENT_RESET_COST_PER_LEVEL, SENT_LOOT_SHARE, SENT_STAT_CAP } from "../data/sentinel.js";
+import { SENT_STAT_KEYS, SENT_POINTS_PER_LEVEL, SENT_SPELLS, SENT_SPELL_BY_ID, SENT_MAX_SPELLS, SENT_RESET_COST_PER_LEVEL, SENT_LOOT_SHARE, SENT_STAT_CAP, SENT_REF_POINTS } from "../data/sentinel.js";
 import { makeRng, hashString } from "../sim/rng.js";
 
 export const totalPoints = (guildLevel) => SENT_POINTS_PER_LEVEL * Math.max(1, Math.floor(guildLevel) || 1);
@@ -11,10 +11,11 @@ export const emptyPts = () => Object.fromEntries(SENT_STAT_KEYS.map((k) => [k, 0
 export const ptsOf = (g) => { const out = emptyPts(); for (const k of SENT_STAT_KEYS) { const v = Math.floor(g?.sentBuild?.pts?.[k]); if (v > 0) out[k] = v; } return out; };
 export const spentPoints = (g) => SENT_STAT_KEYS.reduce((n, k) => n + ptsOf(g)[k], 0);
 export const freePoints = (g) => Math.max(0, totalPoints(g.level) - spentPoints(g));
-// Part de chaque caractéristique dans le total possible (0 à 0,6)
-export const sharesOf = (g) => { const t = totalPoints(g.level), p = ptsOf(g); return Object.fromEntries(SENT_STAT_KEYS.map((k) => [k, Math.min(SENT_STAT_CAP, p[k] / t)])); };
+// Part de chaque caractéristique (0 à 0,6) : points placés / total possible, mais au moins SENT_REF_POINTS (le total d'une guilde de niveau 20) :
+// une jeune guilde n'a donc pas une sentinelle aussi forte qu'une grande, et un point de plus ne change pas tout (+33 PV au niveau 1, pas +800).
+export const sharesOf = (g) => { const t = Math.max(totalPoints(g.level), SENT_REF_POINTS), p = ptsOf(g); return Object.fromEntries(SENT_STAT_KEYS.map((k) => [k, Math.min(SENT_STAT_CAP, p[k] / t)])); };
 
-// Multiplicateur de butin selon la chance : 0,6 sans point, 1,44 au maximum (60 % des points en chance) : de 0,3 à 0,72 tirage de joueur
+// Multiplicateur de butin selon la chance : 0,6 sans point, 1,44 au maximum (60 % du total en chance, atteint à partir d'une guilde de niveau 20) : de 0,3 à 0,72 tirage de joueur
 export const lootMult = (g) => 0.6 + 1.4 * sharesOf(g).chance;
 export const lootShareOf = (g) => SENT_LOOT_SHARE * lootMult(g);
 

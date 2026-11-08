@@ -41,6 +41,7 @@ export const SENT_STATS = [
 export const SENT_STAT_KEYS = SENT_STATS.map((s) => s.key);
 export const SENT_RESET_COST_PER_LEVEL = 100;             // remettre les points à zéro coûte 100 or par niveau de guilde (caisse)
 export const SENT_MAX_SPELLS = 3;
+export const SENT_REF_POINTS = 60;                         // points de référence (niveau de guilde 20) : en dessous, chaque point pèse moins qu'une part du total
 export const SENT_STAT_CAP = 0.6;                         // une caractéristique ne peut recevoir plus de 60 % des points
 
 // Les sorts : un de départ, puis un tous les 5 niveaux de guilde (les plus forts à la fin) ; 3 équipés au maximum.
