@@ -6,7 +6,7 @@ import { color, border, radius, font } from "../../styles/theme.js";
 import SpellsPanel from "./SpellsPanel.jsx";
 import { xpToNext } from "../../utils/progression.js";
 import { CLASSES } from "../../data/classes.js";
-import { BODIES, OUTFIT_LABELS, availableOutfits, heroLook, heroOutfit, heroSpriteUrl } from "../../data/heroSprites.js";
+import { BODIES, OUTFIT_LABELS, availableOutfits, lockedOutfits, heroLook, heroOutfit, heroSpriteUrl } from "../../data/heroSprites.js";
 
 function ResourceBar({ label, value, max, colorFrom, colorTo }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
@@ -55,6 +55,7 @@ export default function CharacterSheet({ player, stats, onEquipSlotClick, onUneq
             style={{ background: color.void, color: color.parchment, border, borderRadius: 6, padding: "5px 6px", fontFamily: font.body, fontSize: 12 }}>
             <option value="">Selon l'équipement ({OUTFIT_LABELS[current]})</option>
             {outfits.map((o) => <option key={o} value={o}>{OUTFIT_LABELS[o]}</option>)}
+            {lockedOutfits(player).map((o) => <option key={o} value={o} disabled>{`🔒 ${OUTFIT_LABELS[o]} (une pièce du set à posséder)`}</option>)}
           </select>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

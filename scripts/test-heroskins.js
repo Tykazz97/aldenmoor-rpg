@@ -2,7 +2,7 @@
 // Chaque tenue proposée doit avoir ses images de combat (2 corps), ses 4 feuilles d'animation (2 corps) et ses métadonnées.
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { HERO_OUTFITS, OUTFIT_LABELS, heroOutfit, availableOutfits } from "../src/data/heroSprites.js";
+import { HERO_OUTFITS, OUTFIT_LABELS, heroOutfit, availableOutfits, lockedOutfits } from "../src/data/heroSprites.js";
 import { SETS } from "../src/data/items.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { calcStats } from "../src/utils/calcStats.js";
@@ -35,6 +35,13 @@ test("porter 2 pièces du Fossoyeur change l'apparence, et le skin devient chois
   assert.equal(heroOutfit(wearing, stats), "fossoyeur");
   assert.ok(availableOutfits(wearing).includes("fossoyeur"));
   assert.ok(!availableOutfits(p).includes("fossoyeur"), "pas sans pièce");
+});
+
+test("la liste d'apparence montre toutes les tenues : ouvertes ou verrouillées, jamais perdues", () => {
+  const p = createPlayer({ classKey: "guerrier" });
+  const open = availableOutfits(p), locked = lockedOutfits(p);
+  assert.deepEqual([...open, ...locked].sort(), [...HERO_OUTFITS].sort());
+  assert.ok(locked.includes("fossoyeur") && !open.includes("fossoyeur"));
 });
 
 console.log(`\n${n} tests OK`);
