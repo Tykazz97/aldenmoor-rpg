@@ -140,7 +140,7 @@ test("trois sets du palier 4, un par classe, fabricables avec les ressources du 
   }
   for (const id of ["epee_garde_noye", "dague_veneur", "baton_veuve", "bouclier_garde_noye"]) assert.ok(ITEMS[id] && RECIPES[id], id);
   // l'essence de deuil (rare) n'est demandée que pour le plastron
-  for (const [id, r] of Object.entries(RECIPES)) if (r.ingredients.essence_de_deuil) assert.ok(id.startsWith("plastron_"), id);
+  for (const [id, r] of Object.entries(RECIPES)) if (r.ingredients.essence_de_deuil) assert.ok(id.startsWith("plastron_") || id === "cle_du_manoir_difficile", id);
 });
 
 test("un groupe de trois niveau 24 en palier 4 passe le donjon plus souvent qu'en palier 3 (PV reportés, butin cumulé)", () => {

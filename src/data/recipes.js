@@ -18,6 +18,7 @@ import { TIER_RECIPES } from "./gearTiers.js";
 
 export const RECIPES = {
   // --- Clés de donjon (Bricoleur) ---
+  cle_du_manoir_difficile: { ingredients: { essence_de_deuil: 2, larme_de_deuil: 6, lingot_de_fer: 12, lingot_de_cuivre: 6, ectoplasme: 10 }, gold: 1200 },
   cle_du_manoir: { ingredients: { essence_du_veilleur: 3, lingot_de_fer: 6, lingot_de_cuivre: 3, ectoplasme: 5 }, gold: 500 },
 
   // --- Harnois du Vétéran (sanglier + bandit) ---

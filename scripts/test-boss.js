@@ -254,7 +254,7 @@ test("Bricoleur : fabrique la Clé du Manoir (ingrédients dont l'Essence du Vei
   assert.ok(PROFESSIONS.bricoleur);
   const info = getCraftInfo("cle_du_manoir");
   assert.equal(info.profession, "bricoleur");
-  assert.deepEqual(recipesOfProfession("bricoleur").map((r) => r.itemId), ["cle_du_manoir"]);
+  assert.deepEqual(recipesOfProfession("bricoleur").map((r) => r.itemId), ["cle_du_manoir", "cle_du_manoir_difficile"]);
   for (const r of Object.keys(RECIPES.cle_du_manoir.ingredients)) assert.ok(RESOURCES[r], r);
   assert.ok(RECIPES.cle_du_manoir.ingredients.essence_du_veilleur >= 1, "elle demande le butin du boss");
   assert.equal(ITEMS.cle_du_manoir.type, "cle");

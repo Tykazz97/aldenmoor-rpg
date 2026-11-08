@@ -273,6 +273,17 @@ ITEMS.cle_du_manoir = {
   desc: "Ouvre le Manoir Englouti",
 };
 
+ITEMS.cle_du_manoir_difficile = {
+  id: "cle_du_manoir_difficile",
+  name: "Clé du Manoir Englouti (difficile)",
+  type: "cle",
+  rarity: "legendaire",
+  dungeon: "manoir_englouti_difficile",
+  craftLevel: 5,
+  img: `${ICON_BASE}/keys/cle_du_manoir_difficile.png`,
+  desc: "Ouvre le Manoir Englouti dans sa version difficile",
+};
+
 // ---------------------------------------------------------
 // ARMES UNIQUES — butin ultra rare de boss, une par classe (le boss lâche celle de la classe du joueur,
 // voir `forClass` dans zones.js), non fabricables. Leur `passive` (lifesteal, armorPen, lastStand...) agit
@@ -314,6 +325,18 @@ ITEMS.medaillon_dame_en_deuil = {
   img: `${ICON_BASE}/accessories/medaillon_dame_en_deuil.png`,
   passive: { paBonus: 1, finalDamage: 0.10 },
   passiveDesc: "Veuvage : +1 PA à chaque tour et +10 % de dommages finaux (physiques comme magiques)",
+};
+
+// Version supérieure, butin de La Dame en Deuil du donjon difficile (0,3 % exactement). Elle prend la même place : elle remplace le Médaillon, elle ne s'y ajoute pas.
+ITEMS.medaillon_veuvage_eternel = {
+  id: "medaillon_veuvage_eternel",
+  name: "Médaillon du Veuvage éternel",
+  type: "relique1",
+  rarity: "legendaire",
+  img: `${ICON_BASE}/accessories/medaillon_veuvage_eternel.png`,
+  dropBonus: 10,
+  passive: { paBonus: 1, finalDamage: 0.15, lifesteal: 0.04 },
+  passiveDesc: "Veuvage éternel : +1 PA à chaque tour, +15 % de dommages finaux et 4 % des dégâts infligés rendus en PV",
 };
 
 export const ITEM_ORDER = Object.keys(ITEMS);

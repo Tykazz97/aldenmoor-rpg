@@ -51,7 +51,7 @@ test("chaque salle a son décor et son groupe de monstres, qui existent", () => 
     assert.ok(room.bg && existsSync(`public${room.bg}`), `${d.key}/${room.id} : décor absent`);
     assert.ok(room.enemies.length >= 1 && room.enemies.every((k) => ENEMIES[k]), room.id);
     assert.equal(roomEncounter(d, i).bg, room.bg);
-    for (const k of room.enemies) assert.ok(existsSync(`public/assets/combat/enemies/${k}.png`), k);
+    for (const k of room.enemies) assert.ok(existsSync(`public${ENEMIES[k].img}`), k);
   });
 });
 

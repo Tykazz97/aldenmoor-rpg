@@ -388,3 +388,31 @@ for (const e of Object.values(ENEMIES)) {
   else if (e.miniBoss) e.drops = [...(e.drops || []), { type: "resource", id: "eclat_dense", chance: 0.3, min: 1, max: 1 }];
   else e.drops = [...(e.drops || []), { type: "resource", id: "eclat_brut", chance: 0.1, min: 1, max: 1 }];
 }
+
+// Version difficile du Manoir Englouti (voir data/dungeons.js) : mêmes monstres et mêmes visuels, plus costauds, avec un meilleur butin.
+// Chaque variante porte la clé « <monstre>_difficile ». Le boss gagne un sort et une seconde phase plus brutale ; ses éclats purs sont garantis
+// (3 à 5), les autres monstres en lâchent 25 % du temps (10 % dans le donjon normal) ; la relique supérieure tombe à 0,3 % exactement.
+export const HARD_MULT = { hp: 1.7, atk: 1.5, def: 1.25, xp: 1.6, gold: 1.5 };
+export const HARD_SUFFIX = "_difficile";
+for (const base of Object.values(ENEMIES).filter((e) => e.dungeon)) {
+  const st = base.stats, m = HARD_MULT, r = (x, k) => Math.round(x * k);
+  const hard = {
+    ...base, key: base.key + HARD_SUFFIX, name: `${base.name} (difficile)`, baseKey: base.key, hard: true,
+    stats: { ...st, hp: r(st.hp, m.hp), atkPhys: r(st.atkPhys, m.atk), atkMagie: r(st.atkMagie, m.atk), defPhys: r(st.defPhys, m.def), defMagie: r(st.defMagie, m.def) },
+    xp: r(base.xp, m.xp), gold: [r(base.gold[0], m.gold), r(base.gold[1], m.gold)],
+    drops: base.drops.map((d) => (d.id === "eclat_pur" ? { ...d, chance: base.boss ? 1 : 0.25, min: base.boss ? 3 : 1, max: base.boss ? 5 : 1 } : d)),
+  };
+  if (base.boss) {
+    hard.actions = [...base.actions, { id: "requiem_funebre", name: "Requiem funèbre", pa: 5, type: "mag", power: 2.0, weight: 2, effect: { kind: "weaken", element: "givre", turns: 3, value: 0.3 } }];
+    hard.phases = base.phases.map((ph) => ({ ...ph, atkMult: 1.4, announce: "Le rituel atteint son comble : la Dame ne retient plus rien !" }));
+    hard.desc = `${base.desc} Version difficile : plus de vie, plus de dégâts, un sort de plus et une seconde phase plus brutale.`;
+    hard.drops = [
+      ...hard.drops.filter((d) => d.id !== "essence_de_deuil" && d.id !== "larme_de_deuil"),
+      { type: "resource", id: "essence_de_deuil", chance: 1, min: 2, max: 3 },
+      { type: "resource", id: "larme_de_deuil", chance: 1, min: 3, max: 6 },
+      { type: "item", id: "medaillon_veuvage_eternel", chance: 0.003, fixed: true, min: 1, max: 1 },
+    ];
+  }
+  hard.img = base.img; hard.spriteHeight = base.spriteHeight;
+  ENEMIES[hard.key] = hard;
+}

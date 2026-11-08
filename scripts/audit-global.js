@@ -71,6 +71,12 @@ const audit = (day) => {
       if (dj.keys < 0 || dj.runs < dj.clears + 0 || dj.clears > dj.runs || dj.fails > dj.runs || dj.relics < 0 || (dj.potions || 0) < 0) bad(`${where} ${who} : compteurs du donjon incohérents ${JSON.stringify(dj)}`);
       if (dj.runs > 0 && l.level < 20) bad(`${where} ${who} : a fait le donjon à ${l.level}`);
     }
+    const dh = l.djh;
+    if (dh) {
+      if (dh.keys < 0 || dh.clears > dh.runs || dh.fails > dh.runs || dh.relics < 0) bad(`${where} ${who} : compteurs du donjon difficile incohérents ${JSON.stringify(dh)}`);
+      if (dh.runs > 0 && l.level < 26) bad(`${where} ${who} : a fait le donjon difficile à ${l.level}`);
+      if (dh.runs > 0 && !(l.dj && l.dj.clears > 0)) bad(`${where} ${who} : donjon difficile sans avoir fini le normal`);
+    }
     for (const id of ALCHEMY_ORDER) if ((l.bag.res[id] || 0) > 0 && !(l.pro?.alchimiste || (l.dj && l.dj.runs >= 0))) bad(`${where} ${who} : des potions sans jamais avoir distillé`);
     for (const [slot, n] of Object.entries(l.upg || {})) if (!l.gear[slot] || !Number.isInteger(n) || n < 1 || n > 3) bad(`${where} ${who} : amélioration invalide ${slot}=${n}`);
     for (const o of l.plusStock || []) if (!ITEMS[o.id] || !(o.plus >= 1 && o.plus <= 3)) bad(`${where} ${who} : pièce améliorée à vendre invalide ${JSON.stringify(o)}`);
@@ -113,6 +119,8 @@ console.log(`\nAudit « ${mode} » sur ${DAYS} jours (${((Date.now() - t0) / 100
 console.log(`  niveaux : médian ${med(L.map((l) => l.level))}, max ${Math.max(...L.map((l) => l.level))} ; or médian ${med(L.map((l) => l.gold))}`);
 console.log(`  Alchimiste > 1 : ${L.filter((l) => (l.pro?.alchimiste?.level || 1) > 1).length} simulés, niveau max ${Math.max(...L.map((l) => l.pro?.alchimiste?.level || 1))}`);
 console.log(`  potions en possession : ${JSON.stringify(potionStock)} ; en vente à l'hôtel des ventes : ${JSON.stringify(potionListed)}`);
+const dh = L.reduce((a, l) => { if (l.djh) { a.runs += l.djh.runs; a.clears += l.djh.clears; a.relics += l.djh.relics; a.keys += l.djh.keys; } return a; }, { runs: 0, clears: 0, relics: 0, keys: 0 });
+console.log(`  donjon difficile : ${dh.runs} expéditions, ${dh.clears} réussies, ${dh.relics} reliques, ${dh.keys} clés en poche ; ${L.filter((l) => l.gear.relique1 === "medaillon_veuvage_eternel").length} simulés portent le Médaillon éternel`);
 console.log(`  donjon : ${dj.runs} expéditions, ${dj.clears} réussies, ${dj.relics} reliques, ${dj.potions} potions bues, ${dj.keys} clés en poche ; ${tier4} simulés portent du palier 4`);
 for (const [name, label] of [["occasionnel", "occasionnels"], ["regulier", "réguliers"], ["acharne:xp", "acharnés (xp)"], ["acharne:metiers", "acharnés (métiers)"]]) {
   const [pf, fc] = name.split(":");

@@ -234,7 +234,7 @@ try {
     for (let i = 0; i < 3; i++) await page.locator("button", { hasText: "+ Ressources" }).click();
     await page.locator("button", { hasText: "+ 500 or" }).click();
     await page.locator("button", { hasText: "Bricoleur" }).first().click(); await page.waitForTimeout(300);
-    await page.locator("div", { hasText: /^Clé du Manoir Englouti/ }).last().locator("xpath=ancestor::div[contains(@style,'border')][1]").locator("button:not([disabled])", { hasText: "Crafter" }).first().click();
+    await page.locator("div", { hasText: /^Clé du Manoir Englouti(?! \(difficile\))/ }).last().locator("xpath=ancestor::div[contains(@style,'border')][1]").locator("button:not([disabled])", { hasText: "Crafter" }).first().click();
     await page.waitForTimeout(400);
     const keys = (s) => s.player.inventory.filter((i) => i.id === "cle_du_manoir").length;
     const k0 = keys(await save());
@@ -247,6 +247,14 @@ try {
     const pop = (await page.locator(".mp-popup").innerText()).toLowerCase();
     for (const w of ["Hall inondé", "Chapelle ardente", "Niveaux 20 à 26"]) assert.ok(pop.includes(w.toLowerCase()), w);
     assert.equal(await page.locator("button", { hasText: "Combattre seul" }).count(), 0, "pas de solo dans un donjon");
+    await page.locator('[data-mode="hard"]').click(); await page.waitForTimeout(200);
+    const hardPop = await page.locator(".mp-popup").innerText();
+    assert.match(hardPop, /difficile/i, "la fiche passe en version difficile");
+    assert.match(hardPop, /Niveaux 26 et plus/i);
+    assert.match(hardPop, /Médaillon du Veuvage éternel|éternel/i, "la fiche annonce la relique supérieure");
+    assert.equal(await page.locator("button", { hasText: "Entrer avec mon groupe" }).isDisabled(), false, "le mode test donne une clé difficile : l'entrée est ouverte");
+    assert.equal(await page.locator(`.mp-pop-drops img[alt="Médaillon du Veuvage éternel"]`).count(), 1, "la relique supérieure est dans le butin possible");
+    await page.locator('[data-mode="normal"]').click(); await page.waitForTimeout(200);
     await page.locator("button", { hasText: "Entrer avec mon groupe" }).click();
     await page.locator('[data-room-scene="hall"]').waitFor({ timeout: 15000 });
     assert.equal(await page.locator("[data-room-enemies] img").count(), 3, "le groupe de monstres de la salle est visible");

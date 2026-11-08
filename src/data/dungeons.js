@@ -16,6 +16,7 @@ export const DUNGEONS = {
     minLevel: 20,
     partySize: 3,
     relic: "medaillon_dame_en_deuil",
+    hardKey: "manoir_englouti_difficile",         // sa version difficile, choisie à l'entrée
     rooms: [
       { id: "hall", bg: "/assets/dungeons/manoir_englouti/hall.webp", name: "Le Hall inondé", enemies: ["serviteur_spectral", "molosse_du_manoir", "serviteur_spectral"],
         desc: "L'eau noire clapote sur le marbre. Les domestiques n'ont jamais quitté leur poste." },
@@ -27,6 +28,18 @@ export const DUNGEONS = {
         desc: "La Dame en Deuil veille son époux. Ses pleureuses l'entourent.", boss: true },
     ],
   },
+};
+// La version difficile : mêmes salles, monstres « <clé>_difficile » (data/zones.js), clé plus chère, niveau minimum plus haut, relique supérieure
+const base = DUNGEONS.manoir_englouti;
+DUNGEONS.manoir_englouti_difficile = {
+  ...base, key: "manoir_englouti_difficile", hard: true, hardKey: null, baseKey: base.key,
+  name: "Le Manoir Englouti (difficile)",
+  desc: "Le manoir tel qu'il était la nuit du rituel : les morts sont plus nombreux à tenir debout, la Dame ne retient plus ses larmes. Mêmes salles, adversaires bien plus durs, butin à la hauteur : éclats purs en nombre et le Médaillon du Veuvage éternel.",
+  keyItem: "cle_du_manoir_difficile",
+  levels: "Niveaux 26 et plus",
+  minLevel: 26,
+  relic: "medaillon_veuvage_eternel",
+  rooms: base.rooms.map((r) => ({ ...r, enemies: r.enemies.map((k) => `${k}_difficile`) })),
 };
 export const DUNGEON_ORDER = Object.keys(DUNGEONS);
 export const dungeonOfKey = (itemId) => Object.values(DUNGEONS).find((d) => d.keyItem === itemId) || null;

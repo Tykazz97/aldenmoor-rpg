@@ -23,7 +23,7 @@ export const BREW_CHANCE = 0.4;                 // part de ses passages à l'ate
 const MIN_LEVEL = DUNGEONS.manoir_englouti.minLevel;
 
 const stock = (life, id) => (life.bag.res[id] || 0) + (life.bank?.resources?.[id] || 0);
-export const wantsPotions = (life) => life.level >= MIN_LEVEL && ((life.dj?.keys || 0) > 0 || (life.dj?.runs || 0) > 0 || stock(life, "essence_du_veilleur") >= 1);
+export const wantsPotions = (life) => life.level >= MIN_LEVEL && ((life.dj?.keys || 0) > 0 || (life.dj?.runs || 0) > 0 || (life.djh?.keys || 0) > 0 || (life.djh?.runs || 0) > 0 || stock(life, "essence_du_veilleur") >= 1);
 
 // Que distiller maintenant ? { id, n, training } ou null
 export function brewPlan(life) {

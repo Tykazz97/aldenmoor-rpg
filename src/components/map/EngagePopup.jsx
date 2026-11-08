@@ -8,13 +8,16 @@ import { CLASSES } from "../../data/classes.js";
 import { PARTY_SIZE, buildAllies, companionCandidates } from "../../sim/partyBots.js";
 import { getLivePopulation } from "../../sim/simWorld.js";
 import { keyCount, dungeonDrops } from "../../utils/dungeon.js";
+import { DUNGEONS } from "../../data/dungeons.js";
 
 // ------------------------------------------------------------
 // Fenêtre d'engagement : aperçu du groupe et du butin possible
 // ------------------------------------------------------------
 // `dungeon` : fiche d'entrée d'un donjon (data/dungeons.js) au lieu d'un groupe d'ennemis ; on y entre toujours en groupe, avec une clé
-export default function EngagePopup({ group, dungeon = null, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
+export default function EngagePopup({ group, dungeon: entrance = null, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
   const [picking, setPicking] = useState(false);
+  const [hard, setHard] = useState(false);                 // l'entrée d'un donjon propose sa version difficile (`hardKey`)
+  const dungeon = entrance && hard && entrance.hardKey ? DUNGEONS[entrance.hardKey] : entrance;
   const population = getLivePopulation(player);
   const companions = player?.companions || [];
   const allies = useMemo(() => (player ? buildAllies(player, companions, population) : []), [player?.level, player?.classKey, companions.join()]); // eslint-disable-line
@@ -49,6 +52,12 @@ export default function EngagePopup({ group, dungeon = null, hasWeapon, classKey
           {enc.enemies.map((k, i) => <img key={i} src={ENEMIES[k].img} alt="" />)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
+          {entrance?.hardKey && (
+            <div className="mp-pop-mode" style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+              <button data-mode="normal" className={`cb-btn ${!hard ? "primary" : ""}`} onClick={() => setHard(false)}>Normal</button>
+              <button data-mode="hard" className={`cb-btn ${hard ? "primary" : ""}`} onClick={() => setHard(true)}>Difficile</button>
+            </div>
+          )}
           <div className="mp-pop-name">{enc.name}<span className={`mp-tag ${enc.boss ? "boss" : ""}`}>{enc.level}</span></div>
           <div className="mp-pop-desc">{enc.desc}</div>
           <div className="mp-pop-list">
@@ -93,7 +102,7 @@ export default function EngagePopup({ group, dungeon = null, hasWeapon, classKey
       <div className="mp-pop-btns">
         <button className="cb-btn" onClick={onBack}>Reculer</button>
         {dungeon ? (
-          <button className="cb-btn primary" disabled={keys === 0} onClick={() => onFight(true)} title="Trois héros : toi et deux compagnons">🗝 Entrer avec mon groupe{keys > 0 ? ` (${keys} clé${keys > 1 ? "s" : ""})` : ""}</button>
+          <button className="cb-btn primary" disabled={keys === 0} onClick={() => onFight(true, dungeon)} title="Trois héros : toi et deux compagnons">🗝 Entrer avec mon groupe{keys > 0 ? ` (${keys} clé${keys > 1 ? "s" : ""})` : ""}</button>
         ) : (
           <>
             <button className="cb-btn" onClick={() => onFight(true)} title="Deux compagnons combattent à tes côtés : butin meilleur (jusqu'à ×1,5), mais moins d'xp qu'en solo">👥 En groupe</button>

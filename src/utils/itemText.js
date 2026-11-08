@@ -10,6 +10,7 @@ export function itemStatLines(item) {
   if (item.hp) lines.push(`+${v(item.hp)} HP`);
   if (item.esquive) lines.push(`+${v(item.esquive)}% Esquive`);
   if (item.critique) lines.push(`+${v(item.critique)}% Crit`);
+  if (item.dropBonus) lines.push(`+${item.dropBonus}% Butin`);
   if (item.desc) lines.push(item.desc);
   if (item.passiveDesc) lines.push(item.passiveDesc);
   return lines;

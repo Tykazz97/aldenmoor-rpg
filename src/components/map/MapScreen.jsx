@@ -342,9 +342,9 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
 
           {life && <CityChat feed={feed} online={life.agents.length + 1} onSend={sendChat} playerName={player.name} />}
 
-          {popup && <EngagePopup group={popup} dungeon={popup.dungeon} hasWeapon={!!player.equipped.arme} classKey={player.classKey} player={player} onCompanions={(ids) => onPlayerChange?.((p) => ({ ...p, companions: ids }))} onFight={(party) => {
+          {popup && <EngagePopup group={popup} dungeon={popup.dungeon} hasWeapon={!!player.equipped.arme} classKey={player.classKey} player={player} onCompanions={(ids) => onPlayerChange?.((p) => ({ ...p, companions: ids }))} onFight={(party, chosen) => {
             syncPos();
-            if (popup.dungeon) { onPlayerChange?.((p) => consumeKey(p, popup.dungeon)); setRun({ dungeon: popup.dungeon }); }
+            if (popup.dungeon) { const d = chosen || popup.dungeon; onPlayerChange?.((p) => consumeKey(p, d)); setRun({ dungeon: d }); }
             else setFight({ group: popup, enc: encounterOf(popup.encounter), party });
             setPopup(null);
           }} onBack={() => setPopup(null)} />}
