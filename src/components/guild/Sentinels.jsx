@@ -4,6 +4,7 @@ import { SENT_REGIONS, sentinelSlots, sentinelGoldCap, sentinelResCap } from "..
 import { sentinelsOf, sentinelCount, sentinelOwner, placeProblem, stockEmpty } from "../../utils/sentinel.js";
 import { guildsOf, placeSentinelAction, removeSentinelAction, collectSentinelAction } from "../../utils/guildActions.js";
 import SentinelSprite from "./SentinelSprite.jsx";
+import SentinelSheet from "./SentinelSheet.jsx";
 
 const num = (n) => Math.round(n).toLocaleString("fr-FR");
 
@@ -13,6 +14,7 @@ export default function Sentinels({ player, g, run, spend, wd }) {
   const slots = sentinelSlots(g.level), used = sentinelCount(g);
   const gcap = sentinelGoldCap(g.level), rcap = sentinelResCap(g.level);
   return (
+    <>
     <div className="gd-card" data-gd-sentinels>
       <div className="gd-sub">Une sentinelle est un golem de pierre posté dans une région. Dans chaque combat de la région, elle se comporte comme un aventurier invisible de plus : elle tire son propre butin (or et ressources) sans rien prendre aux autres. Le chef ou le bras droit relève son stock : l'or va à la caisse, les ressources au coffre.</div>
       <div className="gd-stats"><span>Sentinelles <b data-gd-sent-count>{used}</b>/{slots}</span><span>Stock max. <b>{num(gcap)}</b> or, <b>{num(rcap)}</b> par ressource</span><span className="gd-sub">Une de plus tous les 10 niveaux de guilde</span></div>
@@ -54,5 +56,7 @@ export default function Sentinels({ player, g, run, spend, wd }) {
         })}
       </div>
     </div>
+    <SentinelSheet player={player} g={g} run={run} spend={spend} />
+    </>
   );
 }

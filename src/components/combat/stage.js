@@ -7,8 +7,8 @@ export const HERO_H = 250;      // hauteur d'affichage du héros (px)
 
 export const ELEMENT_COLOR = { feu: "#ff9a4d", poison: "#8fdc5a", givre: "#8fd3f5", arcane: "#a99bff", phys: "#ffe7a8" };
 export const RANGED = new Set(["tir_rapide", "tir_percant", "pluie_de_fleches"]);
-export const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, paLoss: "PA retirés", weaken: "Affaibli", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition" };
-export const BADGE = { feu: "🔥", poison: "☠️", weaken: "❄️", defDown: "💔", parade: "🛡️", paLoss: "🔻", shadow: "🌑" };
+export const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, paLoss: "PA retirés", weaken: "Affaibli", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition", armor: "Défense accrue", reduce: "Rempart", shield: "Bouclier", hot: "Régénération" };
+export const BADGE = { feu: "🔥", poison: "☠️", weaken: "❄️", defDown: "💔", parade: "🛡️", paLoss: "🔻", shadow: "🌑", armor: "🪨", reduce: "🏰", shield: "🛡️", hot: "🌿" };
 
 // Alliés bots : un peu en retrait du héros (le premier derrière, le second devant)
 export const ALLY_POS = [{ x: 6, b: 108 }, { x: 28, b: 30 }];

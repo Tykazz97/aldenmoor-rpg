@@ -8,6 +8,7 @@ import { ENEMIES } from "../data/zones.js";
 import { SENT_BY_KEY, REGION_OF_ENEMY, SENT_LOOT_SHARE, sentinelSlots, sentinelGoldCap, sentinelResCap } from "../data/sentinel.js";
 import { makeRng, hashString } from "../sim/rng.js";
 import { logOf, tabFree } from "./guildCore.js";
+import { lootShareOf } from "./sentinelBuild.js";
 
 export const sentinelsOf = (g) => (g && g.sentinels && typeof g.sentinels === "object" ? g.sentinels : {});
 export const sentinelCount = (g) => Object.keys(sentinelsOf(g)).length;
@@ -64,16 +65,16 @@ export function removeSentinel(G, g, region, step) {
 }
 
 // ---- le butin : un tirage « de joueur » sur les monstres vaincus ----
-// Même table de drops que pour un joueur, réduite de SENT_LOOT_SHARE ; seulement de l'or et des ressources (pas d'équipement)
-export function lootRoll(enemyKeys, rng) {
+// Même table de drops que pour un joueur, réduite d'une part (SENT_LOOT_SHARE × la chance de la sentinelle) ; seulement de l'or et des ressources (pas d'équipement)
+export function lootRoll(enemyKeys, rng, share = SENT_LOOT_SHARE) {
   const out = { gold: 0, res: {} };
   for (const k of enemyKeys) {
     const def = ENEMIES[k];
     if (!def) continue;
-    if (def.gold) out.gold += rng.int(def.gold[0], def.gold[1]) * SENT_LOOT_SHARE;
+    if (def.gold) out.gold += rng.int(def.gold[0], def.gold[1]) * share;
     for (const d of def.drops || []) {
       if (d.type !== "resource" || d.forClass) continue;
-      if (rng() >= d.chance * SENT_LOOT_SHARE) continue;
+      if (rng() >= d.chance * share) continue;
       out.res[d.id] = (out.res[d.id] || 0) + rng.int(d.min, d.max);
     }
   }
@@ -96,7 +97,7 @@ export function feedFight(G, region, enemyKeys, seed) {
   const gid = G?.sent?.[region];
   const g = gid && G.byId[gid];
   if (!g) return;
-  addLoot(g, region, lootRoll(enemyKeys, makeRng(hashString(`sent:${seed}`))));
+  addLoot(g, region, lootRoll(enemyKeys, makeRng(hashString(`sent:${seed}`)), lootShareOf(g)));
 }
 // Le crochet donné aux simulés (`opts.onFight`) : lit les guildes au moment de l'appel
 export const sentinelFeeder = (sims) => (region, enemyKeys, seed) => { if (sims.guilds?.sent?.[region]) feedFight(sims.guilds, region, enemyKeys, seed); };
@@ -110,7 +111,7 @@ export function creditPlayerFight(player, kills, seed = `${Date.now()}`) {
   const gid = region && G.sent[region], g0 = gid && G.byId[gid];
   if (!g0 || !sentinelsOf(g0)[region]) return player;
   const g = structuredClone(g0);
-  addLoot(g, region, lootRoll(keys, makeRng(hashString(`sent:${seed}`))));
+  addLoot(g, region, lootRoll(keys, makeRng(hashString(`sent:${seed}`)), lootShareOf(g)));
   return { ...player, market: { ...player.market, sims: { ...player.market.sims, guilds: { ...G, byId: { ...G.byId, [gid]: g } } } } };
 }
 

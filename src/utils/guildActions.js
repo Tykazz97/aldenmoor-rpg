@@ -6,6 +6,7 @@
 // Les actions du joueur (monstres vaincus, récoltes, fabrications) comptent pour les quêtes de sa guilde : on lit ses compteurs
 // de quêtes (utils/counters.js) et on ajoute la différence depuis la dernière fois (syncPlayerGuild).
 // ============================================================
+import { pointsProblem, setPoints, resetCost, spellsProblem, setSpells, emptyPts } from "./sentinelBuild.js";
 import { attackProblem, rebuildSent, placeProblem, placeSentinel, removeProblem, removeSentinel, collectStock, sentinelsOf } from "./sentinel.js";
 import { marketOf } from "./market.js";
 import { SENT_BY_KEY } from "../data/sentinel.js";
@@ -52,6 +53,9 @@ export const REASONS = {
   stock_plein: "Relève d'abord le butin de la sentinelle.",
   niveau_requis: "Ton niveau est trop bas pour rejoindre cette guilde.",
   sienne: "C'est la sentinelle de ta propre guilde.",
+  points: "Ces points ne tiennent pas dans le total de la guilde.",
+  points_max: "Une caractéristique ne peut recevoir que 60 % des points.",
+  sorts: "Ces sorts ne sont pas permis (3 au maximum, et seulement ceux que la guilde a débloqués).",
   protegee: "Cette sentinelle vient de tenir bon : elle est protégée pour le moment.",
 };
 
@@ -352,4 +356,35 @@ export function loseAttackAction(player, region, now = Date.now()) {
 export function attackCheck(player, region, now = Date.now()) {
   const G = guildsOf(player);
   return G ? attackProblem(G, region, now) : "pas_de_monde";
+}
+
+// ---- la fiche de la sentinelle (chef et bras droit) ----
+export function setSentinelPointsAction(player, pts, now = Date.now()) {
+  const r = mine(player, now, { need: "spend" });
+  if (r.error) return fail(player, r.error);
+  const problem = pointsProblem(r.g, pts);
+  if (problem) return fail(player, problem);
+  setPoints(r.g, pts);
+  return { ok: true, player: commit(player, r.m, r.G) };
+}
+
+// Remet tous les points à zéro (à replacer) : coûte de l'or de la caisse
+export function resetSentinelPointsAction(player, now = Date.now()) {
+  const r = mine(player, now, { need: "spend" });
+  if (r.error) return fail(player, r.error);
+  const cost = resetCost(r.g);
+  if (r.g.gold < cost) return fail(player, "caisse");
+  r.g.gold -= cost;
+  setPoints(r.g, emptyPts());
+  logOf(r.g, r.step, "Les points de la sentinelle sont remis à zéro.");
+  return { ok: true, cost, player: commit(player, r.m, r.G) };
+}
+
+export function setSentinelSpellsAction(player, ids, now = Date.now()) {
+  const r = mine(player, now, { need: "spend" });
+  if (r.error) return fail(player, r.error);
+  const problem = spellsProblem(r.g, ids);
+  if (problem) return fail(player, problem);
+  setSpells(r.g, ids);
+  return { ok: true, player: commit(player, r.m, r.G) };
 }

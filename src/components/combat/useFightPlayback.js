@@ -92,6 +92,10 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
           });
           await sleep(250);
         }
+      } else if (cast.spellType === "buff") {
+        pulse(cast.from, "cast"); sfx.buff();
+        addFloat(cast.from, cast.label, "label", 90);
+        await sleep(400);
       } else {
         pulse(cast.from, "attackL");
         addFloat(cast.from, cast.label, "label", 90);
@@ -144,7 +148,7 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
         case "effect": {
           const label = e.kind === "dot" ? STATUS_LABEL.dot[e.element] : STATUS_LABEL[e.kind];
           if (label) addFloat(e.id, label, `status ${e.element || ""}`, 36);
-          if (e.kind === "parade") addFx(e.id, "shield");
+          if (e.kind === "parade" || e.kind === "shield" || e.kind === "reduce" || e.kind === "armor") addFx(e.id, "shield");
           if (e.kind === "shadow") addFx(e.id, "smoke");
           if (e.kind === "weaken") addFx(e.id, "frost");
           break;

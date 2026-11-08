@@ -7,19 +7,11 @@ import { ENEMY_EXTRA } from "../data/zones.js";
 import { SENT_BY_KEY } from "../data/sentinel.js";
 import { makeBotPlayer } from "../sim/partyBots.js";
 import { calcStats } from "./calcStats.js";
+import { sharesOf, equippedSpells } from "./sentinelBuild.js";
 
-export const SENT_STAT_SHARE = 0.7;           // attaque et défense : une part de celles d'un héros du niveau de la guilde
-export const SENT_HP_MULT = 3.5;               // la sentinelle est seule : elle encaisse plus qu'un héros
 export const SENT_ROUNDS = 12;                 // tours de table à tenir pour que la défense gagne
 export const SENT_SHIELD_MS = 60 * 60 * 1000;  // une sentinelle qui a tenu bon est intouchable pendant 1 h
 export const SENT_IMG = "/assets/sentinel/golem.png";
-
-// Les sorts de base de la sentinelle (l'étape des sorts à acheter les remplacera)
-export const SENT_BASE_SPELLS = [
-  { id: "poing_de_pierre", name: "Poing de pierre", pa: 3, type: "phys", power: 1.0, weight: 3 },
-  { id: "jet_de_roche", name: "Jet de roche", pa: 4, type: "phys", power: 1.3, weight: 2 },
-  { id: "ecrasement", name: "Écrasement", pa: 5, type: "phys", power: 1.7, weight: 1 },
-];
 
 const BASE = new Map();
 const heroStats = (level) => {
@@ -28,23 +20,27 @@ const heroStats = (level) => {
   return BASE.get(L);
 };
 
-// Les caractéristiques de la sentinelle d'une guilde de ce niveau
-export function sentinelStats(guildLevel) {
-  const h = heroStats(guildLevel), k = SENT_STAT_SHARE;
+// Les caractéristiques de la sentinelle d'une guilde : celles d'un héros du niveau de la guilde (guerrier de référence), modulées par
+// les points que la guilde a placés (part de chaque caractéristique dans le total possible, plafonnée à 60 %).
+// À 20 % de points partout (le total réparti à parts égales) : 3,5 fois les PV et 70 % de l'attaque et de la défense d'un héros ;
+// sans aucun point : 1,5 fois les PV, 30 % de l'attaque et de la défense.
+export function sentinelStats(guild) {
+  const h = heroStats(guild.level), f = sharesOf(guild);
+  const atk = Math.round(h.atkPhys * (0.3 + 2 * f.force)), def = (base) => Math.round(base * (0.3 + 2 * f.defense));
   return {
-    hp: Math.round(h.maxHp * SENT_HP_MULT), atkPhys: Math.round(h.atkPhys * k), atkMagie: 0,
-    defPhys: Math.round(h.defPhys * k), defMagie: Math.round(h.defMagie * k),
-    esquive: Math.round(h.esquive * k), critique: Math.round(h.critique * k), vitesse: Math.max(1, Math.round(h.vitesse * k)), pa: 6,
+    hp: Math.round(h.maxHp * (1.5 + 10 * f.vitalite)), atkPhys: atk, atkMagie: Math.round(atk * 0.8),
+    defPhys: def(h.defPhys), defMagie: def(h.defMagie), esquive: Math.round(h.esquive * 0.5), critique: Math.round(h.critique * 0.5),
+    vitesse: Math.max(1, Math.round(h.vitesse * (0.4 + 1.5 * f.vitesse))), pa: 6,
   };
 }
 
-// Fabrique (une fois par niveau et par jeu de sorts) le monstre de la sentinelle ; renvoie sa clé
-export function ensureSentinelEnemy(guildLevel, spells = SENT_BASE_SPELLS) {
-  const L = Math.max(1, Math.min(50, Math.round(guildLevel)));
-  const key = `sentinelle_${L}`;
+// Fabrique le monstre de la sentinelle de cette guilde (une entrée par guilde, remise à jour à chaque attaque) ; renvoie sa clé
+export function ensureSentinelEnemy(guild) {
+  const key = `sentinelle_${guild.id}`;
   ENEMY_EXTRA[key] = {
-    key, name: "Sentinelle", desc: "Un golem de pierre qui garde sa région pour une guilde.", stats: sentinelStats(L), xp: 0,
-    actions: spells.map((a) => ({ ...a })), gold: null, drops: [], img: SENT_IMG, spriteHeight: 320, extra: true,
+    key, name: "Sentinelle", desc: "Un golem de pierre qui garde sa région pour une guilde.", stats: sentinelStats(guild), xp: 0,
+    actions: equippedSpells(guild).map(({ id, name, pa, type, power, weight, effect, aoe, self }) => ({ id, name, pa, type, power, weight, effect, aoe, self })),
+    gold: null, drops: [], img: SENT_IMG, spriteHeight: 320, extra: true,
   };
   return key;
 }
@@ -52,7 +48,7 @@ export function ensureSentinelEnemy(guildLevel, spells = SENT_BASE_SPELLS) {
 // La rencontre à jouer (comme les autres rencontres, avec en plus `sentinel` : ce qui sert à régler l'issue)
 export function sentinelEncounter(guild, region) {
   const r = SENT_BY_KEY[region];
-  const key = ensureSentinelEnemy(guild.level);
+  const key = ensureSentinelEnemy(guild);
   return {
     id: `sentinelle:${region}`, name: `Sentinelle de ${guild.name}`, level: `Guilde niv. ${guild.level}`, enemies: [key],
     banner: `Sentinelle de ${guild.name}`, desc: `Tue la sentinelle avant la fin du ${SENT_ROUNDS}e tour.`,

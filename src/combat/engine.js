@@ -179,6 +179,7 @@ function survivesFatal(events, target) {
 function effectiveDef(actor, type, armorPen = 0) {
   let def = type === "mag" ? actor.stats.defMagie : actor.stats.defPhys;
   def *= 1 - maxEffect(actor, "defDown");
+  def *= 1 + maxEffect(actor, "armor");                        // Peau de granit (sentinelle) : défense accrue
   if (type !== "mag") def += maxEffect(actor, "parade", "defUp");
   return Math.max(0, def * (1 - armorPen));
 }
@@ -209,11 +210,17 @@ function attack(s, events, attacker, target, opts) {
 
   const weaken = 1 - maxEffect(attacker, "weaken");   // Givre : l'attaquant fait moins de dégâts
   const finalMult = 1 + (attacker.flags?.finalDamage || 0);                  // dommages finaux (relique)
-  const damage = Math.max(1, Math.round(atk * power * variance * reduction * weaken * finalMult * (crit ? CRIT_MULT : 1)));
+  const damage0 = Math.max(1, Math.round(atk * power * variance * reduction * weaken * finalMult * (crit ? CRIT_MULT : 1)));
+  // Rempart (sentinelle) : dégâts reçus réduits ; Bouclier de roche : un montant de dégâts absorbé
+  const reduced = Math.max(1, Math.round(damage0 * (1 - maxEffect(target, "reduce"))));
+  const shield = target.effects.find((e) => e.kind === "shield" && e.value > 0);
+  const absorbed = shield ? Math.min(shield.value, reduced) : 0;
+  if (shield) shield.value -= absorbed;
+  const damage = reduced - absorbed;
   const fatal = target.hp - damage <= 0;
   target.hp = Math.max(0, target.hp - damage);
   events.push({
-    type: "hit", from: attacker.id, to: target.id, amount: damage, crit,
+    type: "hit", from: attacker.id, to: target.id, amount: damage, crit, absorbed,
     hpAfter: target.hp, spellId, label, element, dmgType: type,
   });
   if (fatal) survivesFatal(events, target);
@@ -320,6 +327,12 @@ function startTurn(s, events, actor) {
       events.push({ type: "death", id: actor.id });
     }
   }
+  for (const e of actor.effects.filter((x) => x.kind === "hot")) {        // Mousse vivante (sentinelle) : soin à chaque tour
+    if (!actor.alive || actor.hp >= actor.maxHp) break;
+    const amt = Math.max(1, Math.round(actor.maxHp * e.value));
+    actor.hp = Math.min(actor.maxHp, actor.hp + amt);
+    events.push({ type: "heal", id: actor.id, amount: amt, hpAfter: actor.hp });
+  }
   actor.effects.forEach((e) => { if (e.turns != null) e.turns -= 1; });
   actor.effects = actor.effects.filter((e) => e.turns == null || e.turns > 0);
 }
@@ -387,20 +400,47 @@ function pickHeroTarget(s) {
   return alive[Math.floor(rand(s) * alive.length)];
 }
 
+// Un soutien que l'ennemi se lance à lui-même : { heal } (part de ses PV max) et/ou { effect } (armor, reduce, hot, shield)
+// Inutile s'il est déjà actif (ou si l'ennemi n'a presque rien perdu pour un soin) : l'ennemi ne le choisit pas alors.
+function selfUseless(enemy, action) {
+  const sf = action.self;
+  if (sf.heal && enemy.hp > enemy.maxHp * 0.85) return true;
+  if (sf.effect && enemy.effects.some((e) => e.kind === sf.effect.kind && (e.turns ?? 1) > 0 && (e.kind !== "shield" || e.value > 0))) return true;
+  return false;
+}
+function enemySelf(s, events, enemy, action) {
+  const sf = action.self;
+  events.push({ type: "cast", from: enemy.id, label: action.name, spellType: "buff", targets: [enemy.id] });
+  if (sf.heal) {
+    const amt = Math.max(1, Math.round(enemy.maxHp * sf.heal));
+    enemy.hp = Math.min(enemy.maxHp, enemy.hp + amt);
+    events.push({ type: "heal", id: enemy.id, amount: amt, hpAfter: enemy.hp });
+  }
+  if (sf.effect) {
+    const e = sf.effect, value = e.kind === "shield" ? Math.round(enemy.maxHp * e.value) : e.value;   // le bouclier : une part des PV max
+    enemy.effects.push({ kind: e.kind, turns: e.turns, value });
+    events.push({ type: "effect", id: enemy.id, kind: e.kind, turns: e.turns });
+  }
+}
+
 // Un ennemi dépense ses PA en enchaînant des actions, comme le joueur
 function enemyAct(s, events, enemy, budget) {
   let pa = budget;
   const all = enemyDef(enemy.key).actions;
   while (pa > 0 && enemy.alive && s.phase === "running") {
-    const options = all.filter((a) => (a.pa ?? ACTION_PA) <= pa && (a.needsPhase == null || enemy.phasesDone.includes(a.needsPhase)));
+    const options = all.filter((a) => (a.pa ?? ACTION_PA) <= pa && (a.needsPhase == null || enemy.phasesDone.includes(a.needsPhase)) && !(a.self && selfUseless(enemy, a)));
     if (!options.length) break;
     const action = chooseAction(s, options);
     pa -= action.pa ?? ACTION_PA;
-    const target = pickHeroTarget(s);
-    if (!target) break;
-    events.push({ type: "cast", from: enemy.id, label: action.name, spellType: action.type, targets: [target.id] });
-    const res = attack(s, events, enemy, target, { type: action.type, power: action.power, label: action.name });
-    if (res.hit && action.effect) applyEffect(s, events, enemy, target, action.effect);
+    if (action.self) { enemySelf(s, events, enemy, action); continue; }
+    const targets = action.aoe ? heroes(s).filter((h) => h.alive) : [pickHeroTarget(s)].filter(Boolean);     // une attaque de zone touche tous les héros
+    if (!targets.length) break;
+    events.push({ type: "cast", from: enemy.id, label: action.name, spellType: action.type, targets: targets.map((t) => t.id), aoe: !!action.aoe });
+    for (const target of targets) {
+      if (!target.alive) continue;
+      const res = attack(s, events, enemy, target, { type: action.type, power: action.power, label: action.name });
+      if (res.hit && action.effect) applyEffect(s, events, enemy, target, action.effect);
+    }
     checkEnd(s, events);
   }
 }

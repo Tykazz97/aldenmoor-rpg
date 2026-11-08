@@ -221,6 +221,15 @@ try {
     assert.ok(await page.locator("[data-sentinel-sprite] [data-emblem]").isVisible(), "le blason de la guilde est sur la hampe");
     assert.equal((await page.locator("[data-gd-sent-count]").innerText()).trim(), "1");
     assert.ok(await page.locator('[data-gd-sent-collect="prairies_sauvages"]').isDisabled(), "stock vide : rien à relever");
+    assert.ok(await page.locator("[data-gd-sentsheet]").isVisible(), "fiche de la sentinelle");
+    assert.equal((await page.locator("[data-gd-sent-free]").innerText()).trim(), "3", "3 points au niveau 1");
+    await page.locator('[data-gd-sent-plus="vitalite"]').click(); await page.waitForTimeout(150);
+    await page.locator('[data-gd-sent-plus="vitalite"]').click(); await page.waitForTimeout(150);
+    assert.equal((await page.locator('[data-gd-sent-pts="vitalite"]').innerText()).trim(), "2");
+    assert.equal((await page.locator("[data-gd-sent-free]").innerText()).trim(), "1");
+    assert.ok(await page.locator('[data-gd-sent-plus="vitalite"]').isDisabled(), "60 % au plus dans une caractéristique");
+    assert.equal(await page.locator('[data-gd-sent-spell="poing_de_pierre"]').getAttribute("data-state"), "on", "sort de départ équipé");
+    assert.equal(await page.locator('[data-gd-sent-spell="peau_de_granit"]').getAttribute("data-state"), "locked", "sort du niveau 5 pas encore là");
     await page.screenshot({ path: process.env.SHOT_SENT || "/tmp/claude-0/gd-sentinel.png" });
     await page.locator('[data-gd-sent-remove="prairies_sauvages"]').click(); await page.waitForTimeout(200);
     assert.equal(await page.locator("[data-sentinel-sprite]").count(), 0, "sentinelle retirée");
@@ -460,7 +469,7 @@ try {
     assert.match(await page.locator('[data-map-sentinel]').innerText(), /Les Gardiens de Test/);
     if (process.env.SHOT_SENT_MAP) await page.screenshot({ path: process.env.SHOT_SENT_MAP });
     await page.locator('[data-sentinel-attack="group"]').click();
-    await page.locator(".cb-spell:not([disabled])").first().waitFor({ timeout: 20000 });
+    await page.locator(".cb-spell:not([disabled]), .cb-overlay").first().waitFor({ timeout: 20000 });   // (une sentinelle sans point tombe parfois avant le premier tour du joueur)
     if (process.env.SHOT_SENT_FIGHT) await page.screenshot({ path: process.env.SHOT_SENT_FIGHT });
     for (let i = 0; i < 300 && !(await page.locator(".cb-overlay").count()); i++) {
       const sp = page.locator(".cb-spell:not([disabled])");
