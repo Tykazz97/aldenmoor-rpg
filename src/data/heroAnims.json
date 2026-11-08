@@ -334,5 +334,89 @@
    }
   },
   "pngH": 392
+ },
+ "m/fossoyeur": {
+  "w": 268,
+  "h": 266,
+  "box": [
+   106,
+   240,
+   552,
+   683
+  ],
+  "anchor": [
+   134.4,
+   258.0
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 16,
+    "cols": 6,
+    "rows": 3,
+    "duration": 2.708
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.458
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.542
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.583
+   }
+  },
+  "pngH": 384
+ },
+ "f/fossoyeur": {
+  "w": 287,
+  "h": 263,
+  "box": [
+   73,
+   240,
+   552,
+   678
+  ],
+  "anchor": [
+   154.2,
+   258.0
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 16,
+    "cols": 6,
+    "rows": 3,
+    "duration": 2.792
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.75
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.125
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.208
+   }
+  },
+  "pngH": 384
  }
 }
