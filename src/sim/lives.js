@@ -175,6 +175,7 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
     for (let i = 0; i < n; i++) {
       const e = rng.weighted(region.encounters.map((x) => [x, hunt && x.enemies.includes(hunt) ? 6 : 1])); xp += e.xp; gold += e.gold;
       for (const k of e.enemies) { rollDrops(life, bot, ENEMIES[k], rng); bump(life, "kills", k); }
+      opts.onFight?.(region.key, e.enemies, `${bot.id}:${step}:${i}`);   // la sentinelle de la région tire son butin
     }
     life.kills += n;
     life.gold += Math.round(gold);

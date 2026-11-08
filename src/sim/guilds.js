@@ -16,6 +16,8 @@ import {
   palierProblem, tabProblem, buyPalier, buyTab, nextTab, guildFor, rankOf, setRank,
 } from "../utils/guildCore.js";
 import { bonusFromPaliers } from "../utils/guildBonus.js";
+import { rebuildSent, placeProblem, placeSentinel, collectStock, sentinelsOf } from "../utils/sentinel.js";
+import { SENT_REGIONS } from "../data/sentinel.js";
 import { GUILD_CREATE_COST, SIM_FOUND_GOLD, SIM_FOUND_MIN_LEVEL, SIM_DONATE_ABOVE, SIM_DONATE_SHARE, QUEST_TYPES } from "../data/guild.js";
 
 export const HOUR_STEPS = 6;                              // les décisions sociales se prennent une fois par heure
@@ -70,6 +72,7 @@ export function appointRanks(g, step) {
 export function stepGuilds(sims, population, step) {
   const G = sims.guilds && typeof sims.guilds.byId === "object" && typeof sims.guilds.of === "object" ? sims.guilds : (sims.guilds = newGuilds());   // sauvegarde abîmée : on repart de zéro
   const lives = sims.lives;
+  if (step % HOUR_STEPS === 0) rebuildSent(G);                   // l'annuaire des sentinelles est remis d'aplomb à chaque heure
   for (const g of Object.values(G.byId)) syncGuild(g, lives, step);
   if (step % HOUR_STEPS !== 0) return;
 
@@ -87,6 +90,8 @@ export function stepGuilds(sims, population, step) {
       const pp = palierProblem(g);
       if (!pp) buyPalier(g, step);
       else if (pp !== "caisse" && !tabProblem(g) && g.gold >= nextTab(g).cost * 1.2) buyTab(g, step);
+      for (const key of Object.keys(sentinelsOf(g))) collectStock(g, key, step);                       // le chef relève ses sentinelles
+      if (pp) for (const r of [...SENT_REGIONS].reverse()) if (g.gold >= r.cost * 1.5 && !placeProblem(G, g, r.key)) { placeSentinel(G, g, r.key, step); break; }   // et en pose une quand il peut
     }
   }
 

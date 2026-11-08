@@ -14,6 +14,7 @@ import {
 import { classLabel, classIcon } from "../../utils/ranking.js";
 import { getPopulation } from "../../sim/population.js";
 import Emblem from "./Emblem.jsx";
+import Sentinels from "./Sentinels.jsx";
 import EmblemEditor from "./EmblemEditor.jsx";
 import { EMBLEM_DEFAULT } from "../../data/emblems.js";
 
@@ -341,7 +342,7 @@ function Mine({ player, g, run }) {
         <BonusChips bonus={bonus} />
       </div>
       <div className="gd-tabs">
-        {[["apercu", "Aperçu"], ["membres", "Membres"], ["coffre", "Coffre"], ["paliers", "Paliers"]].map(([k, label]) => (
+        {[["apercu", "Aperçu"], ["membres", "Membres"], ["coffre", "Coffre"], ["paliers", "Paliers"], ["sentinelles", "Sentinelles"]].map(([k, label]) => (
           <button key={k} className={`gd-tab${tab === k ? " on" : ""}`} data-gd-tab={k} onClick={() => setTab(k)}>{label}</button>
         ))}
       </div>
@@ -349,6 +350,7 @@ function Mine({ player, g, run }) {
       {tab === "membres" && <Members player={player} g={g} run={run} />}
       {tab === "coffre" && <Vault player={player} g={g} run={run} spend={spend} wd={wd} />}
       {tab === "paliers" && <Paliers player={player} g={g} run={run} spend={spend} />}
+      {tab === "sentinelles" && <Sentinels player={player} g={g} run={run} spend={spend} wd={wd} />}
     </>
   );
 }

@@ -143,6 +143,7 @@ export function removeMember(G, g, id, step) {
   const left = Object.entries(g.members);
   if (!left.length) {
     const bank = g.bank;
+    if (G.sent) for (const k of Object.keys(g.sentinels || {})) if (G.sent[k] === g.id) delete G.sent[k];   // la guilde disparaît : ses régions se libèrent
     delete G.byId[g.id];
     return { disbanded: true, bank };
   }

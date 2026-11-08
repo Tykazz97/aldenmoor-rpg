@@ -31,6 +31,7 @@ import { getPopulation } from "../sim/population.js";
 import { SIM_START } from "../sim/config.js";
 import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
 import { stepGuilds } from "../sim/guilds.js";
+import { sentinelFeeder } from "./sentinel.js";
 import { shoppingList, stash, stashPlus, acquireItem, gearScore, scoreWithPlus, targetPieces } from "../sim/lifeCraft.js";
 import { BUILDS } from "../sim/partyBots.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
@@ -240,7 +241,7 @@ function stepListings(s, bucket) {
   });
 
   // 1b. les simulés vivent : ils achètent leurs ingrédients, puis jouent leur pas (combat, récolte, fabrication)
-  if (live) { simsShop(s, bucket, rng); stepLivesOne(sims, getPopulation(), bucket, { merchant: false, keep: 120 }); stepGuilds(sims, getPopulation(), bucket); }
+  if (live) { simsShop(s, bucket, rng); stepLivesOne(sims, getPopulation(), bucket, { merchant: false, keep: 120, onFight: sentinelFeeder(sims) }); stepGuilds(sims, getPopulation(), bucket); }
 
   // 2. cours caché
   for (const id of RESOURCE_ORDER) s.stock[id] = stepStock(id, s.stock[id], bucket);

@@ -6,6 +6,7 @@
 // Les actions du joueur (monstres vaincus, récoltes, fabrications) comptent pour les quêtes de sa guilde : on lit ses compteurs
 // de quêtes (utils/counters.js) et on ajoute la différence depuis la dernière fois (syncPlayerGuild).
 // ============================================================
+import { rebuildSent, placeProblem, placeSentinel, removeProblem, removeSentinel, collectStock, sentinelsOf } from "./sentinel.js";
 import { marketOf } from "./market.js";
 import { GUILD_CREATE_COST, QUEST_TYPES, TAB_SLOTS, RANKS } from "../data/guild.js";
 import {
@@ -40,6 +41,12 @@ export const REASONS = {
   sac_plein: "Ton sac est plein : fais de la place (range des objets au coffre ou vends-les).",
   membre: "Ce membre ne fait pas partie de la guilde.",
   soi: "Ce n'est pas possible pour toi-même.",
+  zone: "Cette région n'existe pas.",
+  deja_posee: "Ta guilde a déjà une sentinelle dans cette région.",
+  zone_prise: "Une autre guilde veille déjà sur cette région.",
+  sentinelle_max: "Ta guilde tient déjà autant de sentinelles que son niveau le permet.",
+  pas_de_sentinelle: "Il n'y a pas de sentinelle dans cette région.",
+  stock_plein: "Relève d'abord le butin de la sentinelle.",
 };
 
 const fail = (player, reason) => ({ ok: false, reason, player });
@@ -253,3 +260,35 @@ export function setRankAction(player, id, rank, now = Date.now()) {
 }
 
 export { TAB_SLOTS, rankOf, canSpend, canWithdraw, canKick, ranksAssignable };
+
+// ---- sentinelles ----
+export function placeSentinelAction(player, region, now = Date.now()) {
+  const r = mine(player, now, { need: "spend" });
+  if (r.error) return fail(player, r.error);
+  rebuildSent(r.G);
+  const problem = placeProblem(r.G, r.g, region);
+  if (problem) return fail(player, problem);
+  placeSentinel(r.G, r.g, region, r.step);
+  return { ok: true, player: commit(player, r.m, r.G) };
+}
+
+export function removeSentinelAction(player, region, now = Date.now()) {
+  const r = mine(player, now, { need: "spend" });
+  if (r.error) return fail(player, r.error);
+  const problem = removeProblem(r.g, region);
+  if (problem) return fail(player, problem);
+  removeSentinel(r.G, r.g, region, r.step);
+  return { ok: true, player: commit(player, r.m, r.G) };
+}
+
+// region : la clé d'une région, ou "all" pour toutes les sentinelles de la guilde
+export function collectSentinelAction(player, region = "all", now = Date.now()) {
+  const r = mine(player, now, { need: "withdraw" });
+  if (r.error) return fail(player, r.error);
+  const keys = region === "all" ? Object.keys(sentinelsOf(r.g)) : [region];
+  if (!keys.length || keys.some((k) => !sentinelsOf(r.g)[k])) return fail(player, "pas_de_sentinelle");
+  const total = { gold: 0, moved: 0, left: 0 };
+  for (const k of keys) { const c = collectStock(r.g, k, r.step); total.gold += c.gold; total.moved += c.moved; total.left += c.left; }
+  if (!total.gold && !total.moved) return fail(player, total.left ? "plein" : "aucun");
+  return { ok: true, ...total, player: commit(player, r.m, r.G) };
+}
