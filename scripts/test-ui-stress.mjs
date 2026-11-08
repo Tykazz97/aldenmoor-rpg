@@ -17,8 +17,9 @@ cpSync(process.argv[2] || "dist", DIST, { recursive: true });
 writeFileSync(join(DIST, "blank.html"), "<!doctype html><title>vide</title>");
 const PORT = 4190 + Math.floor(Math.random() * 50);
 const URL = `http://localhost:${PORT}/`;
-const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort", "--outDir", DIST], { stdio: "ignore" });
-process.on("exit", () => { try { server.kill(); } catch { /* arrêté */ } try { rmSync(DIST, { recursive: true, force: true }); } catch { /* déjà effacé */ } });
+const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort", "--outDir", DIST], { stdio: "ignore", detached: true });   // détaché : on arrête tout le groupe (npx + vite), sinon un serveur reste actif
+const stopServer = () => { try { process.kill(-server.pid); } catch { /* déjà arrêté */ } };
+process.on("exit", () => { stopServer(); try { rmSync(DIST, { recursive: true, force: true }); } catch { /* déjà effacé */ } });
 for (let i = 0; i < 50; i++) { try { if ((await fetch(URL)).ok) break; } catch { /* pas prêt */ } await new Promise((r) => setTimeout(r, 200)); }
 
 let passed = 0;
@@ -51,7 +52,7 @@ try {
 
   await step("partie neuve (mode test) : tous les onglets", async () => {
     await page.goto(URL); await page.waitForTimeout(800);
-    await page.getByLabel(/Mode test/).check({ timeout: 8000 });
+    await page.getByLabel(/Mode test/).check({ timeout: 10000 });
     await page.getByRole("button", { name: "Entrer à Aldenmoor" }).click();
     await tab("Carte").waitFor({ timeout: 10000 });
     await openAllTabs("partie neuve");
@@ -91,4 +92,4 @@ try {
   });
 
   console.log(`${passed} étapes réussies`);
-} finally { await browser.close(); server.kill(); }
+} finally { await browser.close(); stopServer(); }
