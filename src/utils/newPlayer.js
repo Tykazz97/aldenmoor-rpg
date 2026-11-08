@@ -41,3 +41,23 @@ export function createPlayer({ name, classKey, gender = "m", testMode = false })
     professions: emptyProfessions(PROFESSION_ORDER),
   };
 }
+
+// Remet d'aplomb une sauvegarde ancienne ou abîmée : tout champ absent ou du mauvais type reprend sa valeur de départ.
+// Ne retire rien et ne touche pas aux champs valides (une sauvegarde saine ressort identique).
+export function repairPlayer(p) {
+  if (!p || typeof p !== "object") return p;
+  const fresh = createPlayer({ name: p.name, classKey: p.classKey, gender: p.gender });
+  const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
+  const out = { ...p };
+  for (const k of ["level", "xp", "baseHp", "hp", "caracPoints", "gold"]) if (typeof out[k] !== "number" || Number.isNaN(out[k])) out[k] = fresh[k];
+  if (!Array.isArray(out.inventory)) out.inventory = [];
+  out.inventory = out.inventory.filter((it) => it && typeof it === "object" && it.id);
+  for (const k of ["resources", "caracs", "equipped", "bank", "professions"]) if (!isObj(out[k])) out[k] = fresh[k];
+  out.caracs = { ...fresh.caracs, ...out.caracs };
+  out.equipped = { ...EMPTY_EQUIPPED, ...out.equipped };
+  out.professions = { ...fresh.professions, ...out.professions };
+  out.bank = { ...fresh.bank, ...out.bank };
+  if (!Array.isArray(out.bank.items)) out.bank = { ...out.bank, items: [] };
+  if (!isObj(out.bank.resources)) out.bank = { ...out.bank, resources: {} };
+  return out;
+}

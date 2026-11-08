@@ -365,7 +365,7 @@ export function tickMarket(m, now = Date.now(), { maxSteps = Infinity } = {}) {
   return s;
 }
 // Le marché a-t-il du retard sur l'heure (un rattrapage par tranches est en cours) ?
-export const marketBehind = (m, now = Date.now()) => !!m && m.v === 2 && m.bucket < bucketOf(now);
+export const marketBehind = (m, now = Date.now()) => !!m && m.v === 2 && Number.isFinite(m.bucket) && m.bucket < bucketOf(now);
 
 // Marché neuf : on rejoue 24 h pour avoir déjà des annonces et un historique à afficher
 export function newMarket(now = Date.now()) {
@@ -376,7 +376,21 @@ export function newMarket(now = Date.now()) {
 }
 
 // Le marché du joueur mis à jour jusqu'à maintenant (sans modifier le joueur). Un ancien marché (v1) est remplacé.
-export const marketOf = (player, now = Date.now(), opts = {}) => (player.market?.v === 2 ? tickMarket(player.market, now, opts) : newMarket(now));
+export const marketOf = (player, now = Date.now(), opts = {}) => (isMarket(player.market) ? tickMarket(repairMarket(player.market), now, opts) : newMarket(now));
+
+// Un marché v2 est reconnu à sa version et à son heure ; le reste (stocks, historiques, annonces…) est complété s'il manque (sauvegarde abîmée ou ancienne)
+const isMarket = (m) => !!m && m.v === 2 && Number.isFinite(m.bucket);
+const isObj = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+function repairMarket(m) {
+  const okStock = isObj(m.stock) && RESOURCE_ORDER.every((id) => Number.isFinite(m.stock[id]));
+  const okHist = isObj(m.hist) && RESOURCE_ORDER.every((id) => Array.isArray(m.hist[id]));
+  if (okStock && okHist && Array.isArray(m.listings) && Array.isArray(m.returns) && Array.isArray(m.sales) && Number.isFinite(m.nextId) && Number.isFinite(m.proceeds)) return m;
+  const stock = { ...(isObj(m.stock) ? m.stock : {}) }, hist = { ...(isObj(m.hist) ? m.hist : {}) };
+  for (const id of RESOURCE_ORDER) { if (!Number.isFinite(stock[id])) stock[id] = targetStock(id); if (!Array.isArray(hist[id])) hist[id] = []; }
+  const listings = Array.isArray(m.listings) ? m.listings.filter((l) => l && typeof l === "object") : [];
+  const nextId = Number.isFinite(m.nextId) ? m.nextId : 1 + listings.reduce((n, l) => Math.max(n, Number(l.id) || 0), 0);
+  return { ...m, stock, hist, listings, nextId, proceeds: Number.isFinite(m.proceeds) ? m.proceeds : 0, returns: Array.isArray(m.returns) ? m.returns : [], sales: Array.isArray(m.sales) ? m.sales : [] };
+}
 
 // ============================================================
 // Lecture du marché

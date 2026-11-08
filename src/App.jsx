@@ -13,7 +13,7 @@ import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
-import { createPlayer } from "./utils/newPlayer.js";
+import { createPlayer, repairPlayer } from "./utils/newPlayer.js";
 import { SIM_MARKET } from "./sim/config.js";
 import { enableSimMarket, marketOf, marketBehind, CATCHUP_SLICE } from "./utils/market.js";
 import { loadSave, writeSave, flushSave, clearSave, exportSave, parseSave } from "./utils/save.js";
@@ -38,7 +38,7 @@ export default function App() {
   const [gameKey, setGameKey] = useState(0);
   useEffect(() => {
     let on = true;
-    loadSave().then((d) => { if (on) setSave(d); }, () => { if (on) setSave(null); });
+    loadSave().then((d) => { if (on) setSave(d && { ...d, player: repairPlayer(d.player) }); }, () => { if (on) setSave(null); });
     return () => { on = false; };
   }, []);
 
@@ -49,7 +49,7 @@ export default function App() {
     return (
       <CharacterCreator
         onCreate={(opts) => start({ player: createPlayer(opts), world: initialWorld() })}
-        onImport={(text) => { const d = parseSave(text); if (d) start(d); else window.alert("Fichier de sauvegarde invalide."); }}
+        onImport={(text) => { const d = parseSave(text); if (d) start({ ...d, player: repairPlayer(d.player) }); else window.alert("Fichier de sauvegarde invalide."); }}
       />
     );
   }
