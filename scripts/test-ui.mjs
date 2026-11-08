@@ -97,6 +97,8 @@ try {
 
   await step("Atelier : on améliore une pièce portée (+1) avec éclat brut, ressource de classe et or ; la taxe est inscrite", async () => {
     await tab("Atelier").click(); await page.waitForTimeout(250);
+    assert.equal(await page.locator("[data-upgrade]").count(), 0, "l'amélioration n'encombre plus les écrans de métiers");
+    await page.locator("[data-upgrade-tab]").click(); await page.waitForTimeout(250);
     assert.ok(await page.locator("[data-upgrade]").isVisible(), "panneau d'amélioration");
     const btn = page.locator("[data-upgrade-row]:not([data-upgrade-row=bag]) [data-upgrade-btn]:not([disabled])").first();
     assert.equal(await btn.count(), 1, "une amélioration est possible avec les ressources de test");

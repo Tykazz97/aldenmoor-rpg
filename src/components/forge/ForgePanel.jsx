@@ -12,6 +12,9 @@ import { canCraft, canRefine, maxRefine, canBrew, maxBrew, professionOf } from "
 import { perkLines, isMasterwork } from "../../utils/perks.js";
 import { itemStatLines } from "../../utils/itemText.js";
 import UpgradePanel from "./UpgradePanel.jsx";
+import { upgradablePieces, canUpgrade } from "../../utils/upgrade.js";
+
+const UPGRADE = "__upgrade__";     // section « Amélioration » de la colonne des métiers
 
 const RARITY_ITEM_COLOR = { commune: "#9a95a8", rare: "#5fa3c4", epique: "#a855f7", legendaire: "#d9b568" };
 
@@ -218,7 +221,10 @@ function NodeCard({ node, level }) {
 
 export default function ForgePanel({ player, city = { key: "aldenmoor", name: "Aldenmoor", rate: 0.01 }, onCraft, onRefine, onBrew, onUpgrade, onTestResources, onTestGold }) {
   const fx = { rate: city.rate, city: city.key };                    // la taxe de la ville où l'on fabrique
-  const [selected, setSelected] = useState(PROFESSION_ORDER[0]);
+  const [choice, setChoice] = useState(PROFESSION_ORDER[0]);
+  const upgrading = choice === UPGRADE && !!onUpgrade;
+  const selected = choice === UPGRADE ? PROFESSION_ORDER[0] : choice;        // le métier dont on affiche les recettes
+  const readyCount = onUpgrade ? upgradablePieces(player).filter((p) => p.slot && canUpgrade(player, p.ref, fx).ok).length : 0;
   const [flash, setFlash] = useState(null);
   const timer = useRef(null);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -266,18 +272,41 @@ export default function ForgePanel({ player, city = { key: "aldenmoor", name: "A
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <BannerHeader icon="⚒" title="Métiers" />
         <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          {onUpgrade && (
+            <>
+              <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 0 }}>Équipement</div>
+              <button data-upgrade-tab onClick={() => setChoice(UPGRADE)}
+                style={{ width: "100%", textAlign: "left", padding: "10px 12px", background: upgrading ? color.panelRaised : color.panel, border: `1px solid ${upgrading ? color.gold : color.line}`, borderRadius: radius.md, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>✦</span>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: upgrading ? color.goldBright : color.parchment }}>Amélioration</span>
+                {readyCount > 0 && <span style={{ fontSize: 11, fontFamily: font.data, color: color.goldBright }}>{readyCount} prête{readyCount > 1 ? "s" : ""}</span>}
+              </button>
+            </>
+          )}
           {PROFESSION_ORDER.map((key, i) => {
             const k = PROFESSIONS[key].kind || "craft", prev = i > 0 ? PROFESSIONS[PROFESSION_ORDER[i - 1]].kind || "craft" : null;
             return (
               <React.Fragment key={key}>
-                {k !== prev && <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: i ? 6 : 0 }}>{{ craft: "Fabrication", gather: "Récolte", refine: "Raffinage" }[k]}</div>}
-                <ProfessionButton profession={PROFESSIONS[key]} state={professionOf(player, key)} selected={selected === key} onClick={() => setSelected(key)} />
+                {k !== prev && <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 6 }}>{{ craft: "Fabrication", gather: "Récolte", refine: "Raffinage" }[k]}</div>}
+                <ProfessionButton profession={PROFESSIONS[key]} state={professionOf(player, key)} selected={!upgrading && selected === key} onClick={() => setChoice(key)} />
               </React.Fragment>
             );
           })}
         </div>
       </div>
 
+      {upgrading ? (
+        <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <BannerHeader icon="✦" title="Amélioration de l'équipement" />
+          <div style={{ overflowY: "auto", paddingBottom: 12 }}>
+            <div data-city-tax style={{ margin: "8px 12px 0", padding: "6px 10px", fontSize: 12, color: color.parchmentDim, background: color.void, border, borderRadius: radius.sm }}>
+              Atelier de {city.name} · taxe de la ville <span style={{ fontFamily: font.data, color: color.goldBright }}>{String(Math.round(city.rate * 1000) / 10).replace(".", ",")} %</span> du prix de l'amélioration
+            </div>
+            <UpgradePanel player={player} city={city} onUpgrade={onUpgrade} />
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Recettes */}
       <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
         <BannerHeader icon={PROFESSIONS[selected].icon} title={PROFESSIONS[selected].name} right={gatherNodes ? `${gatherNodes.length} ressource${gatherNodes.length > 1 ? "s" : ""}` : refineIds ? `${refineIds.length} transformation${refineIds.length > 1 ? "s" : ""}` : brewIds ? `${brewIds.length} potion${brewIds.length > 1 ? "s" : ""}` : `${recipes.length} recette${recipes.length > 1 ? "s" : ""}`} />
@@ -286,7 +315,6 @@ export default function ForgePanel({ player, city = { key: "aldenmoor", name: "A
           Atelier de {city.name}{city.place ? ` (tu es en ${city.place})` : ""} · taxe de fabrication <span style={{ fontFamily: font.data, color: color.goldBright }}>{String(Math.round(city.rate * 1000) / 10).replace(".", ",")} %</span> du prix de ce que tu obtiens
           {!city.guild && <span style={{ color: color.mist }}> · aucune guilde ne contrôle encore la ville : taux par défaut</span>}
         </div>
-        {onUpgrade && <UpgradePanel player={player} city={city} onUpgrade={onUpgrade} />}
         <div data-perks style={{ margin: "8px 12px 0", padding: "8px 10px", background: color.void, border, borderRadius: radius.sm, display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 10, color: color.mist, textTransform: "uppercase", letterSpacing: "0.08em" }}>Avantages du niveau {professionOf(player, selected).level}</div>
           {perkLines(selected, professionOf(player, selected).level, MAX_PROFESSION_LEVEL).map((l) => (
@@ -311,6 +339,8 @@ export default function ForgePanel({ player, city = { key: "aldenmoor", name: "A
           ))}
         </div>
       </div>
+      </>
+      )}
 
       {/* Ressources + outils de test */}
       <div style={{ display: "flex", flexDirection: "column", gap: 20, minHeight: 0 }}>
