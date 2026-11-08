@@ -79,15 +79,16 @@ export function rollGather(level, professionKey, baseQty, rng = Math.random) {
 export const harvestDuration = (level, professionKey, baseMs) => Math.round(baseMs * perksFor(professionKey, level).speed);
 
 // Raffinage : nombre d'unités bonus sur `times` unités produites
-export function rollRefineBonus(level, professionKey, times, rng = Math.random) {
-  const p = perksFor(professionKey, level).bonus;
+// `guildPct` : points de pourcentage en plus (bonus de guilde)
+export function rollRefineBonus(level, professionKey, times, rng = Math.random, guildPct = 0) {
+  const p = (perksFor(professionKey, level).bonus || 0) + guildPct / 100;
   let extra = 0;
   for (let i = 0; i < times; i++) if (rng() < p) extra++;
   return extra;
 }
 
 // Fabrication : l'objet est-il un chef-d'œuvre ?
-export const rollMasterwork = (level, professionKey, rng = Math.random) => rng() < (perksFor(professionKey, level).masterwork || 0);
+export const rollMasterwork = (level, professionKey, rng = Math.random, extra = 0) => rng() < (perksFor(professionKey, level).masterwork || 0) + (perksFor(professionKey, level).masterwork !== undefined ? extra / 100 : 0);
 // Bricoleur : les ressources de la clé sont-elles épargnées (l'or est dépensé quand même) ?
 export const rollSavedMaterials = (level, professionKey, rng = Math.random) => rng() < (perksFor(professionKey, level).saved || 0);
 

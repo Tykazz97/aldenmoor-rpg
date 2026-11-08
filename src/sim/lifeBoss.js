@@ -24,7 +24,8 @@ export const FRIENDS_AVAILABLE = 0.7;            // chance de trouver deux amis 
 
 export const bossOf = (life) => life.boss || (life.boss = { last: {}, kills: {}, deaths: 0, groupKills: 0 });
 export const reachableBosses = (life) => BOSSES.filter((b) => life.level >= b.rec);
-export const rollDrop = (life, bot, def, mult, rng, acquire) => {
+export const rollDrop = (life, bot, def, mult0, rng, acquire) => {
+  const mult = mult0 * (1 + (life.gb?.drop || 0) / 100);          // + butin de guilde
   for (const d of def.drops || []) {
     if (d.forClass && d.forClass !== bot.classKey) continue;
     if (rng() >= Math.min(1, d.fixed ? d.chance : d.chance * mult)) continue;

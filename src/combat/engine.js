@@ -75,6 +75,7 @@ function makeHero({ id, name, stats, weaponType = null, classKey = null, level =
       esquive: stats.esquive, critique: stats.critique, vitesse: stats.vitesse, // vitesse = initiative
     },
     dropBonus: stats.dropBonus || 0,
+    xpBonus: stats.xpBonus || 0,                // xp de personnage de la guilde (points de %)
     pa: 0,
     paMax: PA_MAX + paBonus,
     effects: [],
@@ -344,6 +345,7 @@ function rollRewards(s) {
       }
     }
   }
+  if (s.player.xpBonus) rewards.xp = Math.round(rewards.xp * (1 + s.player.xpBonus / 100));   // bonus d'xp de guilde sur le total
   return rewards;
 }
 

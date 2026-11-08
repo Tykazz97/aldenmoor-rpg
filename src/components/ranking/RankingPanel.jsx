@@ -30,6 +30,8 @@ export default function RankingPanel({ player }) {
   const sims = player?.market?.sims;
   const rows = useMemo(() => buildRanking(player, getLivePopulation(player)), [sims, player.level, player.xp, player.gold, player.professions, player.playSec, player.name]);   // eslint-disable-line react-hooks/exhaustive-deps
   const total = rows.length;
+  const guilds = sims?.guilds;
+  const guildTag = (r) => { const g = guilds?.byId?.[guilds?.of?.[r.isMe ? "player" : r.id]]; return g ? g.tag : null; };
   const m = metier || null;
   const globalRank = useMemo(() => ranksFor(rows, sort, m), [rows, sort, m]);
   const mine = rows.find((r) => r.isMe);
@@ -51,7 +53,7 @@ export default function RankingPanel({ player }) {
       <div data-rank-row={r.id} data-me={r.isMe ? "1" : undefined} style={{ display: "grid", gridTemplateColumns: GRID, gap: 10, alignItems: "center", padding: "7px 14px", background: r.isMe ? "#2a2412" : "transparent", borderBottom: `1px solid ${color.panelRaised}`, boxShadow: r.isMe ? `inset 3px 0 0 ${color.goldBright}` : "none" }}>
         <div style={{ fontFamily: font.data, fontSize: 13, color: rank <= 3 ? color.goldBright : color.parchmentDim }}>{MEDAL[rank] || rank}</div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: r.isMe ? color.goldBright : color.parchment, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}{r.isMe && <span style={{ fontSize: 10, color: color.goldBright, marginLeft: 6 }}>(toi)</span>}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: r.isMe ? color.goldBright : color.parchment, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{guildTag(r) && <span data-rank-guild style={{ fontFamily: font.data, fontSize: 10.5, color: color.gold, marginRight: 6 }}>[{guildTag(r)}]</span>}{r.name}{r.isMe && <span style={{ fontSize: 10, color: color.goldBright, marginLeft: 6 }}>(toi)</span>}</div>
           <div style={{ fontSize: 10.5, color: color.mist }}>{classIcon(r.classKey)} {classLabel(r.classKey)}</div>
         </div>
         <div style={{ fontFamily: font.data, fontSize: 13, textAlign: "right", color: sort === "niveau" ? color.goldBright : color.parchment }}>{r.level}</div>

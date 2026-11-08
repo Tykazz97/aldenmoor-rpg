@@ -1,6 +1,7 @@
 import { applyCaracEffects } from "../data/caracs.js";
 import { calcSetBonuses } from "../data/items.js";
 import { plusFactor } from "./upgrade.js";
+import { guildBonusOf } from "./guildBonus.js";
 
 // ============================================================
 // Calcule les stats finales d'un joueur = base + caracs + équipement
@@ -20,6 +21,7 @@ const EQUIP_STAT_KEYS = [
 ];
 
 export function calcStats(player) {
+  const guild = guildBonusOf(player);
   const caracBonus = applyCaracEffects(player.caracs || {});
 
   // Passifs des reliques (ex. lastStand : un coup fatal laisse X% des PV, une fois par combat)
@@ -52,7 +54,8 @@ export function calcStats(player) {
     maxHp: (player.baseHp || 100) + (caracBonus.maxHpBonus || 0) + equip.hp + setBonus.hp,
     esquive: Math.min(75, (caracBonus.esquive || 0) + equip.esquive + setBonus.esquive),
     critique: Math.min(75, (caracBonus.critique || 0) + equip.critique + setBonus.critique),
-    dropBonus: (caracBonus.dropBonus || 0) + equip.dropBonus,
+    dropBonus: (caracBonus.dropBonus || 0) + equip.dropBonus + guild.drop,        // + butin de guilde
+    xpBonus: guild.xp,                                                             // xp de personnage de la guilde (points de %)
     vitesse: (caracBonus.vitesse || 10) + equip.vitesse,
     paMax: 6 + (passives.paBonus || 0), // base fixe (+ relique de la Dame en Deuil), non modifiable par caracs pour l'instant
     passives,

@@ -11,6 +11,8 @@ import MarketPanel from "./components/city/MarketPanel.jsx";
 import QuestPanel from "./components/city/QuestPanel.jsx";
 import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
 import RankingPanel from "./components/ranking/RankingPanel.jsx";
+import GuildPanel from "./components/guild/GuildPanel.jsx";
+import { syncPlayerGuild } from "./utils/guildActions.js";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
@@ -30,6 +32,7 @@ const TAB_TITLES = {
   journal: "Journal de quêtes",
   bestiaire: "Bestiaire",
   classement: "Classement",
+  guilde: "Guilde",
 };
 
 // Sans sauvegarde : création du personnage. Avec : le jeu, sauvegardé automatiquement.
@@ -65,7 +68,7 @@ function Game({ initial, onNewCharacter }) {
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
-  const advanceMarket = useCallback(() => setPlayer((p) => { const m = marketOf(p, Date.now(), { maxSteps: CATCHUP_SLICE }); return m === p.market ? p : { ...p, market: m }; }), [setPlayer]);
+  const advanceMarket = useCallback(() => setPlayer((p) => { const m = marketOf(p, Date.now(), { maxSteps: CATCHUP_SLICE }); return syncPlayerGuild(m === p.market ? p : { ...p, market: m }); }), [setPlayer]);   // + ton activité compte pour les quêtes de ta guilde
   useEffect(() => {
     advanceMarket();
     const id = setInterval(advanceMarket, 60000);
@@ -187,7 +190,8 @@ function Game({ initial, onNewCharacter }) {
       )}
       {activeTab === "bestiaire" && <BestiaryPanel player={player} stats={stats} />}
       {activeTab === "classement" && <RankingPanel player={player} />}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab === "guilde" && <GuildPanel player={player} onPlayerChange={setPlayer} />}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && activeTab !== "guilde" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }

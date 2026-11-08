@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { key: "journal", label: "Journal", icon: "📜" },
   { key: "bestiaire", label: "Bestiaire", icon: "🐺" },
   { key: "classement", label: "Classement", icon: "🏆" },
+  { key: "guilde", label: "Guilde", icon: "🏰" },
 ];
 
 export default function SideNav({ active, onChange }) {

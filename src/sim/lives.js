@@ -31,6 +31,7 @@ import { wantsPotions, brewStep, BREW_CHANCE } from "./lifePotions.js";
 import { emptyQuests, bump, questStep, huntTarget } from "./lifeQuests.js";
 import { upgradeStep } from "./lifeUpgrade.js";
 import { rollRareFind } from "../utils/perks.js";
+import { withBonus } from "../utils/guildBonus.js";
 
 export const STEP_MS = 10 * 60 * 1000;                 // un pas de simulation = 10 minutes
 export const MAX_CATCHUP_STEPS = 7 * 144;              // au plus 7 jours rejoués à la fois
@@ -142,9 +143,10 @@ const bestNode = (profKey, level) => Object.values(NODES).filter((n) => n.profes
 
 // Les drops d'un monstre vaincu vont dans le sac (équipement : seulement celui de sa classe)
 export function rollDrops(life, bot, enemy, rng) {
+  const dm = 1 + (life.gb?.drop || 0) / 100;                     // butin de guilde
   for (const d of enemy.drops || []) {
     if (d.forClass && d.forClass !== bot.classKey) continue;
-    if (rng() >= d.chance) continue;
+    if (rng() >= (dm > 1 && !d.fixed ? Math.min(1, d.chance * dm) : d.chance)) continue;
     const qty = rng.int(d.min, d.max);
     if (d.type === "resource") life.bag.res[d.id] = (life.bag.res[d.id] || 0) + qty;
     else for (let i = 0; i < qty; i++) acquireItem(life, d.id);
@@ -157,13 +159,15 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
   life.played = (life.played || 0) + 1;                          // pas de 10 minutes passés en jeu (affiché en heures au classement)
   const rng = makeRng(hashString(`${bot.id}:${step}`));
   const share = shareOf(bot, traits);
+  const gb = life.gb || null;                                    // bonus de guilde (voir sim/guilds.js)
+  const gx = 1 + (gb?.xp || 0) / 100;                            // xp de personnage
   const roll = rng();
   if (roll < share.fight) {
     const region = regionFor(life.level);
     const hunt0 = huntTarget(life);
     const bossTry = rng() < (hunt0 && ENEMIES[hunt0]?.miniBoss ? 0.9 : BOSS_CHANCE);
-    if (life.level >= 20 && rng() < (traits.focus === "xp" ? DUNGEON_CHANCE * 2 : DUNGEON_CHANCE) && dungeonStep(life, bot, step, rng, { acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
-    if (bossTry && bossStep(life, bot, step, rng, { hunt: hunt0, acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
+    if (life.level >= 20 && rng() < (traits.focus === "xp" ? DUNGEON_CHANCE * 2 : DUNGEON_CHANCE) && dungeonStep(life, bot, step, rng, { acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) * gx })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
+    if (bossTry && bossStep(life, bot, step, rng, { hunt: hunt0, acquire: acquireItem, addXp, xpMult: overlevelMult(life.level) * gx })) { bankStep(life); sellSurplus(life, opts.keep); return life; }
     const n = Math.floor(FIGHTS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());   // arrondi au hasard : 0,4 combat = 4 chances sur 10 d'en faire un
     const mult = overlevelMult(life.level);
     let xp = 0, gold = 0;
@@ -174,14 +178,14 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
     }
     life.kills += n;
     life.gold += Math.round(gold);
-    addXp(life, Math.round(xp * mult));
+    addXp(life, Math.round(xp * mult * gx));
   } else if (roll < share.fight + share.gather) {
     const n = Math.floor(GATHERS_PER_STEP * traits.diligence * (0.6 + rng() * 0.8) + rng());
     const node = bestNode(life.prof.key, life.prof.level);
     if (node) {
-      life.gathers += n; addProfXp(life.prof, n * node.xp);
+      life.gathers += n; addProfXp(life.prof, gb?.mxp ? withBonus(n * node.xp, gb.mxp, rng) : n * node.xp);
       for (let i = 0; i < n; i++) {
-        const q = rng.int(node.yield[0], node.yield[1]); life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + q; bump(life, "gathered", node.resource, q);
+        let q = rng.int(node.yield[0], node.yield[1]); if (gb?.harv) q = withBonus(q, gb.harv, rng); life.bag.res[node.resource] = (life.bag.res[node.resource] || 0) + q; bump(life, "gathered", node.resource, q);
         const rare = rollRareFind(life.prof.level, life.prof.key, rng);          // ressource rare d'une classe, trouvée en récoltant (data/upgrade.js)
         if (rare) life.bag.res[rare] = (life.bag.res[rare] || 0) + 1;
       }

@@ -11,6 +11,7 @@ import { ALCHEMY } from "../data/alchemy.js";
 import { recordCraft } from "./counters.js";
 import { craftFee, unitFee, recordTax } from "./cityTax.js";
 import { rollRefineBonus, rollMasterwork, rollSavedMaterials, makeMasterwork } from "./perks.js";
+import { guildBonusOf, withBonus } from "./guildBonus.js";
 
 // État d'un métier (les saves d'avant les métiers de raffinage n'ont pas ces métiers : niveau 1 par défaut)
 export const professionOf = (player, key) => player.professions?.[key] || { level: 1, xp: 0 };
@@ -67,8 +68,9 @@ export function applyCraft(player, itemId, uid, rng = Math.random, opts = {}) {
   const recipe = RECIPES[itemId];
   const info = getCraftInfo(itemId);
 
+  const gb = opts.gb || guildBonusOf(player);                   // bonus de guilde (xp de métier, chef-d'œuvre)
   const level = professionOf(player, info.profession).level;
-  const masterwork = rollMasterwork(level, info.profession, rng);
+  const masterwork = rollMasterwork(level, info.profession, rng, gb.craft);
   const saved = rollSavedMaterials(level, info.profession, rng);
   const resources = { ...player.resources };
   if (!saved) {
@@ -85,7 +87,7 @@ export function applyCraft(player, itemId, uid, rng = Math.random, opts = {}) {
     inventory: [...player.inventory, { ...(masterwork ? makeMasterwork(ITEMS[itemId]) : ITEMS[itemId]), uid }],
     professions: {
       ...player.professions,
-      [info.profession]: gainProfessionXp(professionOf(player, info.profession), info.xp),
+      [info.profession]: gainProfessionXp(professionOf(player, info.profession), withBonus(info.xp, gb.mxp, rng)),
     },
   }, opts.city, check.fee), itemId);
 }
@@ -132,9 +134,10 @@ export function applyRefine(player, id, times = 1, rng = Math.random, opts = {})
   const rec = REFINING[id];
   const resources = { ...player.resources };
   for (const [r, q] of Object.entries(rec.ingredients)) { resources[r] -= q * n; if (resources[r] <= 0) delete resources[r]; }
-  const bonus = rollRefineBonus(professionOf(player, rec.profession).level, rec.profession, n, rng);
+  const gb = opts.gb || guildBonusOf(player);                   // bonus de guilde (rendement, xp de métier)
+  const bonus = rollRefineBonus(professionOf(player, rec.profession).level, rec.profession, n, rng, gb.refine);
   resources[id] = (resources[id] || 0) + n + bonus;
-  const prof = gainProfessionXp(professionOf(player, rec.profession), rec.xp * n);
+  const prof = gainProfessionXp(professionOf(player, rec.profession), withBonus(rec.xp * n, gb.mxp, rng));
   return { made: n + bonus, bonus, player: recordTax({ ...player, gold: player.gold - fee, resources, professions: { ...player.professions, [rec.profession]: prof } }, opts.city, fee) };
 }
 
@@ -168,8 +171,9 @@ export function applyBrew(player, id, times = 1, rng = Math.random, opts = {}) {
   const rec = ALCHEMY[id];
   const resources = { ...player.resources };
   for (const [r, q] of Object.entries(rec.ingredients)) { resources[r] -= q * n; if (resources[r] <= 0) delete resources[r]; }
-  const bonus = rollRefineBonus(professionOf(player, rec.profession).level, rec.profession, n, rng);
+  const gb = opts.gb || guildBonusOf(player);                   // bonus de guilde (rendement, xp de métier)
+  const bonus = rollRefineBonus(professionOf(player, rec.profession).level, rec.profession, n, rng, gb.refine);
   resources[id] = (resources[id] || 0) + n + bonus;
-  const prof = gainProfessionXp(professionOf(player, rec.profession), rec.xp * n);
+  const prof = gainProfessionXp(professionOf(player, rec.profession), withBonus(rec.xp * n, gb.mxp, rng));
   return { made: n + bonus, bonus, player: recordTax({ ...player, gold: player.gold - fee, resources, professions: { ...player.professions, [rec.profession]: prof } }, opts.city, fee) };
 }

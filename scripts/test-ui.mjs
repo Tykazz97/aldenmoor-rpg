@@ -52,7 +52,7 @@ try {
   });
 
   await step("tous les onglets s'ouvrent sans erreur", async () => {
-    for (const n of ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Bestiaire", "Classement", "Carte"]) {
+    for (const n of ["Personnage", "Atelier", "Coffre", "Marché", "Sac", "Journal", "Bestiaire", "Classement", "Guilde", "Carte"]) {
       await tab(n).click(); await page.waitForTimeout(250);
       assert.equal(await page.locator("button", { hasText: n }).first().isVisible(), true, n);
     }
@@ -174,8 +174,38 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("Guilde : fonder, verser à la caisse, parcourir les onglets, quitter", async () => {
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 30000; s.savedAt = Date.now() + 2000; return s; })());
+    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-guilde")) { sessionStorage.setItem("ui-guilde", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
+    await page.reload(); await page.waitForTimeout(800);
+    await tab("Guilde").click();
+    await page.locator("[data-gd-create-name]").waitFor({ timeout: 20000 });
+    assert.ok(await page.locator("[data-guild]").isVisible(), "écran des guildes");
+    await page.locator("[data-gd-create-name]").fill("Les Veilleurs de Test");
+    await page.locator("[data-gd-create]").click();
+    await page.locator("[data-gd-name]").waitFor({ timeout: 5000 });
+    assert.match(await page.locator("[data-gd-name]").innerText(), /Les Veilleurs de Test/);
+    assert.equal((await page.locator("[data-gd-level]").innerText()).trim(), "1");
+    assert.equal(await page.locator("[data-gd-quest]").count(), 3, "trois quêtes en cours");
+    await page.locator("[data-gd-donate-amount]").fill("500");
+    await page.locator("[data-gd-donate]").click(); await page.waitForTimeout(200);
+    assert.match((await page.locator("[data-gd-treasury]").innerText()).replace(/\s/g, ""), /^500$/, "500 or dans la caisse");
+    await page.locator('[data-gd-tab="paliers"]').click();
+    assert.equal(await page.locator("[data-gd-pal]").count(), 10, "dix paliers");
+    assert.equal(await page.locator('[data-gd-pal="1"]').getAttribute("data-state"), "next");
+    await page.locator('[data-gd-tab="coffre"]').click();
+    assert.ok(await page.locator("[data-gd-vault]").isVisible(), "coffre de guilde");
+    assert.equal(await page.locator("[data-gd-vtab]").count(), 6, "six onglets (un seul acheté)");
+    await page.locator('[data-gd-tab="membres"]').click();
+    assert.equal(await page.locator("[data-gd-member]").count(), 1, "je suis seul");
+    await page.locator("[data-gd-leave]").click();
+    await page.locator("[data-gd-leave-confirm]").click(); await page.waitForTimeout(300);
+    assert.ok(await page.locator("[data-gd-create-name]").isVisible(), "retour à l'écran de fondation");
+    assert.deepEqual(errors, []);
+  });
+
   await step("grimoire : points de sort, montée de rang, barre de combat équipable", async () => {
-    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.level = 12; s.player.gold = 5000; return s; })());
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.level = 12; s.player.gold = 5000; s.savedAt = Date.now() + 2000; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-grimoire")) { sessionStorage.setItem("ui-grimoire", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
     await page.reload(); await page.waitForTimeout(800);
     await tab("Personnage").click(); await page.waitForTimeout(300);

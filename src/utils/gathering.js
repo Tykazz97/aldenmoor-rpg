@@ -6,6 +6,7 @@ import { NODES } from "../data/gathering.js";
 import { gainProfessionXp } from "./crafting.js";
 import { recordGather } from "./counters.js";
 import { rollGather as rollGatherPerks } from "./perks.js";
+import { guildBonusOf, withBonus } from "./guildBonus.js";
 
 export function canGather(player, nodeId) {
   const node = NODES[nodeId];
@@ -24,17 +25,20 @@ export function rollYield(node, rng = Math.random) {
 export function rollHarvest(player, nodeId, rng = Math.random) {
   const node = NODES[nodeId];
   const level = player.professions?.[node.profession]?.level ?? 1;
-  return rollGatherPerks(level, node.profession, rollYield(node, rng), rng);
+  const roll = rollGatherPerks(level, node.profession, rollYield(node, rng), rng);
+  const harv = guildBonusOf(player).harv;                          // rendement de récolte de la guilde
+  return harv > 0 ? { ...roll, qty: withBonus(roll.qty, harv, rng) } : roll;
 }
 
 // Applique une récolte : ajoute la ressource (et la trouvaille éventuelle) et l'xp de métier.
 // Renvoie le même joueur si le niveau est insuffisant.
-export function applyGather(player, nodeId, qty, find = null) {
+export function applyGather(player, nodeId, qty, find = null, rng = Math.random) {
   const check = canGather(player, nodeId);
   if (!check.ok) return { player, gained: null, xp: 0, levelUp: false };
   const node = NODES[nodeId];
   const prof = player.professions[node.profession];
-  const next = gainProfessionXp(prof, node.xp);
+  const xp = withBonus(node.xp, guildBonusOf(player).mxp, rng);   // xp de métier de la guilde
+  const next = gainProfessionXp(prof, xp);
   const resources = { ...player.resources, [node.resource]: (player.resources[node.resource] || 0) + qty };
   for (const [id, n] of Object.entries(find || {})) resources[id] = (resources[id] || 0) + n;
   let after = recordGather({ ...player, resources, professions: { ...player.professions, [node.profession]: next } }, node.resource, qty);
@@ -42,7 +46,7 @@ export function applyGather(player, nodeId, qty, find = null) {
   return {
     player: after,
     gained: { [node.resource]: qty, ...(find || {}) },
-    xp: node.xp,
+    xp,
     levelUp: next.level > prof.level,
   };
 }
