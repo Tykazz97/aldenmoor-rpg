@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./map.css";
 import Terrain from "./Terrain.jsx";
+import CityTerrain from "./CityTerrain.jsx";
 import Minimap from "./Minimap.jsx";
 import WorldMap from "./WorldMap.jsx";
 import CityCrowd from "./CityCrowd.jsx";
@@ -253,7 +254,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
       <div className="mp-stage">
         <div className="mp-map" ref={viewRef}>
           <div className="mp-world" ref={worldElRef} style={{ width: `calc(var(--tile) * ${W})`, height: `calc(var(--tile) * ${H})` }} onClick={onWorldClick}>
-            <Terrain map={map} />
+            {map.kind === "city" ? <CityTerrain map={map} /> : <Terrain map={map} />}
 
             {marker && <span key={marker.id} className="mp-marker" style={{ left: `calc(var(--tile) * ${marker.x})`, top: `calc(var(--tile) * ${marker.y})` }} />}
 

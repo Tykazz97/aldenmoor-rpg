@@ -209,3 +209,7 @@ Enchères à l'hôtel des ventes, vrais joueurs sur le même marché, joueurs si
 ## Textures et décors des cartes (Ludo)
 
 Les trois cartes de région n'utilisent plus d'aplats de couleur : le sol (herbe, terre) vient de textures qui se répètent sans couture (`public/assets/map/tex/`), et les arbres, rochers et arbres morts sont des sprites (`public/assets/map/deco/`), tous générés avec Ludo (style Illustration) puis assombris pour rester dans l'ambiance. Le thème de chaque région (`THEMES` dans `src/components/map/Terrain.jsx`) déclare ses textures (`tex`) et ses décors (`deco`) ; sans ces entrées, l'ancien dessin en SVG est utilisé. Le point d'entrée des villes et des autres cartes n'est pas touché.
+
+### La ville fortifiée
+
+Aldenmoor est dessinée par `src/components/map/CityTerrain.jsx` : remparts avec créneaux, tours d'angle et tours intermédiaires, trois portes (nord, ouest, est), sol pavé, place dallée autour de la fontaine, maisons dans les coins, tonneaux et charrettes. Textures et sprites Ludo dans `public/assets/map/citydeco/`. La grille de la ville (`buildCity` dans `maps.js`) n'a pas changé : mêmes obstacles, mêmes bâtiments, mêmes chemins pour le héros et les simulés.
