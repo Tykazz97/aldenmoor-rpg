@@ -354,6 +354,11 @@ export function tickMarket(m, now = Date.now(), { maxSteps = Infinity } = {}) {
     credits: { ...(m.credits || {}) },
     volume: (m.volume || []).map((d) => ({ ...d })),
   };
+  // un marché sauvegardé avant l'ajout d'une ressource n'a ni cours ni historique pour elle : on les crée
+  for (const id of RESOURCE_ORDER) {
+    if (!(id in s.stock) || !Number.isFinite(s.stock[id])) s.stock[id] = targetStock(id);
+    if (!Array.isArray(s.hist[id])) s.hist[id] = [];
+  }
   if (JOINT) s.sims = needSims ? createLives({ population: getPopulation(), mode: SIM_START.mode, epoch: SIM_START.epoch, now }) : structuredClone(m.sims);
   for (; b < end; b++) stepListings(s, b + 1);
   s.bucket = Math.max(end, m.bucket);

@@ -261,6 +261,18 @@ test("un ancien marché (v1) est remplacé sans perte de joueur", () => {
   assert.equal(marketOf({ ...base() }, T0).v, 2);                                          // aussi pour une vieille sauvegarde sans marché
 });
 
+test("un marché sauvegardé avant l'ajout d'une ressource continue de tourner (cours et historique créés)", () => {
+  const m = newMarket(T0);
+  const old = { ...m, stock: { ...m.stock }, hist: { ...m.hist } };
+  const lost = RESOURCE_ORDER.slice(-3);
+  for (const id of lost) { delete old.stock[id]; delete old.hist[id]; }
+  const later = tickMarket(old, T0 + 3 * HOUR);
+  for (const id of lost) {
+    assert.ok(Number.isFinite(later.stock[id]), `${id} : cours valide`);
+    assert.ok(Array.isArray(later.hist[id]) && later.hist[id].length >= 1, `${id} : historique`);
+  }
+});
+
 test("règle de taxe : 10 %, minimum 1 or, jamais tout le montant", () => {
   assert.equal(TAX_RATE, 0.1);
   assert.equal(saleTax(0), 0);
