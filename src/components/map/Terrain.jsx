@@ -12,18 +12,24 @@ const THEMES = {
     dirt: ["#5d4932", "#54432d", "#62503a"], water: ["#27475b", "#2f5266"],
     treeDark: ["#13221a", "#172a1c", "#1b2f20"], treeLight: ["#274a30", "#2d5636", "#24432c"], treeTop: "#3d7040",
     sun: "255,190,110", sunA: 0.34, flowers: ["#c9b458", "#b25a5a"],
+    tex: { ground: "/assets/map/tex/prairie_ground.webp", dirt: "/assets/map/tex/prairie_dirt.webp", size: 500 },   // textures Ludo (sinon : aplats de couleur)
+    deco: { tree: ["/assets/map/deco/tree_p1.webp", "/assets/map/deco/tree_p2.webp", "/assets/map/deco/tree_p3.webp"], rock: ["/assets/map/deco/rock_p1.webp", "/assets/map/deco/rock_p2.webp"], dead: ["/assets/map/deco/dead_1.webp", "/assets/map/deco/dead_2.webp"] },
   },
   calcine: {
     base: "#2b241f", grass: ["#302822", "#2d261f", "#352b24", "#2a231d", "#33291f"], blade: "#6b5238",
     dirt: ["#4a3a2c", "#3f3226", "#533f2e"], water: ["#2c3a35", "#34453e"],
     treeDark: ["#120d0b", "#17100d", "#1c140f"], treeLight: ["#3a2a20", "#43301f", "#33251c"], treeTop: "#5a3a22",
     sun: "255,120,60", sunA: 0.38, flowers: ["#d8742c", "#8a3b24"],
+    tex: { ground: "/assets/map/tex/calcine_ground.webp", dirt: "/assets/map/tex/calcine_dirt.webp", size: 700 },
+    deco: { tree: ["/assets/map/deco/tree_c1.webp", "/assets/map/deco/tree_c2.webp", "/assets/map/deco/tree_c3.webp"], rock: ["/assets/map/deco/rock_c1.webp", "/assets/map/deco/rock_c2.webp"], dead: ["/assets/map/deco/dead_1.webp", "/assets/map/deco/dead_2.webp"] },
   },
   lisiere: {
     base: "#1d2629", grass: ["#1f292b", "#1c2528", "#222d2f", "#1a2326", "#20292e"], blade: "#3f5a5c",
     dirt: ["#3a3140", "#322a38", "#41374a"], water: ["#1f2f4a", "#273a5a"],
     treeDark: ["#0e1418", "#10171d", "#131b22"], treeLight: ["#233a3d", "#2a3f4a", "#25344a"], treeTop: "#4b4a8a",
     sun: "150,110,255", sunA: 0.3, flowers: ["#9a7ae0", "#5fb5b0"],
+    tex: { ground: "/assets/map/tex/lisiere_ground.webp", dirt: "/assets/map/tex/lisiere_dirt.webp", size: 600 },
+    deco: { tree: ["/assets/map/deco/tree_l1.webp", "/assets/map/deco/tree_l2.webp", "/assets/map/deco/tree_l3.webp"], rock: ["/assets/map/deco/rock_l1.webp", "/assets/map/deco/rock_l2.webp"], dead: ["/assets/map/deco/dead_1.webp", "/assets/map/deco/dead_2.webp"] },
   },
 };
 
@@ -38,7 +44,20 @@ function rnd(x, y, k = 0) {
 }
 const pick = (arr, x, y, k) => arr[Math.floor(rnd(x, y, k) * arr.length)];
 
+// sprite posé « au sol » : boîte carrée de côté `size`, ancré en bas au centre
+const Sprite = ({ href, cx, base, size }) => (
+  <image href={href} x={cx - size / 2} y={base - size} width={size} height={size} preserveAspectRatio="xMidYMax meet" />
+);
+
 function Tree({ cx, cy, r, k, th }) {
+  if (th.deco) {
+    return (
+      <g>
+        <ellipse cx={cx} cy={cy + r * 0.95} rx={r * 0.8} ry={r * 0.26} fill="rgba(0,0,0,.45)" />
+        <Sprite href={th.deco.tree[k % th.deco.tree.length]} cx={cx} base={cy + r * 1.05} size={r * 3} />
+      </g>
+    );
+  }
   const dark = th.treeDark[k % 3], light = th.treeLight[k % 3];
   return (
     <g>
@@ -93,7 +112,7 @@ function Terrain({ map }) {
           </g>
         );
       }
-      if (t === ":") dirt.push(<rect key={`d${x},${y}`} x={px - 6} y={py - 6} width={T + 12} height={T + 12} rx="30" fill={pick(th.dirt, x, y, 2)} />);
+      if (t === ":") dirt.push(<rect key={`d${x},${y}`} x={px - 6} y={py - 6} width={T + 12} height={T + 12} rx="30" fill={th.tex?.dirt ? undefined : pick(th.dirt, x, y, 2)} />);
       if (t === "~") water.push(<rect key={`w${x},${y}`} x={px - 8} y={py - 8} width={T + 16} height={T + 16} rx="38" fill={pick(th.water, x, y, 3)} />);
       if (t === "~") decor.push(<ellipse key={`wl${x},${y}`} cx={px + 35 + rnd(x, y, 4) * 30} cy={py + 40 + rnd(x, y, 5) * 20} rx="22" ry="6" fill="rgba(180,220,240,.16)" />);
       if (t === "#") {
@@ -102,7 +121,14 @@ function Terrain({ map }) {
           trees.push({ y: py + 60 + i * 12 + rnd(x, y, 40 + i) * 30, node: <Tree key={`tr${x},${y},${i}`} cx={px + 18 + rnd(x, y, 50 + i) * 64} cy={py + 38 + rnd(x, y, 60 + i) * 46} r={44 + rnd(x, y, 70 + i) * 18} k={x + y + i} th={th} /> });
         }
       }
-      if (t === "r") {
+      if (t === "r" && th.deco) {
+        decor.push(
+          <g key={`r${x},${y}`}>
+            <ellipse cx={px + 50} cy={py + 84} rx="46" ry="11" fill="rgba(0,0,0,.4)" />
+            <Sprite href={pick(th.deco.rock, x, y, 8)} cx={px + 50} base={py + 88} size={126} />
+          </g>
+        );
+      } else if (t === "r") {
         decor.push(
           <g key={`r${x},${y}`}>
             <ellipse cx={px + 50} cy={py + 78} rx="44" ry="12" fill="rgba(0,0,0,.4)" />
@@ -112,7 +138,14 @@ function Terrain({ map }) {
           </g>
         );
       }
-      if (t === "T") {
+      if (t === "T" && th.deco) {
+        decor.push(
+          <g key={`dt${x},${y}`}>
+            <ellipse cx={px + 50} cy={py + 90} rx="30" ry="8" fill="rgba(0,0,0,.4)" />
+            <Sprite href={pick(th.deco.dead, x, y, 9)} cx={px + 50} base={py + 94} size={160} />
+          </g>
+        );
+      } else if (t === "T") {
         decor.push(
           <g key={`dt${x},${y}`} stroke="#120f18" strokeLinecap="round" fill="none">
             <ellipse cx={px + 50} cy={py + 88} rx="30" ry="8" fill="rgba(0,0,0,.4)" stroke="none" />
@@ -128,6 +161,9 @@ function Terrain({ map }) {
   return (
     <svg className="mp-terrain" viewBox={`0 0 ${W * T} ${H * T}`} preserveAspectRatio="none" aria-hidden="true">
       <defs>
+        {th.tex && Object.entries(th.tex).filter(([k]) => k !== "size").map(([k, href]) => (
+          <pattern key={k} id={`mp-tex-${k}`} width={th.tex.size} height={th.tex.size} patternUnits="userSpaceOnUse"><image href={href} width={th.tex.size} height={th.tex.size} preserveAspectRatio="none" /></pattern>
+        ))}
         <filter id="mp-rough" x="-5%" y="-5%" width="110%" height="110%">
           <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n" />
           <feDisplacementMap in="SourceGraphic" in2="n" scale="26" />
@@ -143,8 +179,9 @@ function Terrain({ map }) {
         </radialGradient>
       </defs>
       <rect width={W * T} height={H * T} fill={th.base} />
-      <g filter="url(#mp-blur)">{grass}</g>
-      <g filter="url(#mp-rough)">{dirt}</g>
+      {th.tex?.ground && <rect width={W * T} height={H * T} fill="url(#mp-tex-ground)" />}
+      <g filter="url(#mp-blur)" opacity={th.tex?.ground ? 0.35 : 1}>{grass}</g>
+      <g filter="url(#mp-rough)" fill={th.tex?.dirt ? "url(#mp-tex-dirt)" : undefined}>{dirt}</g>
       <g filter="url(#mp-rough)">{water}</g>
       <g>{pave}</g>
       <g>{decor}</g>

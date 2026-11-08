@@ -205,3 +205,7 @@ Le tableau de quêtes d'Aldenmoor (bâtiment de la ville) propose chaque jour un
 Étapes suivantes possibles : plus d'offre venant des simulés (moins du colporteur), le donjon du Manoir Englouti (il n'existe pas encore dans le jeu, donc ni pour toi ni pour eux), achats et ventes à l'hôtel des ventes, les inviter à te rejoindre en pleine carte, des vrais joueurs dans le groupe (serveur), l'IA des bots (parade, sorts de soutien).
 
 Enchères à l'hôtel des ventes, vrais joueurs sur le même marché, joueurs simulés dans les régions, groupes et guildes, régions 2 et 3, emplacements d'équipement restants.
+
+## Textures et décors des cartes (Ludo)
+
+Les trois cartes de région n'utilisent plus d'aplats de couleur : le sol (herbe, terre) vient de textures qui se répètent sans couture (`public/assets/map/tex/`), et les arbres, rochers et arbres morts sont des sprites (`public/assets/map/deco/`), tous générés avec Ludo (style Illustration) puis assombris pour rester dans l'ambiance. Le thème de chaque région (`THEMES` dans `src/components/map/Terrain.jsx`) déclare ses textures (`tex`) et ses décors (`deco`) ; sans ces entrées, l'ancien dessin en SVG est utilisé. Le point d'entrée des villes et des autres cartes n'est pas touché.
