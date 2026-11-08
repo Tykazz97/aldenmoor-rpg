@@ -407,7 +407,7 @@ for (const base of Object.values(ENEMIES).filter((e) => e.dungeon)) {
     hard.phases = base.phases.map((ph) => ({ ...ph, atkMult: 1.4, announce: "Le rituel atteint son comble : la Dame ne retient plus rien !" }));
     hard.desc = `${base.desc} Version difficile : plus de vie, plus de dégâts, un sort de plus et une seconde phase plus brutale.`;
     hard.drops = [
-      ...hard.drops.filter((d) => d.id !== "essence_de_deuil" && d.id !== "larme_de_deuil"),
+      ...hard.drops.filter((d) => d.id !== "essence_de_deuil" && d.id !== "larme_de_deuil" && d.id !== base.drops.find((x) => x.type === "item")?.id),   // le Médaillon de base reste au donjon normal
       { type: "resource", id: "essence_de_deuil", chance: 1, min: 2, max: 3 },
       { type: "resource", id: "larme_de_deuil", chance: 1, min: 3, max: 6 },
       { type: "item", id: "medaillon_veuvage_eternel", chance: 0.003, fixed: true, min: 1, max: 1 },

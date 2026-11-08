@@ -65,6 +65,8 @@ test("butin : éclats purs garantis (3 à 5) sur le boss, 25 % sur les autres ; 
   const rel = boss.drops.find((d) => d.id === "medaillon_veuvage_eternel");
   assert.equal(rel.chance, 0.003); assert.equal(rel.fixed, true);
   assert.ok(!ENEMIES.dame_en_deuil.drops.some((d) => d.id === "medaillon_veuvage_eternel"), "la relique supérieure n'est que du donjon difficile");
+  assert.ok(ENEMIES.dame_en_deuil.drops.some((d) => d.id === "medaillon_dame_en_deuil"), "et le Médaillon de base reste dans le donjon normal");
+  assert.ok(!boss.drops.some((d) => d.id === "medaillon_dame_en_deuil"), "mais ne tombe plus dans le difficile");
   assert.ok(dungeonDrops(hard, "guerrier").some((d) => d.id === "medaillon_veuvage_eternel"), "visible sur la fiche d'entrée");
   assert.ok(boss.drops.find((d) => d.id === "essence_de_deuil").min >= 2);
 });

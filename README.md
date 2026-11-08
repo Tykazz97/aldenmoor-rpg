@@ -148,7 +148,7 @@ Une pièce améliorée se revend plus cher (+50 % de sa valeur par niveau). C'es
 Même manoir (mêmes salles, décors et visuels), choisi par le bouton **Difficile** de la fiche d'entrée. Les monstres (`<clé>_difficile`, générés dans `data/zones.js` à partir des normaux avec `HARD_MULT`) ont 70 % de PV, 50 % d'attaque et 25 % de défense en plus, et rapportent 60 % d'xp et 50 % d'or de plus ; la Dame en Deuil gagne un sort (Requiem funèbre) et une seconde phase à +40 %. Niveau conseillé : 26 et plus.
 - **Clé** (`cle_du_manoir_difficile`, Bricoleur niveau 5) : 2 essences de deuil (le rare du boss du donjon normal), 6 larmes de deuil, 12 lingots de fer, 6 de cuivre, 10 ectoplasmes, plus la taxe de la ville.
 - **Éclats purs** : 3 à 5 garantis sur le boss, 25 % sur chaque autre monstre (10 % au normal).
-- **Médaillon du Veuvage éternel** : 0,3 % exactement sur le boss. +1 PA, +15 % de dommages finaux, 4 % de vol de vie et +10 % de butin ; il prend l'emplacement de relique, donc il remplace le Médaillon de la Dame au lieu de s'y ajouter.
+- **Médaillon du Veuvage éternel** : 0,3 % exactement sur le boss. +1 PA, +15 % de dommages finaux, 4 % de vol de vie et +10 % de butin ; il prend l'emplacement de relique (un seul), donc on peut posséder les deux Médaillons mais en porter un seul. Le Médaillon de base ne tombe que dans le donjon normal, l'éternel que dans le difficile.
 Simulés (`sim/lifeDungeon.js`, état `life.djh`) : ils visent la clé difficile après un premier donjon normal réussi et à partir du niveau 26, avec l'essence de deuil gagnée par eux ; ils tentent d'abord la difficile (si leurs chances mesurées dépassent 30 %), sinon la normale. Les deux donjons partagent le repos de deux jours.
 
 ## Taxe de fabrication des villes
