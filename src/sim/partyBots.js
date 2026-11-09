@@ -12,6 +12,7 @@ import { calcStats } from "../utils/calcStats.js";
 import { buildSpellBar, rankUp, spellPointsLeft, rankCost } from "../utils/spellbook.js";
 import { makeRng, hashString } from "./rng.js";
 import { makePseudo } from "./names.js";
+import { plusBucket } from "./lifeUpgrade.js";
 
 export const PARTY_SIZE = 3;       // le joueur + 2 alliés
 
@@ -87,11 +88,11 @@ export function makeBotPlayer(classKey, level, gearIds = null, style = DEFAULT_B
 }
 
 // Ce que createCombat attend pour un allié : { name, stats, weaponType, classKey, level, spells } (+ look pour l'affichage)
-export function botSpec(classKey, level, { name, body = "m", look, gear: gearIds = null, style = DEFAULT_BUILD, plus = 0 } = {}) {
+export function botSpec(classKey, level, { name, body = "m", look, gear: gearIds = null, style = DEFAULT_BUILD, plus = 0, botId = null } = {}) {
   const player = makeBotPlayer(classKey, level, gearIds, style, plus);
   return {
     name: name || CLASSES[classKey].label,
-    classKey, level,
+    classKey, level, botId,                                    // botId : le simulé que ce personnage représente (null pour un allié générique)
     stats: calcStats(player),
     weaponType: BUILDS[classKey].wtype,
     spells: buildSpellBar(player),
@@ -127,7 +128,8 @@ export function companionCandidates(player, population, { max = COMPANION_LIST_M
 
 // Le groupe de combat : les compagnons choisis (ids de simulés), complétés par des alliés génériques des classes
 // absentes du groupe quand il en manque (jusqu'à 2 alliés). Un id inconnu est ignoré.
-export function buildAllies(player, companionIds = [], population = []) {
+// `fill` : false = seulement les vrais joueurs (le groupe permanent, voir utils/group.js) ; true = complété par des génériques (donjons)
+export function buildAllies(player, companionIds = [], population = [], { fill = true } = {}) {
   const byId = new Map(population.map((b) => [b.id, b]));
   const chosen = [];
   for (const id of companionIds || []) {
@@ -135,8 +137,8 @@ export function buildAllies(player, companionIds = [], population = []) {
     if (b && !chosen.includes(b)) chosen.push(b);
     if (chosen.length >= PARTY_SIZE - 1) break;
   }
-  const specs = chosen.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look, gear: b.life?.gear, style: buildOf(b) }));
-  if (specs.length >= PARTY_SIZE - 1) return specs;
+  const specs = chosen.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look, gear: b.life?.gear, style: buildOf(b), plus: b.life ? plusBucket(b.life) : 0, botId: b.id }));
+  if (!fill || specs.length >= PARTY_SIZE - 1) return specs;
   const generic = defaultAllies(player);
   const have = new Set([player.classKey, ...specs.map((s) => s.classKey)]);
   // d'abord les classes absentes du groupe, puis les autres génériques

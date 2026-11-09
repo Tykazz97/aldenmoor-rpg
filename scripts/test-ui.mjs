@@ -356,7 +356,18 @@ try {
   });
 
   await step("combat en groupe : « En groupe » amène 2 alliés bots, qui jouent seuls ; le héros reste aux commandes", async () => {
-    // on est encore sur la carte des Prairies : on engage un groupe visible
+    // le groupe permanent : on invite 2 joueurs connectés dans l'onglet Groupe, puis on revient sur la carte
+    await tab("Groupe").click(); await page.waitForTimeout(500);
+    await page.locator("[data-group-cand]").first().waitFor({ timeout: 15000 });
+    for (let i = 0; i < 2; i++) { await page.locator("[data-group-invite]:not([disabled])").first().click(); await page.waitForTimeout(300); }
+    assert.equal(await page.locator("[data-group-member]").count(), 2, "les 2 joueurs invités sont dans le groupe");
+    assert.equal(await page.locator("[data-group-invite]:not([disabled])").count(), 0, "groupe complet : plus d'invitation possible");
+    await page.waitForTimeout(800);
+    const members = (await save()).player.companions;
+    assert.equal(members.length, 2, "le groupe est enregistré");
+    const killsOf = async () => { const l = (await save()).player.market.sims.lives; return members.map((id) => l[id].kills); };
+    const kills0 = await killsOf();
+    await tab("Carte").click(); await page.waitForTimeout(800);
     await page.evaluate(() => {
       const v = document.querySelector(".mp-map").getBoundingClientRect();
       const cx = (v.left + v.right) / 2, cy = (v.top + v.bottom) / 2;
@@ -364,14 +375,8 @@ try {
       const c = [...document.querySelectorAll(".mp-group:not(.boss):not(.busy)")].sort((a, b) => d(a) - d(b));   // le plus proche du centre de l'écran (la carte est grande : il n'y en a pas toujours un à l'écran)
       c[0].click();
     });
-    // on choisit un compagnon parmi les aventuriers proposés : son pseudo se retrouve dans le groupe, puis dans la sauvegarde
-    await page.locator("button", { hasText: "Choisir mes compagnons" }).click({ timeout: 15000 });
-    const row = page.locator(".mp-comp-row").first();
-    const companion = (await row.locator("b").innerText()).trim();
-    await row.click();
-    assert.ok((await page.locator(".mp-comp-chip", { hasText: companion }).count()) >= 1, "le compagnon choisi apparaît dans le groupe");
-    await page.waitForTimeout(800);
-    assert.equal((await save()).player.companions.length, 1, "le choix est enregistré");
+    await page.locator("[data-engage-member]").first().waitFor({ timeout: 15000 });
+    assert.equal(await page.locator("[data-engage-member]").count(), 2, "les 2 membres du groupe apparaissent dans la fenêtre d'engagement");
     await page.locator("button", { hasText: "En groupe" }).click({ timeout: 15000 });
     await page.locator(".cb-tl.ally").first().waitFor({ timeout: 30000 });
     const heroBars = await page.locator(".cb-timeline .cb-tl.hero").count();
@@ -381,8 +386,11 @@ try {
     await page.waitForTimeout(1500);
     // à trois, le combat peut déjà être gagné avant le premier tour du héros : on sort par le bouton disponible
     const loot = page.locator("button", { hasText: "Récupérer" });
-    if (await loot.count()) await loot.click();
-    else { await page.keyboard.press("1"); await page.waitForTimeout(800); await page.locator(".cb-btn", { hasText: "Quitter" }).click(); }
+    if (await loot.count()) {
+      await loot.click(); await page.waitForTimeout(1200);
+      const kills1 = await killsOf();
+      assert.ok(kills1.every((k, i) => k > kills0[i]), "chaque membre du groupe a ses propres victoires (xp et butin à lui)");
+    } else { await page.keyboard.press("1"); await page.waitForTimeout(800); await page.locator(".cb-btn", { hasText: "Quitter" }).click(); }
     await page.waitForTimeout(500);
     assert.equal(await page.locator(".cb-root").count() <= 1, true);
     assert.deepEqual(errors, []);

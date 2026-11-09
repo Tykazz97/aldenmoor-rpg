@@ -8,6 +8,7 @@ import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { sfx } from "./sfx.js";
 import { HERO_X, HERO_B, HERO_H } from "./stage.js";
 import { buildAllies } from "../../sim/partyBots.js";
+import { groupOf } from "../../utils/group.js";
 import { getLivePopulation } from "../../sim/simWorld.js";
 import { useFightPlayback } from "./useFightPlayback.js";
 import EncounterSelect from "./EncounterSelect.jsx";
@@ -66,7 +67,7 @@ const SENT_ALLY_H = 300;   // la sentinelle alliée, un peu plus basse que lorsq
 // `carry` / `dungeon` : salle d'un donjon (PV reportés de la salle précédente, pas de relance en cas de défaite)
 export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null, allySpecs: givenAllies = null }) {
   // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
-  const allySpecs = useMemo(() => givenAllies || (party ? buildAllies(player, player.companions, getLivePopulation(player)) : []), []); // eslint-disable-line
+  const allySpecs = useMemo(() => givenAllies || (party ? buildAllies(player, groupOf(player).members.map((b) => b.id), getLivePopulation(player), { fill: false }) : []), []); // eslint-disable-line
   const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, a.img || heroSpriteUrl(a.look)])), [allySpecs]);
   const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry, maxRounds: (encounter.sentinel || encounter.defense)?.maxRounds ?? null, objective: encounter.defense ? "defense" : encounter.sentinel ? "sentinel" : null }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
@@ -136,7 +137,9 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
   const claim = () => {
     if (claimed) return;
     setClaimed(true);
-    onRewards(cs.rewards);
+    // le groupe (simulés présents) gagne aussi : xp et butin à eux, rien de retiré au joueur (sauf combats de sentinelle/défense)
+    const group = encounter.defense || encounter.sentinel ? [] : allySpecs.map((a) => a.botId).filter(Boolean);
+    onRewards(group.length ? { ...cs.rewards, group } : cs.rewards);
     onExit(true, { player: cs.player.hp, allies: cs.allies.map((a) => a.hp), rewards: cs.rewards });
   };
 

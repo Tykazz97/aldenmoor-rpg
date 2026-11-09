@@ -13,6 +13,8 @@ import QuestPanel from "./components/city/QuestPanel.jsx";
 import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
 import RankingPanel from "./components/ranking/RankingPanel.jsx";
 import GuildPanel from "./components/guild/GuildPanel.jsx";
+import GroupPanel from "./components/group/GroupPanel.jsx";
+import { cleanGroupAction } from "./utils/group.js";
 import { syncPlayerGuild, myGuild, resolveDueAttacksNow } from "./utils/guildActions.js";
 import { SENT_BY_KEY } from "./data/sentinel.js";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
@@ -35,6 +37,7 @@ const TAB_TITLES = {
   bestiaire: "Bestiaire",
   classement: "Classement",
   guilde: "Guilde",
+  groupe: "Groupe",
 };
 
 // Sans sauvegarde : création du personnage. Avec : le jeu, sauvegardé automatiquement.
@@ -88,11 +91,11 @@ function Game({ initial, onNewCharacter }) {
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
-  const advanceMarket = useCallback(() => setPlayer((p) => { const m = marketOf(p, Date.now(), { maxSteps: CATCHUP_SLICE }); return resolveDueAttacksNow(syncPlayerGuild(m === p.market ? p : { ...p, market: m })); }), [setPlayer]);   // + ton activité compte pour les quêtes de ta guilde
+  const advanceMarket = useCallback(() => setPlayer((p) => { const m = marketOf(p, Date.now(), { maxSteps: CATCHUP_SLICE }); return cleanGroupAction(resolveDueAttacksNow(syncPlayerGuild(m === p.market ? p : { ...p, market: m }))); }), [setPlayer]);   // + ton activité compte pour les quêtes de ta guilde
   useEffect(() => {
     advanceMarket();
     const id = setInterval(advanceMarket, 60000);
-    const idWar = setInterval(() => setPlayer((p) => resolveDueAttacksNow(p)), 10000);     // les attaques de sentinelle se règlent à 10 secondes près
+    const idWar = setInterval(() => setPlayer((p) => cleanGroupAction(resolveDueAttacksNow(p))), 10000);     // les attaques de sentinelle se règlent à 10 secondes près
     return () => { clearInterval(id); clearInterval(idWar); };
   }, [advanceMarket, setPlayer]);
   const behind = marketBehind(player.market, Date.now());
@@ -218,7 +221,7 @@ function Game({ initial, onNewCharacter }) {
         <CombatScreen player={player} stats={stats} onRewards={applyCombatRewards} />
       )}
       {activeTab === "carte" && (
-        <MapScreen player={player} onPlayerChange={setPlayer} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onGather={gather} renderBuilding={renderBuilding} />
+        <MapScreen player={player} onPlayerChange={setPlayer} stats={stats} world={world} setWorld={setWorld} onRewards={applyCombatRewards} onManageGroup={() => setActiveTab("groupe")} onGather={gather} renderBuilding={renderBuilding} />
       )}
       {activeTab === "journal" && (
         <div style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
@@ -229,7 +232,8 @@ function Game({ initial, onNewCharacter }) {
       {activeTab === "bestiaire" && <BestiaryPanel player={player} stats={stats} />}
       {activeTab === "classement" && <RankingPanel player={player} />}
       {activeTab === "guilde" && <GuildPanel player={player} stats={stats} onPlayerChange={setPlayer} firstTab={guildTab} />}
-      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && activeTab !== "guilde" && activeTab !== "sac" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
+      {activeTab === "groupe" && <GroupPanel player={player} stats={stats} onPlayerChange={setPlayer} />}
+      {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && activeTab !== "guilde" && activeTab !== "groupe" && activeTab !== "sac" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );
 }

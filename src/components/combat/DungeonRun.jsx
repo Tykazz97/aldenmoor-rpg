@@ -5,6 +5,7 @@ import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { roomEncounter } from "../../utils/dungeon.js";
 import { drinkPotion, consumePotion } from "../../utils/potions.js";
 import { buildAllies } from "../../sim/partyBots.js";
+import { groupOf } from "../../utils/group.js";
 import { getLivePopulation } from "../../sim/simWorld.js";
 
 // ------------------------------------------------------------
@@ -15,7 +16,7 @@ import { getLivePopulation } from "../../sim/simWorld.js";
 export default function DungeonRun({ dungeon, player, stats, onRewards, onPlayerChange, onDone }) {
   const [room, setRoom] = useState(0);
   const [fighting, setFighting] = useState(false);
-  const allySpecs = useMemo(() => buildAllies(player, player.companions, getLivePopulation(player)), []); // eslint-disable-line
+  const allySpecs = useMemo(() => buildAllies(player, groupOf(player).members.map((b) => b.id), getLivePopulation(player)), []); // eslint-disable-line
   const looks = useMemo(() => [heroSpriteUrl(heroLook(player, stats)), ...allySpecs.map((a) => heroSpriteUrl(a.look))], []); // eslint-disable-line
   const [party, setParty] = useState(() => [
     { name: player.name || "Toi", hp: stats.maxHp, maxHp: stats.maxHp },

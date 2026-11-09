@@ -5,8 +5,7 @@ import { ITEMS } from "../../data/items.js";
 import { color } from "../../styles/theme.js";
 import { encounterOf } from "./mapConstants.js";
 import { CLASSES } from "../../data/classes.js";
-import { PARTY_SIZE, buildAllies, companionCandidates } from "../../sim/partyBots.js";
-import { getLivePopulation } from "../../sim/simWorld.js";
+import { groupOf, GROUP_MAX } from "../../utils/group.js";
 import { keyCount, dungeonDrops } from "../../utils/dungeon.js";
 import { DUNGEONS } from "../../data/dungeons.js";
 
@@ -14,18 +13,10 @@ import { DUNGEONS } from "../../data/dungeons.js";
 // Fenêtre d'engagement : aperçu du groupe et du butin possible
 // ------------------------------------------------------------
 // `dungeon` : fiche d'entrée d'un donjon (data/dungeons.js) au lieu d'un groupe d'ennemis ; on y entre toujours en groupe, avec une clé
-export default function EngagePopup({ group, dungeon: entrance = null, hasWeapon, classKey, player, onCompanions, onFight, onBack }) {
-  const [picking, setPicking] = useState(false);
+export default function EngagePopup({ group, dungeon: entrance = null, hasWeapon, classKey, player, onManageGroup, onFight, onBack }) {
   const [hard, setHard] = useState(false);                 // l'entrée d'un donjon propose sa version difficile (`hardKey`)
   const dungeon = entrance && hard && entrance.hardKey ? DUNGEONS[entrance.hardKey] : entrance;
-  const population = getLivePopulation(player);
-  const companions = player?.companions || [];
-  const allies = useMemo(() => (player ? buildAllies(player, companions, population) : []), [player?.level, player?.classKey, companions.join()]); // eslint-disable-line
-  const candidates = useMemo(() => (player && picking ? companionCandidates(player, population) : []), [picking, player?.level]); // eslint-disable-line
-  const toggle = (id) => {
-    const next = companions.includes(id) ? companions.filter((c) => c !== id) : [...companions, id].slice(-(PARTY_SIZE - 1));
-    onCompanions?.(next);
-  };
+  const members = useMemo(() => (player ? groupOf(player).members : []), [player?.companions, player?.market?.sims]); // eslint-disable-line
   const enc = dungeon
     ? { name: dungeon.name, level: dungeon.levels, desc: dungeon.desc, boss: true, enemies: [...new Set(dungeon.rooms.flatMap((r) => r.enemies))] }
     : encounterOf(group.encounter);
@@ -80,20 +71,11 @@ export default function EngagePopup({ group, dungeon: entrance = null, hasWeapon
       {player && (
         <div className="mp-pop-party">
           <span className="lbl">Ton groupe</span>
-          {allies.map((a, i) => (
-            <span key={i} className="mp-comp-chip" title={`${CLASSES[a.classKey].label} niveau ${a.level}`}>{a.name} <i>{CLASSES[a.classKey].label} · niv. {a.level}</i></span>
+          {members.map((a) => (
+            <span key={a.id} data-engage-member={a.id} className="mp-comp-chip" title={`${CLASSES[a.classKey].label} niveau ${a.level}`}>{a.name} <i>{CLASSES[a.classKey].label} · niv. {a.level}</i></span>
           ))}
-          <button className="cb-btn" onClick={() => setPicking(!picking)}>{picking ? "Fermer" : "Choisir mes compagnons"}</button>
-        </div>
-      )}
-      {picking && (
-        <div className="mp-comp-list">
-          <div className="hint">Aventuriers de niveau proche du tien. Choisis-en {PARTY_SIZE - 1} au maximum ; le reste du groupe est complété automatiquement.</div>
-          {candidates.map((b) => (
-            <button key={b.id} className={`mp-comp-row ${companions.includes(b.id) ? "sel" : ""}`} onClick={() => toggle(b.id)}>
-              <b>{b.name}</b><span>{CLASSES[b.classKey].label}</span><i>niv. {b.level}</i>
-            </button>
-          ))}
+          {members.length === 0 && <span style={{ fontSize: 12, color: "#74748a" }}>Tu es seul. {dungeon ? "Des alliés génériques t'accompagnent." : ""}</span>}
+          <button className="cb-btn" onClick={() => onManageGroup?.()}>{members.length < GROUP_MAX ? "Inviter des joueurs" : "Gérer mon groupe"}</button>
         </div>
       )}
       {!hasWeapon && <div className="mp-pop-warn">Aucune arme équipée : tu te battras à mains nues.</div>}
@@ -105,7 +87,7 @@ export default function EngagePopup({ group, dungeon: entrance = null, hasWeapon
           <button className="cb-btn primary" disabled={keys === 0} onClick={() => onFight(true, dungeon)} title="Trois héros : toi et deux compagnons">🗝 Entrer avec mon groupe{keys > 0 ? ` (${keys} clé${keys > 1 ? "s" : ""})` : ""}</button>
         ) : (
           <>
-            <button className="cb-btn" onClick={() => onFight(true)} title="Deux compagnons combattent à tes côtés : butin meilleur (jusqu'à ×1,5), mais moins d'xp qu'en solo">👥 En groupe</button>
+            <button className="cb-btn" disabled={members.length === 0} data-fight-group onClick={() => onFight(true)} title={members.length ? "Ton groupe combat à tes côtés : butin meilleur (jusqu'à ×1,5), mais moins d'xp qu'en solo ; chacun gagne son xp et son butin" : "Invite d'abord un joueur connecté (onglet Groupe)"}>👥 En groupe</button>
             <button className="cb-btn primary" onClick={() => onFight(false)}>⚔ Combattre seul</button>
           </>
         )}

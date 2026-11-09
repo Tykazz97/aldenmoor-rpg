@@ -1,4 +1,5 @@
 import { creditPlayerFight } from "../utils/sentinel.js";
+import { creditGroup } from "../utils/group.js";
 import { applyUpgrade } from "../utils/upgrade.js";
 import { useState, useMemo, useCallback } from "react";
 import { calcStats } from "../utils/calcStats.js";
@@ -115,7 +116,12 @@ export function usePlayer(initial) {
   const upgrade = useCallback((ref, opts) => { setPlayer((prev) => applyUpgrade(prev, ref, opts).player); }, []);
 
   const applyCombatRewards = useCallback((rewards) => {
-    setPlayer((prev) => creditPlayerFight(applyRewards(prev, rewards, `loot-${Date.now()}-${craftCounter++}`).player, rewards.kills, `${prev.name || "p"}:${Date.now()}:${craftCounter}`));   // la sentinelle de la région tire son butin à part
+    const { group, ...mine } = rewards;                                  // `group` : les simulés du groupe, qui gagnent aussi (xp et butin à eux)
+    setPlayer((prev) => {
+      const seed = `${prev.name || "p"}:${Date.now()}:${craftCounter}`;
+      const next = creditPlayerFight(applyRewards(prev, mine, `loot-${Date.now()}-${craftCounter++}`).player, mine.kills, seed);   // la sentinelle de la région tire son butin à part
+      return creditGroup(next, group, mine.kills, seed);
+    });
   }, []);
 
   // Récolte d'un nœud sur la carte (ressource + xp de métier)

@@ -127,7 +127,7 @@ export function initialLife(bot, mode = "generated", seed = 1) {
 
 export const emptyBag = () => ({ res: {}, items: [] });
 
-function addXp(life, amount) {
+export function addXp(life, amount) {
   let { level, xp } = life;
   xp += amount;
   while (level < MAX_LEVEL && xp >= xpToNext(level)) { xp -= xpToNext(level); level += 1; }
@@ -142,8 +142,8 @@ function addProfXp(prof, amount) {
 const bestNode = (profKey, level) => Object.values(NODES).filter((n) => n.profession === profKey && n.minLevel <= level).sort((a, b) => b.minLevel - a.minLevel)[0];
 
 // Les drops d'un monstre vaincu vont dans le sac (équipement : seulement celui de sa classe)
-export function rollDrops(life, bot, enemy, rng) {
-  const dm = 1 + (life.gb?.drop || 0) / 100;                     // butin de guilde
+export function rollDrops(life, bot, enemy, rng, dropMult = 1) {
+  const dm = (1 + (life.gb?.drop || 0) / 100) * dropMult;        // butin de guilde, et bonus de butin d'un groupe
   for (const d of enemy.drops || []) {
     if (d.forClass && d.forClass !== bot.classKey) continue;
     if (rng() >= (dm > 1 && !d.fixed ? Math.min(1, d.chance * dm) : d.chance)) continue;
@@ -200,6 +200,27 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
   bankStep(life);                                                // il range le surplus au coffre
   sellSurplus(life, opts.keep);
   return life;
+}
+
+// Un simulé de mon groupe a combattu avec moi : il gagne son xp, son or et son butin comme pour ses propres combats
+// (`kills` = { clé de monstre: nombre } du combat ; `groupMult` = bonus de butin d'un groupe, voir PARTY_DROP_MULT). Modifie `life`.
+export function groupFightStep(life, bot, kills, rng, { groupMult = 1, keep } = {}) {
+  let xp = 0, gold = 0, n = 0;
+  for (const [k, count] of Object.entries(kills || {})) {
+    const def = ENEMIES[k];
+    if (!def) continue;
+    for (let i = 0; i < count; i++) {
+      xp += def.xp || 0; n++;
+      if (def.gold) gold += rng.int(def.gold[0], def.gold[1]);
+      rollDrops(life, bot, def, rng, groupMult);
+      bump(life, "kills", k);
+    }
+  }
+  const gx = 1 + (life.gb?.xp || 0) / 100;
+  life.kills += n; life.gold += Math.round(gold);
+  addXp(life, Math.round(xp * overlevelMult(life.level) * gx));
+  bankStep(life); sellSurplus(life, keep);
+  return { xp, gold, kills: n };
 }
 
 // --- Le monde des simulés ------------------------------------------------------------------------------------------------
