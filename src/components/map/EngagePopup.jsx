@@ -8,6 +8,7 @@ import { CLASSES } from "../../data/classes.js";
 import { groupOf, GROUP_MAX } from "../../utils/group.js";
 import { keyCount, dungeonDrops } from "../../utils/dungeon.js";
 import { DUNGEONS } from "../../data/dungeons.js";
+import { MINIBOSS_HP_SCALE } from "../../combat/engine.js";
 
 // ------------------------------------------------------------
 // Fenêtre d'engagement : aperçu du groupe et du butin possible
@@ -55,7 +56,7 @@ export default function EngagePopup({ group, dungeon: entrance = null, hasWeapon
             {dungeon
               ? dungeon.rooms.map((r, i) => <span key={r.id}>{i + 1}. {r.name}{r.boss ? " · boss" : ""}</span>)
               : Object.entries(enemyCount).map(([k, n]) => (
-                <span key={k}>{n > 1 ? `${n}× ` : ""}{ENEMIES[k].name} · {ENEMIES[k].stats.hp} PV</span>
+                <span key={k}>{n > 1 ? `${n}× ` : ""}{ENEMIES[k].name} · {ENEMIES[k].stats.hp} PV{ENEMIES[k].miniBoss && members.length > 0 ? ` (${ENEMIES[k].stats.hp * (MINIBOSS_HP_SCALE[1 + members.length] ?? 3)} en groupe)` : ""}</span>
               ))}
           </div>
         </div>

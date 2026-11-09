@@ -90,6 +90,8 @@ function makeHero({ id, name, stats, weaponType = null, classKey = null, level =
 // Points de vie des ennemis selon la taille du groupe de héros : à plusieurs, les monstres encaissent davantage
 // (valeurs réglées avec scripts/simulate-zones.js en mode groupe).
 export const PARTY_HP_SCALE = { 1: 1, 2: 1, 3: 1 };   // plus de difficulté accrue en groupe
+// Les mini-boss seuls montent en PV avec la taille du groupe (solo ×1, duo ×2, trio ×3) : trois héros les tuaient en deux ou trois tours.
+export const MINIBOSS_HP_SCALE = { 1: 1, 2: 2, 3: 3 };
 // Bonus d'xp en combat solo (en contrepartie du butin amélioré en groupe)
 export const SOLO_XP_MULT = 1.25;
 // Bonus de butin selon la taille du groupe : multiplie la chance de chaque drop
@@ -113,11 +115,12 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     allyHeroes.forEach((a, i) => apply(a, carry.allies?.[i]));
   }
   const hpScale = PARTY_HP_SCALE[1 + allyHeroes.length] ?? PARTY_HP_SCALE[3];
+  const miniScale = MINIBOSS_HP_SCALE[1 + allyHeroes.length] ?? MINIBOSS_HP_SCALE[3];
 
   const enemies = enemyKeys.map((key, i) => {
     const def = enemyDef(key);
     if (!def || !def.stats) throw new Error(`Ennemi sans stats de combat : ${key}`);
-    const hp = Math.round(def.stats.hp * hpScale);
+    const hp = Math.round(def.stats.hp * (def.miniBoss ? miniScale : hpScale));
     return {
       id: `e${i}`,
       key,
