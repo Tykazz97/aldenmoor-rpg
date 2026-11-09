@@ -317,21 +317,30 @@ export function setMinLevelAction(player, level, now = Date.now()) {
   return { ok: true, level: n, player: commit(player, r.m, r.G) };
 }
 
-// Le joueur a battu la sentinelle : tout son stock lui revient (sac d'abord, puis coffre personnel ; ce qui ne tient nulle part est perdu),
-// et la sentinelle disparaît : la guilde pourra en poser une autre.
-// Renvoie { ok, gold, res (reçu dans le sac), bank (reçu au coffre), lost }
-export function winAttackAction(player, region, now = Date.now()) {
+// Le joueur a battu la sentinelle : son stock est partagé à parts égales entre les vainqueurs (le joueur et les simulés de son groupe, `groupIds`).
+// Sa part va dans son sac d'abord, puis au coffre personnel (ce qui ne tient nulle part est perdu) ; la part des simulés va dans leur propre sac
+// (ils en font ensuite ce qu'ils veulent : vendre, garder, fabriquer). Le reste d'une division non entière revient au joueur.
+// La sentinelle disparaît : la guilde pourra en poser une autre.
+// Renvoie { ok, gold, res (reçu dans le sac), bank (reçu au coffre), lost, group (nombre de simulés), each ({gold, res} reçu par chacun d'eux) }
+export function winAttackAction(player, region, now = Date.now(), groupIds = []) {
   const o = open(player, now);
   if (!o) return fail(player, "pas_de_monde");
   rebuildSent(o.G);
   const problem = attackProblem(o.G, region, now);
   if (problem) return fail(player, problem);
   const g = o.G.byId[o.G.sent[region]], s = sentinelsOf(g)[region];
-  const gold = Math.floor(s.gold || 0);
+  const lives0 = o.m.sims.lives || {};
+  const mates = [...new Set(groupIds || [])].filter((id) => lives0[id]);
+  const N = 1 + mates.length;
+  const total = Math.floor(s.gold || 0);
+  const eachGold = Math.floor(total / N), gold = total - eachGold * mates.length;
   const resources = { ...player.resources }, bank = { ...(player.bank || { items: [], resources: {} }), resources: { ...(player.bank?.resources || {}) } };
   let bagRoom = bagFree(player), bankRoom = bankFree(player);
-  const got = { res: {}, bank: {}, lost: {} };
-  for (const [id, q] of Object.entries(s.res || {})) {
+  const got = { res: {}, bank: {}, lost: {} }, each = { gold: eachGold, res: {} };
+  for (const [id, q0] of Object.entries(s.res || {})) {
+    if (!(q0 > 0)) continue;
+    const part = Math.floor(q0 / N), q = q0 - part * mates.length;
+    if (part > 0) each.res[id] = part;
     if (!(q > 0)) continue;
     if (resources[id] > 0) { resources[id] += q; got.res[id] = q; }
     else if (bagRoom > 0) { resources[id] = q; bagRoom--; got.res[id] = q; }
@@ -339,9 +348,21 @@ export function winAttackAction(player, region, now = Date.now()) {
     else if (bankRoom > 0) { bank.resources[id] = q; bankRoom--; got.bank[id] = q; }
     else got.lost[id] = q;
   }
+  let sims = null;
+  if (mates.length) {
+    const lives = { ...lives0 };
+    for (const id of mates) {
+      const l = structuredClone(lives[id]);
+      l.gold = (l.gold || 0) + eachGold;
+      l.bag = l.bag || { res: {} }; l.bag.res = l.bag.res || {};
+      for (const [rid, q] of Object.entries(each.res)) l.bag.res[rid] = (l.bag.res[rid] || 0) + q;
+      lives[id] = l;
+    }
+    sims = { ...o.m.sims, lives };
+  }
   removeSentinel(o.G, g, region, o.m.bucket);
   logOf(g, o.m.bucket, `Ta sentinelle de ${SENT_BY_KEY[region].name} a été détruite par ${player.name || "un aventurier"}.`);
-  return { ok: true, gold, ...got, player: commit(player, o.m, o.G, { gold: player.gold + gold, resources, bank }) };
+  return { ok: true, gold, ...got, group: mates.length, each, player: commit(player, o.m, o.G, { gold: player.gold + gold, resources, bank }, sims) };
 }
 
 // Le joueur a perdu : la sentinelle a tenu bon, elle est intouchable pendant 1 h

@@ -499,8 +499,10 @@ try {
     assert.equal(await page.locator(".cb-root").count(), 0, "retour à la carte");
     assert.equal(await page.locator("[data-map-sentinel]").count(), 0, "la sentinelle a disparu de la région");
     const after = (await save()).player;
-    assert.ok(after.gold >= gold0 + 400, "les 400 or du stock sont à moi");
-    assert.equal(after.resources.croc_de_loup, 7, "les ressources du stock aussi");
+    // le groupe permanent (jusqu'à 2 simulés connectés) se partage le stock à parts égales avec moi : ma part est au moins le tiers
+    assert.ok(after.gold >= gold0 + 133, "ma part des 400 or du stock est à moi");
+    assert.ok(after.resources.croc_de_loup >= 2 && after.resources.croc_de_loup <= 7, "ma part des ressources aussi");
+    if (after.gold < gold0 + 400) assert.ok(await page.locator(".mp-toast", { hasText: "Butin partagé" }).count() >= 1, "le partage est annoncé");
     assert.deepEqual(errors, []);
   });
 

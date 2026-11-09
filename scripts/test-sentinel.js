@@ -360,6 +360,30 @@ test("victoire : tout le stock va au joueur, la sentinelle disparaît et la guil
   assert.equal(winAttackAction(r.player, "prairies_sauvages", T0).reason, "pas_de_sentinelle");
 });
 
+test("victoire en groupe : le stock est partagé à parts égales entre le joueur et les simulés ; le reste de la division revient au joueur", () => {
+  const { p, g } = worldWithSentinel();
+  const lives = p.market.sims.lives, ids = Object.keys(lives).slice(0, 2);
+  const before = ids.map((id) => ({ gold: lives[id].gold, croc: lives[id].bag?.res?.croc_de_loup || 0, fourr: lives[id].bag?.res?.fourrure_grise || 0 }));
+  const r = winAttackAction(p, "prairies_sauvages", T0, ids);
+  assert.ok(r.ok); assert.equal(r.group, 2);
+  assert.deepEqual(r.each, { gold: 166, res: { croc_de_loup: 4, fourrure_grise: 1 } });
+  assert.equal(r.gold, 168, "500 = 166 + 166 + 168 (le reste au joueur)");
+  assert.equal(r.player.resources.croc_de_loup, 4); assert.equal(r.player.resources.fourrure_grise, 1);
+  ids.forEach((id, i) => {
+    const l = r.player.market.sims.lives[id];
+    assert.equal(l.gold, before[i].gold + 166);
+    assert.equal(l.bag.res.croc_de_loup, before[i].croc + 4); assert.equal(l.bag.res.fourrure_grise, before[i].fourr + 1);
+  });
+  assert.equal(p.market.sims.lives[ids[0]].gold, before[0].gold, "l'ancien état n'est pas modifié");
+  // rien ne se perd : total = stock
+  assert.equal(r.gold + 2 * r.each.gold, 500);
+  assert.equal(r.player.resources.croc_de_loup + 2 * r.each.res.croc_de_loup, 12);
+  assert.equal(r.player.resources.fourrure_grise + 2 * r.each.res.fourrure_grise, 3);
+  // un id inconnu est ignoré : tout revient au joueur
+  const solo = winAttackAction(p, "prairies_sauvages", T0, ["inconnu"]);
+  assert.equal(solo.gold, 500); assert.equal(solo.group, 0);
+});
+
 test("victoire, sac plein : le butin file au coffre personnel ; si tout est plein, le reste est perdu", () => {
   const res = {}; for (let i = 0; i < 6; i++) res[`rare_${i}`] = 1;
   const { p } = worldWithSentinel({ gold: 0, res });

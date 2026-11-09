@@ -140,7 +140,7 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
     // le groupe (simulés présents) gagne aussi : xp et butin à eux, rien de retiré au joueur (sauf combats de sentinelle/défense)
     const group = encounter.defense || encounter.sentinel ? [] : allySpecs.map((a) => a.botId).filter(Boolean);
     onRewards(group.length ? { ...cs.rewards, group } : cs.rewards);
-    onExit(true, { player: cs.player.hp, allies: cs.allies.map((a) => a.hp), rewards: cs.rewards });
+    onExit(true, { player: cs.player.hp, allies: cs.allies.map((a) => a.hp), rewards: cs.rewards, group: allySpecs.map((a) => a.botId).filter(Boolean) });
   };
 
   const p = cs.player;

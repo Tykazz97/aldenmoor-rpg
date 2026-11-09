@@ -226,14 +226,15 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
         player={player}
         stats={stats}
         onRewards={onRewards}
-        onExit={(victory) => {
+        onExit={(victory, info) => {
           if (fight.enc.sentinel) {
             const region = fight.enc.sentinel.region;
             if (victory) {
-              const r = winAttackAction(playerRef.current, region);
-              onPlayerChange?.((p) => { const x = winAttackAction(p, region); return x.ok ? x.player : p; });
+              const mates = info?.group || [];                 // les simulés du groupe se partagent le butin à parts égales avec moi
+              const r = winAttackAction(playerRef.current, region, Date.now(), mates);
+              onPlayerChange?.((p) => { const x = winAttackAction(p, region, Date.now(), mates); return x.ok ? x.player : p; });
               const got = r.ok ? [r.gold ? `${r.gold} or` : null, ...Object.entries({ ...r.res, ...r.bank }).map(([id, q]) => `${RESOURCES[id]?.name || id} ×${q}`)].filter(Boolean).join(", ") : "";
-              showToast(r.ok ? `Sentinelle détruite !${got ? ` Butin : ${got}.` : ""}${Object.keys(r.bank).length ? " (une partie est au coffre)" : ""}${Object.keys(r.lost).length ? " (sac et coffre pleins : une partie est perdue)" : ""}` : "Sentinelle détruite.");
+              showToast(r.ok ? `Sentinelle détruite !${got ? ` Ta part : ${got}.` : ""}${r.group ? ` Butin partagé à ${r.group + 1}.` : ""}${Object.keys(r.bank).length ? " (une partie est au coffre)" : ""}${Object.keys(r.lost).length ? " (sac et coffre pleins : une partie est perdue)" : ""}` : "Sentinelle détruite.");
             } else {
               onPlayerChange?.((p) => { const x = loseAttackAction(p, region); return x.ok ? x.player : p; });
               showToast("La sentinelle a tenu bon : protégée 1 h.");
