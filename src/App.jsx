@@ -70,6 +70,21 @@ function Game({ initial, onNewCharacter }) {
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
   const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, bag, spellbook } = usePlayer(initial.player);
   const attack = myGuild(player)?.attacks?.[0] || null;        // une attaque en cours contre une sentinelle de ma guilde
+  // Le résultat d'une attaque réglée sans moi : un message à l'écran (la dernière ligne du journal de la guilde qui parle de ma sentinelle)
+  const [warMsg, setWarMsg] = useState(null);
+  const seenLog = useRef(undefined);
+  const topLog = myGuild(player)?.log?.[0] || null;
+  useEffect(() => {
+    const key = topLog ? `${topLog.t}|${topLog.txt}` : "";
+    if (seenLog.current === undefined) { seenLog.current = key; return undefined; }     // au chargement : on ne rejoue pas l'ancien journal
+    if (key === seenLog.current) return undefined;
+    seenLog.current = key;
+    const m = topLog && /^Ta sentinelle de .* (a été détruite par|a repoussé)/.exec(topLog.txt);
+    if (!m) return undefined;
+    setWarMsg({ ok: /repoussé/.test(m[0]), text: topLog.txt });
+    const t = setTimeout(() => setWarMsg(null), 12000);
+    return () => clearTimeout(t);
+  }, [topLog?.t, topLog?.txt]); // eslint-disable-line
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
@@ -144,6 +159,11 @@ function Game({ initial, onNewCharacter }) {
 
   return (
     <AppShell active={activeTab} onChangeTab={setActiveTab}>
+      {warMsg && (
+        <div data-war-msg onClick={() => setWarMsg(null)} style={{ position: "fixed", top: 14, right: 18, zIndex: 85, maxWidth: 380, cursor: "pointer", padding: "10px 14px", background: warMsg.ok ? "#14301a" : "#3a1612", border: `1px solid ${warMsg.ok ? "#3f8a4d" : "#a8443a"}`, borderRadius: 8, color: warMsg.ok ? "#c9ecce" : "#f1c9c2", boxShadow: "0 6px 20px rgba(0,0,0,.5)", fontSize: 14 }}>
+          {warMsg.ok ? "🛡 " : "💥 "}{warMsg.text}
+        </div>
+      )}
       {attack && activeTab !== "guilde" && (
         <div data-defense-alert style={{ position: "fixed", top: 14, right: 18, zIndex: 80, display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#3a1612", border: "1px solid #a8443a", borderRadius: 8, color: "#f1c9c2", boxShadow: "0 6px 20px rgba(0,0,0,.5)", fontSize: 14 }}>
           <span>⚔ Ta sentinelle de {SENT_BY_KEY[attack.region]?.name || "la région"} est attaquée !</span>

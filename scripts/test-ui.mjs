@@ -548,6 +548,30 @@ try {
     assert.deepEqual(errors, []);
   });
 
+  await step("Défense : une attaque réglée sans moi (3 minutes écoulées) affiche son résultat à l'écran et dans le journal", async () => {
+    const { placeSentinel, sentinelsOf, rebuildSent } = await import("../src/utils/sentinel.js");
+    const { getPopulation } = await import("../src/sim/population.js");
+    const s = await save();
+    const sims = s.player.market.sims, G = sims.guilds, step0 = s.player.market.bucket;
+    const g = Object.values(G.byId).find((x) => x.name === "Les Veilleurs"), lone = Object.values(G.byId).find((x) => x.name === "Les Gardiens de Test");
+    delete g.sentinels; rebuildSent(G); placeSentinel(G, g, "prairies_sauvages", step0);       // une sentinelle neuve, sans protection
+    const by = getPopulation().filter((b) => sims.lives[b.id] && !G.of[b.id]).sort((a, b) => sims.lives[a.id].level - sims.lives[b.id].level).slice(0, 2).map((b) => b.id);
+    g.attacks = [{ id: "ui:2", region: "prairies_sauvages", from: lone.id, by, at: step0, due: step0 + 50, dueMs: Date.now() + 9000 }];
+    s.savedAt = Date.now() + 2000;
+    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-defense2")) { sessionStorage.setItem("ui-defense2", "1"); localStorage.setItem("aldenmoor:save", m); } }, JSON.stringify(s));
+    await page.reload(); await page.waitForTimeout(800);
+    await tab("Personnage").click();
+    assert.equal(await page.locator("[data-war-msg]").count(), 0, "pas de message avant la fin du compte à rebours");
+    await page.locator("[data-defense-alert]").waitFor({ timeout: 8000 });
+    await page.locator("[data-war-msg]").waitFor({ timeout: 30000 });
+    assert.match(await page.locator("[data-war-msg]").innerText(), /Ta sentinelle de Prairies Sauvages (a été détruite par|a repoussé)/);
+    assert.equal(await page.locator("[data-defense-alert]").count(), 0, "l'alerte a disparu");
+    await page.waitForTimeout(1500);
+    const mine = Object.values((await save()).player.market.sims.guilds.byId).find((x) => x.name === "Les Veilleurs");
+    assert.equal(mine.attacks, undefined, "attaque réglée"); assert.match(mine.log[0].txt, /Ta sentinelle de Prairies Sauvages/);
+    assert.deepEqual(errors, []);
+  });
+
   await step("Sac : emplacements, objets et ressources, agrandissement payant, rangement au coffre", async () => {
     const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 5000; s.player.inventory = s.player.inventory.slice(0, 6); s.player.resources = {}; delete s.player.bagUpgrades; s.savedAt = Date.now() + 2000; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-sac")) { sessionStorage.setItem("ui-sac", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
