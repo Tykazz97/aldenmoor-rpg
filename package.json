@@ -10,7 +10,8 @@
     "test": "node scripts/run-tests.js",
     "test:ui": "node scripts/test-ui.mjs",
     "check": "npm test && npm run build",
-    "test:stress": "node scripts/test-ui-stress.mjs"
+    "test:stress": "node scripts/test-ui-stress.mjs",
+    "test:full": "node scripts/test-ui-full.mjs"
   },
   "dependencies": {
     "react": "^18.2.0",
