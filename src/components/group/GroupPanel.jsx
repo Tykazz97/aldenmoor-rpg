@@ -16,7 +16,12 @@ export default function GroupPanel({ player, stats, onPlayerChange }) {
   const guilds = player.market?.sims?.guilds;
   const tagOf = (b) => { const g = guilds?.byId?.[guilds?.of?.[b.id]]; return g ? g.tag : null; };
 
-  const act = (fn) => onPlayerChange((p) => { const r = fn(p); if (!r.ok) setTimeout(() => setMsg(GROUP_REASONS[r.reason] || ""), 0); else setTimeout(() => setMsg(""), 0); return r.ok ? r.player : p; });
+  const act = (fn) => onPlayerChange((p) => {
+    const r = fn(p);
+    const text = r.ok ? "" : r.reason === "refuse" && r.bot ? `${r.bot.name} décline ton invitation : il préfère jouer de son côté pour le moment. Réessaie plus tard ou invite quelqu'un d'autre.` : GROUP_REASONS[r.reason] || "";
+    setTimeout(() => setMsg(text), 0);
+    return r.ok ? r.player : p;
+  });
   const invite = (id) => act((p) => inviteAction(p, id));
   const kick = (id) => act((p) => kickAction(p, id));
 

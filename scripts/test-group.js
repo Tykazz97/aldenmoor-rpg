@@ -7,7 +7,7 @@ import { getPopulation } from "../src/sim/population.js";
 import { getLivePopulation } from "../src/sim/simWorld.js";
 import { buildAllies } from "../src/sim/partyBots.js";
 import { newGuilds, createGuild, addMember } from "../src/utils/guildCore.js";
-import { groupOf, groupCandidates, inviteAction, kickAction, cleanGroupAction, creditGroup, isOnline, GROUP_MAX, GROUP_LEVEL_WINDOW } from "../src/utils/group.js";
+import { groupOf, groupCandidates, acceptsInvite, acceptChance, inviteAction, kickAction, cleanGroupAction, creditGroup, isOnline, GROUP_MAX, GROUP_LEVEL_WINDOW } from "../src/utils/group.js";
 import { applyRewards } from "../src/utils/progression.js";
 
 let n = 0;
@@ -24,7 +24,7 @@ const mk = (level = 10) => {
   const p = { ...createPlayer({ name: "Moi", classKey: "guerrier" }), level, market: structuredClone(market) };
   return p;
 };
-const near = (p, now = T0) => groupCandidates(p, now, { max: 100 }).filter((c) => c.ok).map((c) => c.bot);
+const near = (p, now = T0) => groupCandidates(p, now, { max: 100 }).filter((c) => c.ok && acceptsInvite(p, c.bot, now)).map((c) => c.bot);   // ceux qui acceptent
 
 test("les candidats sont connectés, proches de mon niveau, ceux de ma guilde d'abord", () => {
   const p = mk(10);
@@ -57,6 +57,26 @@ test("inviter : connecté, écart de niveau, pas deux fois, pas plus de 2 ; excl
   if (faraway) assert.equal(inviteAction(p, faraway.id, T0).reason, "ecart_niveau");
   const k = kickAction(r2.player, c[0].id); assert.ok(k.ok); assert.deepEqual(k.player.companions, [c[1].id]);
   assert.equal(kickAction(k.player, c[0].id).reason, "inconnu");
+});
+
+test("une invitation peut être refusée : selon le profil, stable dans le même pas de 10 minutes, jamais pour tous", () => {
+  const p = mk(10), cands = groupCandidates(p, T0, { max: 200 }).filter((c) => c.ok).map((c) => c.bot);
+  const no = cands.filter((b) => !acceptsInvite(p, b, T0)), yes = cands.filter((b) => acceptsInvite(p, b, T0));
+  assert.ok(yes.length > 0, "certains acceptent"); 
+  // sur beaucoup de pas, le taux d'acceptation suit la probabilité du profil
+  const bot = cands[0]; let ok = 0; const N = 400;
+  for (let i = 0; i < N; i++) if (acceptsInvite(p, bot, (Math.floor(T0 / STEP_MS) + i) * STEP_MS)) ok++;
+  assert.ok(Math.abs(ok / N - acceptChance(p, bot)) < 0.1, `taux ${ok / N} proche de ${acceptChance(p, bot)}`);
+  if (no.length) {
+    const r = inviteAction(p, no[0].id, T0);
+    assert.equal(r.ok, false); assert.equal(r.reason, "refuse"); assert.equal(r.bot.id, no[0].id); assert.equal(r.player, p, "rien ne change");
+    assert.equal(inviteAction(p, no[0].id, T0 + 60000).reason, "refuse", "insister dans le même pas ne change rien");
+  }
+  // ceux de ma guilde disent plus souvent oui (+10 points)
+  const mate = cands.find((b) => acceptChance(p, b) <= 0.87), base = acceptChance(p, mate);
+  const sims = p.market.sims, G = sims.guilds = newGuilds(), g = createGuild(G, { founder: "player", name: "Les Veilleurs", step: sims.step });
+  addMember(G, g, mate.id, sims.step);
+  assert.ok(Math.abs(acceptChance(p, mate) - (base + 0.1)) < 1e-9, "ma guilde : +10 points");
 });
 
 test("un membre qui se déconnecte sort du groupe ; un groupe intact reste le même objet", () => {
@@ -120,11 +140,12 @@ test("même graine = même butin ; les gains du joueur ne changent pas avec ou s
 });
 
 test("en groupe, la vie simulée d'un membre est en pause (il ne gagne qu'avec moi) ; elle reprend quand il part", () => {
-  const p0 = mk(10), c = near(p0), id = c[0].id, bot = pop.find((b) => b.id === id);
-  const step = Math.floor(T0 / STEP_MS);
+  const p0 = mk(10), step = Math.floor(T0 / STEP_MS);
+  const live = getLivePopulation(p0).filter((b) => Math.abs(b.level - 10) <= GROUP_LEVEL_WINDOW);
+  const bot = live.find((b) => isActive(b, step) && acceptsInvite(p0, b, step * STEP_MS)), id = bot.id;
   const run = (sims, from, k) => { const w = structuredClone(sims); for (let i = 0; i < k; i++) stepLivesOne(w, pop, from + i, { merchant: false, keep: 120 }); return w; };
   // un pas où il joue vraiment
-  let s0 = step; while (!isActive(bot, s0)) s0++;
+  const s0 = step;
   const free = run(p0.market.sims, s0, 1).lives[id];
   assert.ok(free.played > p0.market.sims.lives[id].played, "libre : il joue");
   const inv = inviteAction(p0, id, s0 * STEP_MS);

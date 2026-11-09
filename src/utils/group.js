@@ -7,7 +7,7 @@
 // Le groupe est stocké dans `player.companions` (ids de simulés), comme les anciens compagnons.
 // ============================================================
 import { PARTY_SIZE } from "../sim/partyBots.js";
-import { isActive, STEP_MS, groupFightStep } from "../sim/lives.js";
+import { isActive, STEP_MS, groupFightStep, traitsOf } from "../sim/lives.js";
 import { getLivePopulation } from "../sim/simWorld.js";
 import { PARTY_DROP_MULT } from "../combat/engine.js";
 import { makeRng, hashString } from "../sim/rng.js";
@@ -21,7 +21,18 @@ export const GROUP_REASONS = {
   ecart_niveau: `L'écart de niveau est trop grand (${GROUP_LEVEL_WINDOW} niveaux au maximum).`,
   deja_groupe: "Ce joueur est déjà dans ton groupe.",
   inconnu: "Ce joueur n'existe pas.",
+  refuse: "Ce joueur décline ton invitation : il préfère jouer de son côté pour le moment.",
 };
+
+// Un simulé n'accepte pas toujours : selon son profil (un acharné des métiers est pris par sa fabrication, un occasionnel est plus réservé) et
+// un peu de hasard, tiré une fois par pas de 10 minutes (insister ne change rien, réessayer plus tard oui). Ceux de ma guilde disent plus souvent oui.
+export const ACCEPT_P = { occasionnel: 0.7, regulier: 0.8, acharne_xp: 0.9, acharne_metiers: 0.4 };
+export function acceptChance(player, bot) {
+  const t = traitsOf(bot), key = t.profile === "acharne" ? `acharne_${t.focus || "xp"}` : t.profile;
+  const G = player?.market?.sims?.guilds, same = !!G?.of?.player && G.of[bot.id] === G.of.player;
+  return Math.min(0.97, (ACCEPT_P[key] ?? 0.75) + (same ? 0.1 : 0));
+}
+export const acceptsInvite = (player, bot, now = Date.now()) => hashString(`invite:${bot.id}:${stepOfNow(now)}`) / 4294967296 < acceptChance(player, bot);
 
 const stepOfNow = (now) => Math.floor(now / STEP_MS);
 export const isOnline = (bot, now = Date.now()) => isActive(bot, stepOfNow(now));
@@ -76,6 +87,7 @@ export function inviteAction(player, id, now = Date.now()) {
   if (list.length >= GROUP_MAX) return fail(player, "groupe_plein");
   if (!isOnline(bot, now)) return fail(player, "hors_ligne");
   if (Math.abs(bot.level - (player.level || 1)) > GROUP_LEVEL_WINDOW) return fail(player, "ecart_niveau");
+  if (!acceptsInvite(player, bot, now)) return { ...fail(player, "refuse"), bot };
   return { ok: true, bot, player: withBusy({ ...player, companions: [...list, id] }, now) };
 }
 

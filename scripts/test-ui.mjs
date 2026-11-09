@@ -359,7 +359,13 @@ try {
     // le groupe permanent : on invite 2 joueurs connectés dans l'onglet Groupe, puis on revient sur la carte
     await tab("Groupe").click(); await page.waitForTimeout(500);
     await page.locator("[data-group-cand]").first().waitFor({ timeout: 15000 });
-    for (let i = 0; i < 2; i++) { await page.locator("[data-group-invite]:not([disabled])").first().click(); await page.waitForTimeout(300); }
+    // un simulé peut décliner l'invitation (message à l'écran) : on passe au suivant jusqu'à avoir 2 membres
+    let declined = 0;
+    for (let i = 0; i < 12 && (await page.locator("[data-group-member]").count()) < 2; i++) {
+      const btn = page.locator("[data-group-invite]:not([disabled])").nth(declined);
+      await btn.click(); await page.waitForTimeout(300);
+      if (await page.locator("[data-group-msg]").count()) { assert.match(await page.locator("[data-group-msg]").innerText(), /décline/); declined++; }
+    }
     assert.equal(await page.locator("[data-group-member]").count(), 2, "les 2 joueurs invités sont dans le groupe");
     assert.equal(await page.locator("[data-group-invite]:not([disabled])").count(), 0, "groupe complet : plus d'invitation possible");
     await page.waitForTimeout(800);

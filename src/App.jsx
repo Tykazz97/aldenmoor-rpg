@@ -14,7 +14,8 @@ import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
 import RankingPanel from "./components/ranking/RankingPanel.jsx";
 import GuildPanel from "./components/guild/GuildPanel.jsx";
 import GroupPanel from "./components/group/GroupPanel.jsx";
-import { cleanGroupAction } from "./utils/group.js";
+import { cleanGroupAction, isOnline } from "./utils/group.js";
+import { getLivePopulation } from "./sim/simWorld.js";
 import { syncPlayerGuild, myGuild, resolveDueAttacksNow } from "./utils/guildActions.js";
 import { SENT_BY_KEY } from "./data/sentinel.js";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
@@ -88,6 +89,21 @@ function Game({ initial, onNewCharacter }) {
     const t = setTimeout(() => setWarMsg(null), 12000);
     return () => clearTimeout(t);
   }, [topLog?.t, topLog?.txt]); // eslint-disable-line
+
+  // Un membre du groupe qui se déconnecte le quitte : un message le dit (un joueur exclu à la main est encore connecté, donc sans message)
+  const [groupMsg, setGroupMsg] = useState(null);
+  const prevGroup = useRef(player.companions || []);
+  useEffect(() => {
+    const now = player.companions || [], gone = prevGroup.current.filter((id) => !now.includes(id));
+    prevGroup.current = now;
+    if (!gone.length) return undefined;
+    const pop = getLivePopulation(player);
+    const names = gone.map((id) => pop.find((b) => b.id === id)).filter((b) => b && !isOnline(b)).map((b) => b.name);
+    if (!names.length) return undefined;
+    setGroupMsg(`${names.join(" et ")} ${names.length > 1 ? "se sont déconnectés et quittent" : "s'est déconnecté et quitte"} ton groupe.`);
+    const t = setTimeout(() => setGroupMsg(null), 10000);
+    return () => clearTimeout(t);
+  }, [player.companions]); // eslint-disable-line
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
@@ -165,6 +181,11 @@ function Game({ initial, onNewCharacter }) {
       {warMsg && (
         <div data-war-msg onClick={() => setWarMsg(null)} style={{ position: "fixed", top: 14, right: 18, zIndex: 85, maxWidth: 380, cursor: "pointer", padding: "10px 14px", background: warMsg.ok ? "#14301a" : "#3a1612", border: `1px solid ${warMsg.ok ? "#3f8a4d" : "#a8443a"}`, borderRadius: 8, color: warMsg.ok ? "#c9ecce" : "#f1c9c2", boxShadow: "0 6px 20px rgba(0,0,0,.5)", fontSize: 14 }}>
           {warMsg.ok ? "🛡 " : "💥 "}{warMsg.text}
+        </div>
+      )}
+      {groupMsg && (
+        <div data-group-leave onClick={() => setGroupMsg(null)} style={{ position: "fixed", top: 62, right: 18, zIndex: 84, maxWidth: 380, cursor: "pointer", padding: "10px 14px", background: "#1d2230", border: "1px solid #4a6a9a", borderRadius: 8, color: "#cfe0f7", boxShadow: "0 6px 20px rgba(0,0,0,.5)", fontSize: 14 }}>
+          👥 {groupMsg}
         </div>
       )}
       {attack && activeTab !== "guilde" && (
