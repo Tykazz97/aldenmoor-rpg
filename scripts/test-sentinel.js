@@ -379,6 +379,11 @@ test("victoire en groupe : le stock est partagé à parts égales entre le joueu
   assert.equal(r.gold + 2 * r.each.gold, 500);
   assert.equal(r.player.resources.croc_de_loup + 2 * r.each.res.croc_de_loup, 12);
   assert.equal(r.player.resources.fourrure_grise + 2 * r.each.res.fourrure_grise, 3);
+  // à deux : moitié-moitié
+  const duo = winAttackAction(p, "prairies_sauvages", T0, [ids[0]]);
+  assert.equal(duo.group, 1); assert.equal(duo.gold, 250); assert.equal(duo.each.gold, 250);
+  assert.equal(duo.player.resources.croc_de_loup, 6); assert.equal(duo.each.res.croc_de_loup, 6);
+  assert.equal(duo.player.market.sims.lives[ids[1]].gold, before[1].gold, "l'autre simulé ne reçoit rien");
   // un id inconnu est ignoré : tout revient au joueur
   const solo = winAttackAction(p, "prairies_sauvages", T0, ["inconnu"]);
   assert.equal(solo.gold, 500); assert.equal(solo.group, 0);
