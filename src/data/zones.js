@@ -105,7 +105,7 @@ export const ENEMIES = {
   cavalier_dechu: {
     key: "cavalier_dechu", name: "Le Cavalier Déchu", miniBoss: true,
     desc: "Ancien chevalier protecteur des prairies, corrompu. Coup chargé infligeant un debuff DEF, phase de rage à bas HP.",
-    stats: { hp: 520, atkPhys: 14, atkMagie: 0, defPhys: 15, defMagie: 5, esquive: 3, critique: 8, vitesse: 9, pa: 6 },
+    stats: { hp: 520, atkPhys: 14, atkMagie: 0, defPhys: 15, defMagie: 5, esquive: 3, critique: 8, vitesse: 9, pa: 8 },
     xp: 150,
     actions: [
       { id: "coup_d_epee", name: "Coup d'épée", pa: 3, type: "phys", power: 1.0, weight: 3 },
@@ -176,7 +176,7 @@ export const ENEMIES = {
   epouvantail_ancestral: {
     key: "epouvantail_ancestral", name: "L'Épouvantail Ancestral", miniBoss: true,
     desc: "Version massive et maléfique de l'épouvantail. Ses corbeaux inflignent le Poison, ses braises le Feu ; entre en fureur à mi-vie.",
-    stats: { hp: 1600, atkPhys: 26, atkMagie: 38, defPhys: 24, defMagie: 22, esquive: 0, critique: 6, vitesse: 8, pa: 6 },
+    stats: { hp: 1600, atkPhys: 26, atkMagie: 38, defPhys: 24, defMagie: 22, esquive: 0, critique: 6, vitesse: 8, pa: 8 },
     xp: 260,
     actions: [
       { id: "coup_de_branche", name: "Coup de branche", pa: 3, type: "phys", power: 1.0, weight: 3 },
@@ -251,7 +251,7 @@ export const ENEMIES = {
   veilleur_corrompu: {
     key: "veilleur_corrompu", name: "Le Veilleur Corrompu", miniBoss: true,
     desc: "Gardien d'avant la corruption, mi-spectre mi-chevalier. Sa garde brise l'armure et son regard retire des PA ; sous 66 % de vie il appelle deux esprits errants, sous 33 % il entre en rage (feu noir et poison).",
-    stats: { hp: 2200, atkPhys: 31, atkMagie: 27, defPhys: 30, defMagie: 22, esquive: 0, critique: 8, vitesse: 11, pa: 6 },
+    stats: { hp: 2200, atkPhys: 31, atkMagie: 27, defPhys: 30, defMagie: 22, esquive: 0, critique: 8, vitesse: 11, pa: 8 },
     xp: 700,
     actions: [
       { id: "coup_de_garde", name: "Coup de garde", pa: 3, type: "phys", power: 1.0, weight: 3 },
@@ -340,7 +340,7 @@ export const ENEMIES = {
   dame_en_deuil: {
     key: "dame_en_deuil", name: "La Dame en Deuil", boss: true, dungeon: true,
     desc: "Noble ayant invoqué une magie interdite pour ramener son époux (le Cavalier Déchu). Combat en 2 phases : magie et Givre, puis, sous 50 % de vie, rituel final incontrôlable (Feu, Poison et Givre).",
-    stats: { hp: 5000, atkPhys: 0, atkMagie: 72, defPhys: 60, defMagie: 50, esquive: 0, critique: 8, vitesse: 11, pa: 6 },
+    stats: { hp: 5000, atkPhys: 0, atkMagie: 72, defPhys: 60, defMagie: 50, esquive: 0, critique: 8, vitesse: 11, pa: 8 },
     xp: 1800,
     actions: [
       { id: "plainte_glaciale", name: "Plainte glaciale", pa: 3, type: "mag", power: 1.0, weight: 3, effect: { kind: "weaken", element: "givre", turns: 2, value: 0.2 } },
