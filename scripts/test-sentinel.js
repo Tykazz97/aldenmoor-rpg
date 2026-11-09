@@ -240,7 +240,7 @@ test("le monstre de la sentinelle : fabriqué à part, hors du bestiaire, plus f
   assert.ok(sentinelStats(l1).hp < sentinelStats(l1b).hp * 1.3, "niveau 1 : un point ne change pas tout (+33 PV sur 300, pas +800)");
   assert.ok(sentinelStats(guildWith(20, "force")).atkPhys > sentinelStats(guildWith(20, "aucun")).atkPhys * 3, "la force fait les dégâts");
   assert.ok(sentinelStats(guildWith(20, "defense")).defPhys > sentinelStats(guildWith(20, "aucun")).defPhys * 3, "la défense réduit les dégâts");
-  assert.equal(enemyDef(k5).img, "/assets/sentinel/golem.png");
+  assert.equal(enemyDef(k5).img, "/assets/sentinel/golem.webp");
   assert.deepEqual(enemyDef(k5).actions.map((a) => a.id), ["poing_de_pierre", "peau_de_granit"], "niveau 5 : deux sorts débloqués, tous deux équipés");
   const { g } = worldWithSentinel();
   const enc = sentinelEncounter(g, "prairies_sauvages");

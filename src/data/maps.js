@@ -318,7 +318,7 @@ export const MAPS = {
     ],
     // L'entrée du donjon, derrière le Veilleur : un bâtiment (une seule tuile bloquée) qui ouvre la fiche du donjon
     buildings: [
-      { id: "manoir_englouti", kind: "donjon", dungeon: "manoir_englouti", name: "Le Manoir Englouti", hint: "Donjon · groupe de 3 · clé requise", img: "/assets/map/manoir.png", a: 52, y: 18, fw: 1, fh: 1, w: 5.6 },
+      { id: "manoir_englouti", kind: "donjon", dungeon: "manoir_englouti", name: "Le Manoir Englouti", hint: "Donjon · groupe de 3 · clé requise", img: "/assets/map/manoir.webp", a: 52, y: 18, fw: 1, fh: 1, w: 5.6 },
     ],
     nodes: [
       { id: "frene_1", node: "frene", x: 31, y: 23 },
@@ -379,11 +379,11 @@ export const CITY_KEY = "aldenmoor_ville";
 export const CITY = { key: CITY_KEY, name: "Aldenmoor", difficulty: "ville", desc: "Le cœur du royaume : atelier, coffre, marché et portail vers les régions." };
 
 export const CITY_BUILDINGS = [
-  { id: "atelier", kind: "atelier", name: "Atelier", hint: "Forger et fabriquer", img: "/assets/map/city/atelier.png", a: 6, y: 7, fw: 4.4, fh: 2, w: 5.6 },
-  { id: "coffre", kind: "coffre", name: "Coffre d'Aldenmoor", hint: "Ranger tes objets et ressources", img: "/assets/map/city/coffre.png", a: 18, y: 7, fw: 4.2, fh: 2, w: 5 },
-  { id: "marche", kind: "marche", name: "Marché", hint: "Hôtel des ventes : acheter et vendre", img: "/assets/map/city/marche.png", a: 28, y: 7, fw: 4.4, fh: 2, w: 5.2 },
-  { id: "panneau", kind: "panneau", name: "Tableau de quêtes", hint: "Quêtes du jour et réputation", img: "/assets/map/city/panneau.png", a: 12, y: 16, fw: 2.2, fh: 1, w: 3 },
-  { id: "portail", kind: "portail", name: "Portail des régions", hint: "Voyager vers une région", img: "/assets/map/city/portail.png", a: 18, y: 22, fw: 3.4, fh: 1, w: 4.4 },
+  { id: "atelier", kind: "atelier", name: "Atelier", hint: "Forger et fabriquer", img: "/assets/map/city/atelier.webp", a: 6, y: 7, fw: 4.4, fh: 2, w: 5.6 },
+  { id: "coffre", kind: "coffre", name: "Coffre d'Aldenmoor", hint: "Ranger tes objets et ressources", img: "/assets/map/city/coffre.webp", a: 18, y: 7, fw: 4.2, fh: 2, w: 5 },
+  { id: "marche", kind: "marche", name: "Marché", hint: "Hôtel des ventes : acheter et vendre", img: "/assets/map/city/marche.webp", a: 28, y: 7, fw: 4.4, fh: 2, w: 5.2 },
+  { id: "panneau", kind: "panneau", name: "Tableau de quêtes", hint: "Quêtes du jour et réputation", img: "/assets/map/city/panneau.webp", a: 12, y: 16, fw: 2.2, fh: 1, w: 3 },
+  { id: "portail", kind: "portail", name: "Portail des régions", hint: "Voyager vers une région", img: "/assets/map/city/portail.webp", a: 18, y: 22, fw: 3.4, fh: 1, w: 4.4 },
 ];
 
 // Tuile de la porte d'un bâtiment, et objet prêt à être traité comme un nœud (x, y = la porte)

@@ -18,7 +18,7 @@ test("chaque tenue a un nom, ses images de combat et ses animations pour les deu
   for (const o of HERO_OUTFITS) {
     assert.ok(OUTFIT_LABELS[o], `nom de ${o}`);
     for (const b of ["m", "f"]) {
-      assert.ok(existsSync(`public/assets/combat/hero/${b}/${o}.png`), `image de combat ${b}/${o}`);
+      assert.ok(existsSync(`public/assets/combat/hero/${b}/${o}.webp`), `image de combat ${b}/${o}`);
       assert.ok(anims[`${b}/${o}`], `métadonnées ${b}/${o}`);
       for (const act of ["walk", "mine", "chop", "herb"]) assert.ok(existsSync(`public/assets/hero/${b}/${o}/${act}.webp`), `feuille ${b}/${o}/${act}`);
     }

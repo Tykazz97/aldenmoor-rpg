@@ -366,7 +366,7 @@ export const ENEMIES = {
   },
 };
 
-// Visuel de combat de chaque ennemi jouable : public/assets/combat/enemies/<key>.png
+// Visuel de combat de chaque ennemi jouable : public/assets/combat/enemies/<key>.webp
 // (un ennemi est "jouable" dès qu'il a des stats de combat)
 export const ENEMY_IMG_BASE = "/assets/combat/enemies";
 // Hauteur d'affichage (px) dans l'arène : les images ont des proportions variées
@@ -378,7 +378,7 @@ const SPRITE_HEIGHT = {
 };
 for (const enemy of Object.values(ENEMIES)) {
   if (enemy.stats) {
-    enemy.img = `${ENEMY_IMG_BASE}/${enemy.key}.png`;
+    enemy.img = `${ENEMY_IMG_BASE}/${enemy.key}.webp`;
     enemy.spriteHeight = SPRITE_HEIGHT[enemy.key] || 200;
   }
 }

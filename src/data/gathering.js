@@ -19,7 +19,7 @@ export const NODES = {
   sauge: { id: "sauge", name: "Sauge", profession: "herboriste", minLevel: 3, resource: "sauge", yield: [1, 2], xp: 18, verb: "Cueillir", size: 1.0 },
 };
 
-for (const node of Object.values(NODES)) node.img = `${NODE_IMG_BASE}/${node.id}.png`;
+for (const node of Object.values(NODES)) node.img = `${NODE_IMG_BASE}/${node.id}.webp`;
 
 export const NODE_ORDER = Object.keys(NODES);
 

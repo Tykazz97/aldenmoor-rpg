@@ -161,7 +161,7 @@ for (const nd of Object.values(NODES)) {
   if (!existsSync(`public${nd.img}`)) err(`Nœud ${nd.id} : image absente (${nd.img})`);
 }
 for (const o of HERO_OUTFITS) for (const b of ["m", "f"]) {
-  if (!existsSync(`public/assets/combat/hero/${b}/${o}.png`)) err(`Tenue du héros absente : ${b}/${o}`);
+  if (!existsSync(`public/assets/combat/hero/${b}/${o}.webp`)) err(`Tenue du héros absente : ${b}/${o}`);
 }
 
 // Ressources jamais utilisées dans une recette (information)

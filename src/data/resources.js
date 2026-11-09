@@ -209,9 +209,9 @@ export const RESOURCES = {
   elixir_de_rappel: { id: "elixir_de_rappel", name: "Élixir de rappel", rarity: "rare", value: 450, source: "alchimie", crafted: true },
 };
 
-// Chaque ressource a son icône : public/assets/icons/resources/<id>.png
+// Chaque ressource a son icône : public/assets/icons/resources/<id>.webp
 for (const res of Object.values(RESOURCES)) {
-  res.img = `${RES_BASE}/${res.id}.png`;
+  res.img = `${RES_BASE}/${res.id}.webp`;
 }
 
 export const RESOURCE_ORDER = Object.keys(RESOURCES);

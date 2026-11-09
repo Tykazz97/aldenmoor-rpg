@@ -23,7 +23,7 @@ export default function WorldMap({ regions, current, onTravel }) {
           <button key={r.key} className={`wm-spot ${open ? "open" : "locked"} ${current === r.key ? "here" : ""}`}
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }} onClick={() => onTravel(r.key)}>
             {r.key === CITY_KEY
-              ? <img className="wm-city" src="/assets/map/city/world_city.png" alt="" draggable={false} />
+              ? <img className="wm-city" src="/assets/map/city/world_city.webp" alt="" draggable={false} />
               : <span className="wm-pin">{open ? "⚔" : "🔒"}</span>}
             <span className="wm-card">
               <b>{r.name}</b>

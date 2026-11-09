@@ -12,7 +12,7 @@ import { ensureDefenderEnemy, defenderBots, allySpecOf, DEFENDERS_MAX } from "./
 
 export const SENT_ROUNDS = 12;                 // tours de table à tenir pour que la défense gagne
 export const SENT_SHIELD_MS = 60 * 60 * 1000;  // une sentinelle qui a tenu bon est intouchable pendant 1 h
-export const SENT_IMG = "/assets/sentinel/golem.png";
+export const SENT_IMG = "/assets/sentinel/golem.webp";
 
 const BASE = new Map();
 const heroStats = (level) => {

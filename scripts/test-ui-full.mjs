@@ -50,6 +50,7 @@ async function open({ s = null, viewport = { width: 1500, height: 960 }, time = 
   if (time) await page.clock.setFixedTime(time);      // l'heure du jeu (qui est en ligne ?) est celle-ci
   errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("response", (r) => { if (r.status() >= 400 && r.url().includes("/assets/")) errors.push(`image/fichier introuvable : ${r.url()}`); });   // un lien d'image cassé fait échouer le test
   page.on("console", (m) => { if (m.type() === "error" && !/fonts|ERR_|403|Failed to load resource/.test(m.text())) errors.push(m.text()); });
   if (s) {
     s.savedAt = Date.now() + 60000;     // la copie la plus récente gagne : la nôtre

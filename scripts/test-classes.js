@@ -65,10 +65,10 @@ test("tenues proposées : celle de la classe, base, et les sets possédés", () 
 
 test("corps féminin : images de combat et animations présentes pour chaque tenue", () => {
   for (const o of ["base", "veteran", "apprenti", "traqueur"]) {
-    assert.equal(heroSpriteUrl(`f/${o}`), `/assets/combat/hero/f/${o}.png`);
-    assert.ok(existsSync(`public/assets/combat/hero/f/${o}.png`));
+    assert.equal(heroSpriteUrl(`f/${o}`), `/assets/combat/hero/f/${o}.webp`);
+    assert.ok(existsSync(`public/assets/combat/hero/f/${o}.webp`));
     for (const a of ["walk", "mine", "chop", "herb"]) assert.ok(existsSync(`public/assets/hero/f/${o}/${a}.webp`), `f/${o}/${a}`);
-    assert.ok(ANIMS[`f/${o}`].actions.walk && ANIMS[`f/${o}`].pngH === ANIMS[`m/${o}`].pngH);
+    assert.ok(ANIMS[`f/${o}`].actions.walk && ANIMS[`f/${o}`].webpH === ANIMS[`m/${o}`].webpH);
   }
 });
 

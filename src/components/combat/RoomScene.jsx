@@ -36,7 +36,7 @@ export default function RoomScene({ dungeon, index, player, party, onDrink, onFi
         <div data-room-enemies style={{ position: "absolute", right: "4%", bottom: "6%", display: "flex", alignItems: "flex-end", gap: 4 }}>
           {room.enemies.map((k, i) => (
             <div key={i} title={ENEMIES[k].name} style={{ textAlign: "center" }}>
-              <img src={`/assets/combat/enemies/${k}.png`} alt={ENEMIES[k].name} draggable={false} style={{ height: ENEMIES[k].miniBoss || room.boss && i === 0 ? 230 : 175, objectFit: "contain", filter: "drop-shadow(0 6px 6px #000a)" }} />
+              <img src={`/assets/combat/enemies/${k}.webp`} alt={ENEMIES[k].name} draggable={false} style={{ height: ENEMIES[k].miniBoss || room.boss && i === 0 ? 230 : 175, objectFit: "contain", filter: "drop-shadow(0 6px 6px #000a)" }} />
               <div style={{ fontSize: 11, color: "#e6dcc3", textShadow: "0 1px 4px #000" }}>{ENEMIES[k].name}</div>
             </div>
           ))}

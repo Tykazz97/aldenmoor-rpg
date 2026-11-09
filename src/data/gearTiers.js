@@ -113,14 +113,14 @@ for (const def of SETS_DEF) {
   SLOTS.forEach((type, i) => {
     const id = `${type}_${def.key}`;
     pieces.push(id);
-    TIER_ITEMS[id] = { id, name: def.names[i], type, rarity: def.rarity, set: def.key, tier: def.tier, img: `${ICON}/${def.key}/${id}.png`, ...def.stats[i] };
+    TIER_ITEMS[id] = { id, name: def.names[i], type, rarity: def.rarity, set: def.key, tier: def.tier, img: `${ICON}/${def.key}/${id}.webp`, ...def.stats[i] };
   });
   TIER_SETS[def.key] = { key: def.key, name: def.name, color: def.color, tier: def.tier, classKey: def.classKey, pieces, bonuses: def.bonuses };
 }
 
 // --- Armes et boucliers : chacun reprend le type d'arme du palier 1 (donc ses sorts) ---
 const weapon = (id, name, tier, rarity, weaponType, twoHanded, img, stats, extra = {}) => {
-  TIER_ITEMS[id] = { id, name, type: "arme", weaponType, rarity, twoHanded, tier, img: `${ICON}/weapons/${img}.png`, ...stats, ...extra };
+  TIER_ITEMS[id] = { id, name, type: "arme", weaponType, rarity, twoHanded, tier, img: `${ICON}/weapons/${img}.webp`, ...stats, ...extra };
 };
 weapon("epee_fossoyeur", "Épée du Fossoyeur", 2, "rare", "epee", false, "epee_fossoyeur", { atk_phys: 22, def_phys: 3 });
 weapon("dague_charognard", "Dague du Charognard", 2, "rare", "dague", false, "dague_charognard", { atk_phys: 19, critique: 3 });
@@ -131,13 +131,13 @@ weapon("baton_esprit", "Bâton de l'Esprit Errant", 3, "epique", "baton", true, 
 weapon("epee_garde_noye", "Lame du Garde Noyé", 4, "epique", "epee", false, "epee_garde_noye", { atk_phys: 42, def_phys: 6 });
 weapon("dague_veneur", "Dague du Veneur", 4, "epique", "dague", false, "dague_veneur", { atk_phys: 35, critique: 5 });
 weapon("baton_veuve", "Bâton de la Veuve", 4, "epique", "baton", true, "baton_veuve", { atk_magie: 32, def_magie: 8 }, { craftLevel: 8 });
-TIER_ITEMS.bouclier_garde_noye = { id: "bouclier_garde_noye", name: "Bouclier du Garde Noyé", type: "bouclier", rarity: "epique", tier: 4, img: `${ICON}/weapons/bouclier_garde_noye.png`, def_phys: 27, def_magie: 14 };
-TIER_ITEMS.bouclier_fossoyeur = { id: "bouclier_fossoyeur", name: "Bouclier du Fossoyeur", type: "bouclier", rarity: "rare", tier: 2, img: `${ICON}/weapons/bouclier_fossoyeur.png`, def_phys: 14, def_magie: 7 };
-TIER_ITEMS.bouclier_chevalier = { id: "bouclier_chevalier", name: "Bouclier du Chevalier Déchu", type: "bouclier", rarity: "epique", tier: 3, img: `${ICON}/weapons/bouclier_chevalier.png`, def_phys: 19, def_magie: 10 };
+TIER_ITEMS.bouclier_garde_noye = { id: "bouclier_garde_noye", name: "Bouclier du Garde Noyé", type: "bouclier", rarity: "epique", tier: 4, img: `${ICON}/weapons/bouclier_garde_noye.webp`, def_phys: 27, def_magie: 14 };
+TIER_ITEMS.bouclier_fossoyeur = { id: "bouclier_fossoyeur", name: "Bouclier du Fossoyeur", type: "bouclier", rarity: "rare", tier: 2, img: `${ICON}/weapons/bouclier_fossoyeur.webp`, def_phys: 14, def_magie: 7 };
+TIER_ITEMS.bouclier_chevalier = { id: "bouclier_chevalier", name: "Bouclier du Chevalier Déchu", type: "bouclier", rarity: "epique", tier: 3, img: `${ICON}/weapons/bouclier_chevalier.webp`, def_phys: 19, def_magie: 10 };
 
 // --- Objets des boss (cape, amulettes, anneau), communs à toutes les classes ---
 const accessory = (id, name, type, rarity, stats, craftLevel) => {
-  TIER_ITEMS[id] = { id, name, type, rarity, img: `${ICON}/accessories/${id}.png`, craftLevel, ...stats };
+  TIER_ITEMS[id] = { id, name, type, rarity, img: `${ICON}/accessories/${id}.webp`, craftLevel, ...stats };
 };
 accessory("anneau_cavalier", "Anneau du Cavalier Déchu", "anneau", "rare", { critique: 4, esquive: 3, hp: 15 }, 1);
 accessory("amulette_armure_maudite", "Amulette de l'Armure Maudite", "amulette", "rare", { def_phys: 8, def_magie: 8, hp: 25 }, 1);

@@ -10,20 +10,20 @@
 const BASE = "/assets/icons/slots";
 
 const SLOT_LUDO_ICONS = {
-  chapeau: `${BASE}/chapeau.png`,
-  cape: `${BASE}/cape.png`,
-  plastron: `${BASE}/plastron.png`,
-  amulette: `${BASE}/amulette.png`,
-  gants: `${BASE}/gants.png`,
-  ceinture: `${BASE}/ceinture.png`,
-  anneau: `${BASE}/anneau.png`,
-  jambieres: `${BASE}/jambieres.png`,
-  arme: `${BASE}/arme.png`,
-  bouclier: `${BASE}/bouclier.png`,
-  relique1: `${BASE}/relique1.png`,
-  relique2: `${BASE}/relique2.png`,
-  relique3: `${BASE}/relique3.png`,
-  relique4: `${BASE}/relique4.png`,
+  chapeau: `${BASE}/chapeau.webp`,
+  cape: `${BASE}/cape.webp`,
+  plastron: `${BASE}/plastron.webp`,
+  amulette: `${BASE}/amulette.webp`,
+  gants: `${BASE}/gants.webp`,
+  ceinture: `${BASE}/ceinture.webp`,
+  anneau: `${BASE}/anneau.webp`,
+  jambieres: `${BASE}/jambieres.webp`,
+  arme: `${BASE}/arme.webp`,
+  bouclier: `${BASE}/bouclier.webp`,
+  relique1: `${BASE}/relique1.webp`,
+  relique2: `${BASE}/relique2.webp`,
+  relique3: `${BASE}/relique3.webp`,
+  relique4: `${BASE}/relique4.webp`,
 };
 
 export default SLOT_LUDO_ICONS;

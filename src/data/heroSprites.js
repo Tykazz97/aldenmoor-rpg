@@ -8,7 +8,7 @@
 // L'apparence est purement cosmétique : elle ne change aucune stat.
 //
 // Un « look » est une chaîne "<corps>/<tenue>", ex. "m/veteran".
-// Fichiers : public/assets/combat/hero/<corps>/<tenue>.png
+// Fichiers : public/assets/combat/hero/<corps>/<tenue>.webp
 //            public/assets/hero/<corps>/<tenue>/<action>.webp
 // ============================================================
 import { CLASSES } from "./classes.js";
@@ -41,7 +41,7 @@ export const heroLook = (player, stats) => `${heroBody(player)}/${heroOutfit(pla
 
 // Look réellement disponible pour l'image de combat
 export const resolveCombatLook = (look) => (COMBAT_READY.has(look) ? look : `m/${look.split("/")[1]}`);
-export const heroSpriteUrl = (look) => `${HERO_BASE}/${resolveCombatLook(look)}.png`;
+export const heroSpriteUrl = (look) => `${HERO_BASE}/${resolveCombatLook(look)}.webp`;
 
 // Tenues que le joueur peut choisir : celle de sa classe, "base", et les sets dont
 // il possède au moins une pièce (portée ou dans le sac).
