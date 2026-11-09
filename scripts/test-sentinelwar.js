@@ -16,7 +16,7 @@ import { buildSpellBar } from "../src/utils/spellbook.js";
 import { castSpell } from "../src/combat/engine.js";
 import { allySpecOf } from "../src/utils/sentinelDefense.js";
 import { calcStats } from "../src/utils/calcStats.js";
-import { endDefenseAction, startDefenseAction } from "../src/utils/guildActions.js";
+import { endDefenseAction, startDefenseAction, resolveDueAttacksNow } from "../src/utils/guildActions.js";
 import { sentinelsOf as sOf } from "../src/utils/sentinel.js";
 
 let n = 0;
@@ -51,7 +51,7 @@ test("une guilde simulée finit par lancer une attaque : alerte, compte à rebou
   for (let i = 0; i < 24 * 120 && !found; i++, s += 6) { launchWars(sims, G, pop, s); if (T.attacks?.length) found = s; }
   assert.ok(found, "au moins une attaque en 120 jours");
   const a = T.attacks[0];
-  assert.equal(a.region, "prairies_sauvages"); assert.equal(a.due, found + WAR_DELAY_STEPS);
+  assert.equal(a.region, "prairies_sauvages"); assert.equal(a.due, found + WAR_DELAY_STEPS); assert.equal(a.dueMs, found * STEP_MS + 180000, "3 minutes après le pas de l'alerte (rattrapage)");
   assert.ok(a.by.length >= 1 && a.by.length <= ATTACKERS_MAX); assert.ok(a.by.every((id) => !G.of[id] || G.of[id] === a.from));
   assert.match(T.log[0].txt, /Alerte/);
   assert.equal(T.lastWar, found);
@@ -210,6 +210,20 @@ test("actions : prendre la défense suspend l'attaque ; une attaque inconnue ou 
   const r = startDefenseAction(player, "act:1", T0);
   assert.ok(r.ok); assert.ok(mineOf(r.player).attacks[0].hold > player.market.bucket, "suspendue");
   assert.equal(mineOf(player).attacks[0].hold, undefined, "le joueur d'avant n'est pas modifié");
+});
+
+test("à la minute : 3 minutes après l'alerte l'attaque est réglée ; pas avant ; jamais pendant que je défends", () => {
+  const { player, by } = withGuild();
+  const t0 = T0;
+  mineOf(player).attacks[0].dueMs = t0 + 180000;
+  assert.equal(resolveDueAttacksNow(player, t0 + 179000), player, "pas encore : le même joueur, rien de recalculé");
+  const held = startDefenseAction(player, "act:1", T0); assert.ok(held.ok);
+  assert.equal(resolveDueAttacksNow(held.player, t0 + 500000), held.player, "en pleine défense : l'attaque attend");
+  const r = resolveDueAttacksNow(player, t0 + 181000);
+  assert.notEqual(r, player); assert.equal(mineOf(r).attacks, undefined, "réglée");
+  const s = mineOf(r).sentinels?.prairies_sauvages;
+  assert.ok(!s || s.shield > 0, "détruite ou protégée");
+  assert.equal(mineOf(player).attacks.length, 1, "le joueur d'avant n'est pas modifié");
 });
 
 test("actions : défense gagnée = sentinelle protégée 1 h, stock intact ; perdue = détruite et l'or va aux attaquants", () => {

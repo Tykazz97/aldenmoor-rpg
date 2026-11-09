@@ -19,7 +19,8 @@ import { SENT_BY_KEY, SENT_REGIONS } from "../data/sentinel.js";
 import { ensureSentinelEnemy, SENT_ROUNDS, SENT_SHIELD_MS } from "../utils/sentinelFight.js";
 import { defenderBots, ensureDefenderEnemy } from "../utils/sentinelDefense.js";
 
-export const WAR_DELAY_STEPS = 2;          // de l'alerte au combat : 20 minutes
+export const WAR_DELAY_MS = 3 * 60 * 1000;     // de l'alerte au combat : 3 minutes (le jeu ouvert règle l'attaque à la minute près : `resolveDueAttacksNow`)
+export const WAR_DELAY_STEPS = 1;          // hors connexion, le monde se rattrape par pas de 10 minutes : l'attaque est réglée au pas suivant
 export const WAR_P = 0.02;                 // par heure et par guilde simulée : une attaque environ tous les 2 jours chacune
 export const WAR_COOLDOWN_STEPS = 48;      // une guilde visée n'est pas attaquée plus d'une fois toutes les 8 h
 export const WAR_SOLO_P = 0.3;             // un seul attaquant disponible : il ne s'y risque qu'une fois sur trois
@@ -57,6 +58,10 @@ export function autoFight(attackers, enemyKeys, seed) {
 const playerGuild = (G) => (G.of?.player && G.byId[G.of.player]) || null;
 const nameOf = (G, id) => G.byId[id]?.name || "une guilde";
 
+// L'heure du combat : 3 minutes après l'alerte. En direct (on joue pendant ce pas), à partir de maintenant ; en rattrapage (le monde se remet à
+// l'heure après une absence), à partir du pas où l'attaque a été lancée.
+const dueMsAt = (step) => (Math.abs(Date.now() - step * STEP_MS) < 2 * STEP_MS ? Date.now() : step * STEP_MS) + WAR_DELAY_MS;
+
 // ---- lancer des attaques (chaque heure) ----
 export function launchWars(sims, G, population, step) {
   const T = playerGuild(G);
@@ -75,7 +80,7 @@ export function launchWars(sims, G, population, step) {
     const pool = live.filter((b) => A.members[b.id] && b.level >= minLevelOf(r) && isActive(b, step))
       .map((b) => ({ b, k: hashString(`war:a:${A.id}:${step}:${b.id}`) })).sort((x, y) => x.k - y.k).slice(0, ATTACKERS_MAX).map((x) => x.b);
     if (!pool.length || (pool.length === 1 && h01(`war:s:${A.id}:${step}`) >= WAR_SOLO_P)) continue;
-    T.attacks = [{ id: `${A.id}:${step}`, region, from: A.id, by: pool.map((b) => b.id), at: step, due: step + WAR_DELAY_STEPS }];
+    T.attacks = [{ id: `${A.id}:${step}`, region, from: A.id, by: pool.map((b) => b.id), at: step, due: step + WAR_DELAY_STEPS, dueMs: dueMsAt(step) }];
     T.lastWar = step;
     logOf(T, step, `Alerte : ${pool.length} membre${pool.length > 1 ? "s" : ""} de ${A.name} attaquent ta sentinelle de ${r.name} !`);
     return;                                                      // une attaque à la fois sur la guilde visée

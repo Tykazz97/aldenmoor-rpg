@@ -29,11 +29,11 @@ export default function Defense({ player, g, run, onDefend }) {
   };
   return (
     <div className="gd-card" data-gd-defense>
-      <div className="gd-sub">Des guildes de simulés attaquent de temps en temps les sentinelles des autres. Tu es prévenu par une alerte avec un compte à rebours : pour la défendre toi-même, tu combats avec ta sentinelle et jusqu'à {DEFENDERS_MAX - 1} membres connectés contre 1 à 3 attaquants. Tu gagnes si la sentinelle tient {SENT_ROUNDS} tours ou si tous les attaquants tombent ; si elle tombe, son stock est perdu. Sans toi, les membres connectés la défendent à ta place.</div>
+      <div className="gd-sub">Des guildes de simulés attaquent de temps en temps les sentinelles des autres. Tu es prévenu par une alerte avec un compte à rebours de 3 minutes : pour la défendre toi-même, tu combats avec ta sentinelle et jusqu'à {DEFENDERS_MAX - 1} membres connectés contre 1 à 3 attaquants. Tu gagnes si la sentinelle tient {SENT_ROUNDS} tours ou si tous les attaquants tombent ; si elle tombe, son stock est perdu. Sans toi, les membres connectés la défendent à ta place.</div>
       {!hasSent && <div className="gd-sub" data-gd-def-none>Ta guilde n'a aucune sentinelle à défendre. Pose-en une dans l'onglet « Sentinelles ».</div>}
       {hasSent && !attacks.length && <div className="gd-sub" data-gd-def-none>Aucune attaque en cours. Si des guildes se montrent, l'alerte apparaîtra ici (et en haut de l'écran).</div>}
       {attacks.map((a) => {
-        const r = SENT_BY_KEY[a.region], left = a.due * STEP_MS - now, held = a.hold > Math.floor(now / STEP_MS);
+        const r = SENT_BY_KEY[a.region], left = (a.dueMs ?? a.due * STEP_MS) - now, held = a.hold > Math.floor(now / STEP_MS);
         const rows = a.by.map((id) => byId.get(id)).filter(Boolean);
         return (
           <div key={a.id} className="gd-list-row" data-gd-attack={a.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 4px" }}>

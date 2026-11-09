@@ -408,6 +408,24 @@ export function startDefenseAction(player, attackId, now = Date.now()) {
   return { ok: true, attack: structuredClone(a), player: commit(player, o.m, o.G) };
 }
 
+// Règle les attaques dont les 3 minutes sont écoulées (sauf celles que le joueur a prises en main) : appelé à chaque minute par le jeu ouvert.
+// Renvoie le même joueur s'il n'y a rien à régler.
+export function resolveDueAttacksNow(player, now = Date.now()) {
+  const g0 = myGuild(player), step0 = player?.market?.bucket ?? 0;
+  const isDue = (a) => a.dueMs != null && a.dueMs <= now && !(a.hold > step0);
+  if (!g0 || !(g0.attacks || []).some(isDue)) return player;
+  const o = mine(player, now);
+  if (o.error) return player;
+  const due = (o.g.attacks || []).filter((a) => a.dueMs != null && a.dueMs <= now && !(a.hold > o.step)), rest = (o.g.attacks || []).filter((a) => !due.includes(a));
+  if (!due.length) return player;
+  if (rest.length) o.g.attacks = rest; else delete o.g.attacks;
+  const sims = { ...o.m.sims, lives: { ...o.m.sims.lives } };
+  for (const a of due) for (const id of a.by) if (sims.lives[id]) sims.lives[id] = { ...sims.lives[id] };
+  const live = liveBots(sims, getPopulation());
+  for (const a of due) settleAttack(o.G, o.g, a, live, sims, o.step);
+  return commit(player, o.m, o.G, {}, sims);
+}
+
 // Le combat est fini : `won` = la sentinelle a tenu (elle est protégée 1 h) ; sinon elle est détruite et son stock est perdu
 export function endDefenseAction(player, attackId, won, now = Date.now()) {
   const o = mine(player, now);

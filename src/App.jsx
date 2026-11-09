@@ -13,7 +13,7 @@ import QuestPanel from "./components/city/QuestPanel.jsx";
 import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
 import RankingPanel from "./components/ranking/RankingPanel.jsx";
 import GuildPanel from "./components/guild/GuildPanel.jsx";
-import { syncPlayerGuild, myGuild } from "./utils/guildActions.js";
+import { syncPlayerGuild, myGuild, resolveDueAttacksNow } from "./utils/guildActions.js";
 import { SENT_BY_KEY } from "./data/sentinel.js";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
@@ -73,12 +73,13 @@ function Game({ initial, onNewCharacter }) {
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
-  const advanceMarket = useCallback(() => setPlayer((p) => { const m = marketOf(p, Date.now(), { maxSteps: CATCHUP_SLICE }); return syncPlayerGuild(m === p.market ? p : { ...p, market: m }); }), [setPlayer]);   // + ton activité compte pour les quêtes de ta guilde
+  const advanceMarket = useCallback(() => setPlayer((p) => { const m = marketOf(p, Date.now(), { maxSteps: CATCHUP_SLICE }); return resolveDueAttacksNow(syncPlayerGuild(m === p.market ? p : { ...p, market: m })); }), [setPlayer]);   // + ton activité compte pour les quêtes de ta guilde
   useEffect(() => {
     advanceMarket();
     const id = setInterval(advanceMarket, 60000);
-    return () => clearInterval(id);
-  }, [advanceMarket]);
+    const idWar = setInterval(() => setPlayer((p) => resolveDueAttacksNow(p)), 10000);     // les attaques de sentinelle se règlent à 10 secondes près
+    return () => { clearInterval(id); clearInterval(idWar); };
+  }, [advanceMarket, setPlayer]);
   const behind = marketBehind(player.market, Date.now());
   useEffect(() => {
     if (!behind) return undefined;
