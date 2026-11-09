@@ -238,6 +238,7 @@ export function createLives({ population, mode = "generated", epoch = 1, now = D
 export function stepLivesOne(world, population, step, opts = {}, traits = null) {
   for (const b of population) {
     const life = world.lives[b.id];
+    if (world.busy && world.busy[b.id] >= step) continue;           // il joue avec le joueur (groupe) : sa vie simulée est en pause
     if (life) stepLife(life, b, step, traits?.get(b.id) ?? traitsOf(b), opts);
   }
   world.step = step + 1;

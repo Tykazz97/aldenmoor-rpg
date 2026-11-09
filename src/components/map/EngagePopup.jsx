@@ -74,17 +74,18 @@ export default function EngagePopup({ group, dungeon: entrance = null, hasWeapon
           {members.map((a) => (
             <span key={a.id} data-engage-member={a.id} className="mp-comp-chip" title={`${CLASSES[a.classKey].label} niveau ${a.level}`}>{a.name} <i>{CLASSES[a.classKey].label} · niv. {a.level}</i></span>
           ))}
-          {members.length === 0 && <span style={{ fontSize: 12, color: "#74748a" }}>Tu es seul. {dungeon ? "Des alliés génériques t'accompagnent." : ""}</span>}
+          {members.length === 0 && <span style={{ fontSize: 12, color: "#74748a" }}>Tu es seul.</span>}
           <button className="cb-btn" onClick={() => onManageGroup?.()}>{members.length < GROUP_MAX ? "Inviter des joueurs" : "Gérer mon groupe"}</button>
         </div>
       )}
       {!hasWeapon && <div className="mp-pop-warn">Aucune arme équipée : tu te battras à mains nues.</div>}
       {dungeon && keys === 0 && <div className="mp-pop-warn">Il te faut une {ITEMS[dungeon.keyItem].name} : le Bricoleur la fabrique à l'atelier.</div>}
+      {dungeon && keys > 0 && members.length < GROUP_MAX && <div className="mp-pop-warn">Ce donjon est pensé pour un groupe de 3 : invite des joueurs connectés dans l'onglet Groupe.</div>}
       {dungeon && keys > 0 && <div className="mp-pop-warn">Les PV ne sont pas rendus entre les salles. La clé est consommée à l'entrée, même si l'expédition échoue. Niveau conseillé : {dungeon.minLevel} et plus.</div>}
       <div className="mp-pop-btns">
         <button className="cb-btn" onClick={onBack}>Reculer</button>
         {dungeon ? (
-          <button className="cb-btn primary" disabled={keys === 0} onClick={() => onFight(true, dungeon)} title="Trois héros : toi et deux compagnons">🗝 Entrer avec mon groupe{keys > 0 ? ` (${keys} clé${keys > 1 ? "s" : ""})` : ""}</button>
+          <button className="cb-btn primary" disabled={keys === 0} onClick={() => onFight(true, dungeon)} title="Ton groupe d'aventuriers t'accompagne ; seuls les vrais joueurs connectés (onglet Groupe)">🗝 Entrer avec mon groupe{keys > 0 ? ` (${keys} clé${keys > 1 ? "s" : ""})` : ""}</button>
         ) : (
           <>
             <button className="cb-btn" disabled={members.length === 0} data-fight-group onClick={() => onFight(true)} title={members.length ? "Ton groupe combat à tes côtés : butin meilleur (jusqu'à ×1,5), mais moins d'xp qu'en solo ; chacun gagne son xp et son butin" : "Invite d'abord un joueur connecté (onglet Groupe)"}>👥 En groupe</button>

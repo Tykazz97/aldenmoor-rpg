@@ -439,7 +439,9 @@ try {
     await page.locator("button", { hasText: "Entrer avec mon groupe" }).click();
     await page.locator('[data-room-scene="hall"]').waitFor({ timeout: 15000 });
     assert.equal(await page.locator("[data-room-enemies] img").count(), 3, "le groupe de monstres de la salle est visible");
-    assert.equal(await page.locator("[data-room-hero]").count(), 3, "trois héros avec leurs PV");
+    const nGroup = (await save()).player.companions.length;     // le groupe permanent : pas d'allié générique, seulement les vrais joueurs présents
+    assert.ok(nGroup >= 1, "le groupe de l'étape précédente est toujours là");
+    assert.equal(await page.locator("[data-room-hero]").count(), 1 + nGroup, "toi et les membres du groupe, avec leurs PV");
     assert.ok((await page.locator('[data-drink^="0:"]').count()) >= 1, "des potions sont proposées (sac de test)");
     assert.equal(await page.locator('[data-drink^="0:"]:not([disabled])').count(), 0, "PV pleins : rien à boire");
     await page.waitForTimeout(1500);
@@ -447,7 +449,7 @@ try {
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });   // coup d'œil à la main : SHOT=/chemin.png npm run test:ui
     await page.locator("[data-room-fight]").click();
     await page.locator(".cb-tl.ally").first().waitFor({ timeout: 30000 });
-    assert.equal(await page.locator(".cb-tl.ally").count(), 2, "trois héros dans le donjon");
+    assert.equal(await page.locator(".cb-tl.ally").count(), nGroup, "les membres du groupe combattent dans le donjon");
     await page.waitForTimeout(1500);
     assert.equal(keys(await save()), k0 - 1, "une clé est consommée dès l'entrée");
     await page.locator(".cb-btn", { hasText: "Quitter" }).click();

@@ -28,6 +28,22 @@ export const isOnline = (bot, now = Date.now()) => isActive(bot, stepOfNow(now))
 const fail = (player, reason) => ({ ok: false, reason, player });
 const lifeOf = (player, id) => player?.market?.sims?.lives?.[id] || null;
 
+// Pendant qu'un simulé est dans mon groupe, sa vie simulée est en pause (`sims.busy[id]` = dernier pas où il est occupé) : il ne gagne qu'avec moi.
+// La marque est renouvelée tant qu'il est dans le groupe (toutes les 10 s) et expire seule peu après son départ ou si je ferme le jeu.
+const BUSY_STEPS = 2;
+export function withBusy(player, now = Date.now()) {
+  const sims = player?.market?.sims;
+  if (!sims) return player;
+  const want = stepOfNow(now) + BUSY_STEPS, ids = player.companions || [];
+  const cur = sims.busy || {};
+  const stale = Object.keys(cur).filter((id) => !ids.includes(id) || cur[id] < stepOfNow(now));
+  if (ids.every((id) => cur[id] >= want) && !stale.length) return player;
+  const busy = { ...cur };
+  for (const id of stale) delete busy[id];
+  for (const id of ids) busy[id] = want;
+  return { ...player, market: { ...player.market, sims: { ...sims, busy } } };
+}
+
 // Mon groupe : { members: [bots présents (connectés)], gone: [ids qui ne le sont plus ou n'existent plus] }
 export function groupOf(player, now = Date.now()) {
   const pop = getLivePopulation(player), byId = new Map(pop.map((b) => [b.id, b]));
@@ -60,21 +76,20 @@ export function inviteAction(player, id, now = Date.now()) {
   if (list.length >= GROUP_MAX) return fail(player, "groupe_plein");
   if (!isOnline(bot, now)) return fail(player, "hors_ligne");
   if (Math.abs(bot.level - (player.level || 1)) > GROUP_LEVEL_WINDOW) return fail(player, "ecart_niveau");
-  return { ok: true, bot, player: { ...player, companions: [...list, id] } };
+  return { ok: true, bot, player: withBusy({ ...player, companions: [...list, id] }, now) };
 }
 
-export function kickAction(player, id) {
+export function kickAction(player, id, now = Date.now()) {
   const list = player.companions || [];
   if (!list.includes(id)) return fail(player, "inconnu");
-  return { ok: true, player: { ...player, companions: list.filter((x) => x !== id) } };
+  return { ok: true, player: withBusy({ ...player, companions: list.filter((x) => x !== id) }, now) };
 }
 
-// Retire du groupe ceux qui ne sont plus connectés (ou qui n'existent plus). Renvoie le même joueur s'il n'y a rien à changer.
+// Retire du groupe ceux qui ne sont plus connectés (ou qui n'existent plus) et renouvelle la pause de la vie simulée des membres. Renvoie le même joueur s'il n'y a rien à changer.
 export function cleanGroupAction(player, now = Date.now()) {
-  if (!(player?.companions || []).length) return player;
+  if (!(player?.companions || []).length) return Object.keys(player?.market?.sims?.busy || {}).length ? withBusy(player, now) : player;
   const { members, gone } = groupOf(player, now);
-  if (!gone.length) return player;
-  return { ...player, companions: members.map((b) => b.id) };
+  return withBusy(gone.length ? { ...player, companions: members.map((b) => b.id) } : player, now);
 }
 
 // Après un combat gagné à plusieurs : chaque membre (`ids`) reçoit son xp, son or et son butin. Renvoie un joueur dont les fiches ont été copiées

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { enableSimMarket, newMarket } from "../src/utils/market.js";
-import { createLives, STEP_MS } from "../src/sim/lives.js";
+import { createLives, STEP_MS, stepLivesOne, isActive } from "../src/sim/lives.js";
 import { getPopulation } from "../src/sim/population.js";
 import { getLivePopulation } from "../src/sim/simWorld.js";
 import { buildAllies } from "../src/sim/partyBots.js";
@@ -117,6 +117,30 @@ test("même graine = même butin ; les gains du joueur ne changent pas avec ou s
   const rewards = { xp: 10, gold: 7, resources: {}, items: [], kills };
   const a = applyRewards(p, rewards, "x").player, b = applyRewards(creditGroup(p, ids, kills, "s"), rewards, "x").player;
   assert.equal(a.gold, b.gold); assert.equal(a.xp, b.xp);
+});
+
+test("en groupe, la vie simulée d'un membre est en pause (il ne gagne qu'avec moi) ; elle reprend quand il part", () => {
+  const p0 = mk(10), c = near(p0), id = c[0].id, bot = pop.find((b) => b.id === id);
+  const step = Math.floor(T0 / STEP_MS);
+  const run = (sims, from, k) => { const w = structuredClone(sims); for (let i = 0; i < k; i++) stepLivesOne(w, pop, from + i, { merchant: false, keep: 120 }); return w; };
+  // un pas où il joue vraiment
+  let s0 = step; while (!isActive(bot, s0)) s0++;
+  const free = run(p0.market.sims, s0, 1).lives[id];
+  assert.ok(free.played > p0.market.sims.lives[id].played, "libre : il joue");
+  const inv = inviteAction(p0, id, s0 * STEP_MS);
+  assert.ok(inv.ok); assert.ok(inv.player.market.sims.busy[id] >= s0);
+  const held = run(inv.player.market.sims, s0, 1).lives[id];
+  assert.equal(JSON.stringify(held), JSON.stringify(inv.player.market.sims.lives[id]), "en groupe : rien ne bouge");
+  assert.equal(p0.market.sims.busy?.[id], undefined, "l'ancien joueur n'est pas modifié");
+  // renouvelé tant qu'il est là, expiré si je ferme le jeu
+  const renewed = cleanGroupAction(inv.player, s0 * STEP_MS + 3 * STEP_MS);
+  assert.ok(renewed.market.sims.busy[id] >= s0 + 3 || !isOnline(bot, s0 + 3), "renouvelé tant qu'il est connecté dans le groupe");
+  const kick = kickAction(inv.player, id, s0 * STEP_MS);
+  assert.ok(kick.ok); assert.equal(kick.player.market.sims.busy[id], undefined, "exclu : la pause est levée");
+  assert.ok(run(kick.player.market.sims, s0, 1).lives[id].played > p0.market.sims.lives[id].played, "il reprend sa vie");
+  // une pause ancienne (jeu fermé) ne bloque rien : le rattrapage joue les pas
+  const stale = { ...inv.player.market.sims, busy: { [id]: s0 - 1 } };
+  assert.ok(run(stale, s0, 1).lives[id].played > p0.market.sims.lives[id].played);
 });
 
 console.log(`${n} tests ok`);

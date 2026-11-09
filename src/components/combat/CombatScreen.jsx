@@ -66,7 +66,7 @@ const SENT_ALLY_H = 300;   // la sentinelle alliée, un peu plus basse que lorsq
 // ------------------------------------------------------------
 // `carry` / `dungeon` : salle d'un donjon (PV reportés de la salle précédente, pas de relance en cas de défaite)
 export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null, allySpecs: givenAllies = null }) {
-  // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
+  // En groupe : les membres présents du groupe permanent (vrais joueurs simulés connectés, pas d'allié générique) ; pilotés par le moteur
   const allySpecs = useMemo(() => givenAllies || (party ? buildAllies(player, groupOf(player).members.map((b) => b.id), getLivePopulation(player), { fill: false }) : []), []); // eslint-disable-line
   const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, a.img || heroSpriteUrl(a.look)])), [allySpecs]);
   const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry, maxRounds: (encounter.sentinel || encounter.defense)?.maxRounds ?? null, objective: encounter.defense ? "defense" : encounter.sentinel ? "sentinel" : null }), []); // eslint-disable-line
