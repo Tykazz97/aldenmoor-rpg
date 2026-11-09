@@ -104,12 +104,13 @@ export const ENEMIES = {
   },
   cavalier_dechu: {
     key: "cavalier_dechu", name: "Le Cavalier Déchu", miniBoss: true,
-    desc: "Ancien chevalier protecteur des prairies, corrompu. Coup chargé infligeant un debuff DEF, phase de rage à bas HP.",
-    stats: { hp: 520, atkPhys: 14, atkMagie: 0, defPhys: 15, defMagie: 5, esquive: 3, critique: 8, vitesse: 9, pa: 8 },
+    desc: "Ancien chevalier protecteur des prairies, corrompu. Coup chargé infligeant un debuff DEF, charge dévastatrice qui frappe tout le groupe, phase de rage à bas HP.",
+    stats: { hp: 520, atkPhys: 17, atkMagie: 0, defPhys: 15, defMagie: 5, esquive: 3, critique: 8, vitesse: 9, pa: 8 },
     xp: 150,
     actions: [
       { id: "coup_d_epee", name: "Coup d'épée", pa: 3, type: "phys", power: 1.0, weight: 3 },
       { id: "coup_charge", name: "Coup chargé", pa: 5, type: "phys", power: 1.7, weight: 2, effect: { kind: "defDown", turns: 2, value: 0.3 } },
+      { id: "charge_devastatrice", name: "Charge dévastatrice", pa: 4, type: "phys", power: 1.3, weight: 2, aoe: true },   // touche tout le groupe
     ],
     // phase de rage quand les PV passent sous le seuil (part de la vie max)
     phases: [
@@ -250,13 +251,14 @@ export const ENEMIES = {
   },
   veilleur_corrompu: {
     key: "veilleur_corrompu", name: "Le Veilleur Corrompu", miniBoss: true,
-    desc: "Gardien d'avant la corruption, mi-spectre mi-chevalier. Sa garde brise l'armure et son regard retire des PA ; sous 66 % de vie il appelle deux esprits errants, sous 33 % il entre en rage (feu noir et poison).",
+    desc: "Gardien d'avant la corruption, mi-spectre mi-chevalier. Sa garde brise l'armure et son regard retire des PA, son cri frappe tout le groupe ; sous 66 % de vie il appelle deux esprits errants, sous 33 % il entre en rage (feu noir et poison).",
     stats: { hp: 2200, atkPhys: 31, atkMagie: 27, defPhys: 30, defMagie: 22, esquive: 0, critique: 8, vitesse: 11, pa: 8 },
     xp: 700,
     actions: [
       { id: "coup_de_garde", name: "Coup de garde", pa: 3, type: "phys", power: 1.0, weight: 3 },
       { id: "frappe_ecrase_garde", name: "Frappe écrase-garde", pa: 5, type: "phys", power: 1.7, weight: 2, effect: { kind: "defDown", turns: 2, value: 0.3 } },
       { id: "regard_du_neant", name: "Regard du néant", pa: 4, type: "mag", power: 1.2, weight: 2, effect: { kind: "paLoss", value: 2 } },
+      { id: "cri_du_sepulcre", name: "Cri du sépulcre", pa: 4, type: "mag", power: 1.1, weight: 2, aoe: true },   // touche tout le groupe
       // actions de la phase de rage (needsPhase = indice de la phase qui les débloque)
       { id: "feu_noir_veilleur", name: "Feu noir", pa: 5, type: "mag", power: 1.5, weight: 2, needsPhase: 1, effect: { kind: "dot", element: "feu", turns: 3, ratio: 0.3 } },
       { id: "souffle_putride", name: "Souffle putride", pa: 4, type: "mag", power: 1.2, weight: 2, needsPhase: 1, effect: { kind: "dot", element: "poison", turns: 3, ratio: 0.3 } },
