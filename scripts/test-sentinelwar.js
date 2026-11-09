@@ -14,7 +14,8 @@ import { createGuildAction } from "../src/utils/guildActions.js";
 import { makeBotPlayer } from "../src/sim/partyBots.js";
 import { buildSpellBar } from "../src/utils/spellbook.js";
 import { castSpell } from "../src/combat/engine.js";
-import { allySpecOf } from "../src/utils/sentinelDefense.js";
+import { allySpecOf, ensureDefenderEnemy } from "../src/utils/sentinelDefense.js";
+import { enemyDef } from "../src/data/zones.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { endDefenseAction, startDefenseAction, resolveDueAttacksNow } from "../src/utils/guildActions.js";
 import { sentinelsOf as sOf } from "../src/utils/sentinel.js";
@@ -148,6 +149,20 @@ const playOut = (st0, { passive = false, cap = 4000 } = {}) => {
   }
   return st;
 };
+
+test("un simulé se bat avec sa vraie fiche : classe, niveau, équipement et améliorations (+1 à +3) comptent", () => {
+  const { sims } = world(10);
+  const bot = liveBots(sims, pop).find((b) => b.life.gear && Object.keys(b.life.gear).length >= 3);
+  assert.ok(bot, "un simulé équipé");
+  const base = ensureDefenderEnemy({ ...bot, life: { ...bot.life, upg: undefined } }, "test0");
+  const plus = ensureDefenderEnemy({ ...bot, life: { ...bot.life, upg: Object.fromEntries(Object.keys(bot.life.gear).map((k) => [k, 3])) } }, "test3");
+  const a = enemyDef(base).stats, b = enemyDef(plus).stats;
+  assert.ok(b.atkPhys + b.atkMagie + b.hp + b.defPhys > a.atkPhys + a.atkMagie + a.hp + a.defPhys, "des pièces améliorées donnent un combattant plus fort");
+  const strong = ensureDefenderEnemy({ ...bot, level: Math.min(50, bot.level + 15) }, "testL");
+  assert.ok(enemyDef(strong).stats.hp > a.hp, "plus de niveau, plus de PV");
+  const other = pop.find((x) => x.classKey !== bot.classKey), o = ensureDefenderEnemy({ ...liveBots(sims, pop).find((x) => x.id === other.id) }, "testC");
+  assert.notDeepEqual(enemyDef(o).actions.map((x) => x.id), enemyDef(base).actions.map((x) => x.id), "chaque classe a ses sorts");
+});
 
 test("défendre : la rencontre met les attaquants en ennemis (retournés) et la sentinelle en alliée avec ses sorts", () => {
   const { st, enc } = defenseFight(20, [3, 4]);

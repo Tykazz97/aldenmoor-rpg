@@ -17,7 +17,7 @@ import { logOf } from "../utils/guildCore.js";
 import { sentinelsOf, removeSentinel, rebuildSent } from "../utils/sentinel.js";
 import { SENT_BY_KEY, SENT_REGIONS } from "../data/sentinel.js";
 import { ensureSentinelEnemy, SENT_ROUNDS, SENT_SHIELD_MS } from "../utils/sentinelFight.js";
-import { defenderBots, ensureDefenderEnemy } from "../utils/sentinelDefense.js";
+import { defenderBots, ensureDefenderEnemy, plusOf } from "../utils/sentinelDefense.js";
 
 export const WAR_DELAY_MS = 3 * 60 * 1000;     // de l'alerte au combat : 3 minutes (le jeu ouvert règle l'attaque à la minute près : `resolveDueAttacksNow`)
 export const WAR_DELAY_STEPS = 1;          // hors connexion, le monde se rattrape par pas de 10 minutes : l'attaque est réglée au pas suivant
@@ -43,8 +43,8 @@ function pickSpell(state) {
 // Joue tout un combat d'attaque : `attackers` = 1 à 3 simulés (le premier tient les commandes, les autres sont ses alliés)
 export function autoFight(attackers, enemyKeys, seed) {
   const [lead, ...rest] = attackers;
-  const player = makeBotPlayer(lead.classKey, lead.level, lead.life?.gear || null, buildOf(lead));
-  const allies = rest.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look, gear: b.life?.gear, style: buildOf(b) }));
+  const player = makeBotPlayer(lead.classKey, lead.level, lead.life?.gear || null, buildOf(lead), plusOf(lead));
+  const allies = rest.map((b) => botSpec(b.classKey, b.level, { name: b.name, look: b.look, gear: b.life?.gear, style: buildOf(b), plus: plusOf(b) }));
   let st = createCombat({ stats: calcStats(player), weaponType: BUILDS[lead.classKey].wtype, classKey: lead.classKey, level: lead.level, enemyKeys, spells: buildSpellBar(player), seed, maxRounds: SENT_ROUNDS, objective: "sentinel", allies });
   for (let guard = 0; st.phase !== "victory" && st.phase !== "defeat" && guard < 20000; guard++) {
     if (st.phase === "running") { st = advance(st).state; continue; }

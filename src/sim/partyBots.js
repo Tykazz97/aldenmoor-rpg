@@ -87,8 +87,8 @@ export function makeBotPlayer(classKey, level, gearIds = null, style = DEFAULT_B
 }
 
 // Ce que createCombat attend pour un allié : { name, stats, weaponType, classKey, level, spells } (+ look pour l'affichage)
-export function botSpec(classKey, level, { name, body = "m", look, gear: gearIds = null, style = DEFAULT_BUILD } = {}) {
-  const player = makeBotPlayer(classKey, level, gearIds, style);
+export function botSpec(classKey, level, { name, body = "m", look, gear: gearIds = null, style = DEFAULT_BUILD, plus = 0 } = {}) {
+  const player = makeBotPlayer(classKey, level, gearIds, style, plus);
   return {
     name: name || CLASSES[classKey].label,
     classKey, level,
