@@ -8,7 +8,7 @@ import { SENT_BY_KEY } from "../data/sentinel.js";
 import { makeBotPlayer } from "../sim/partyBots.js";
 import { calcStats } from "./calcStats.js";
 import { sharesOf, equippedSpells } from "./sentinelBuild.js";
-import { ensureDefenderEnemy } from "./sentinelDefense.js";
+import { ensureDefenderEnemy, defenderBots, allySpecOf, DEFENDERS_MAX } from "./sentinelDefense.js";
 
 export const SENT_ROUNDS = 12;                 // tours de table à tenir pour que la défense gagne
 export const SENT_SHIELD_MS = 60 * 60 * 1000;  // une sentinelle qui a tenu bon est intouchable pendant 1 h
@@ -57,5 +57,34 @@ export function sentinelEncounter(guild, region, defenders = []) {
     banner: `Sentinelle de ${guild.name}`,
     desc: defs.length ? `Abats la sentinelle avant la fin du ${SENT_ROUNDS}e tour, malgré ses ${defs.length} défenseur${defs.length > 1 ? "s" : ""}.` : `Abats la sentinelle avant la fin du ${SENT_ROUNDS}e tour.`,
     sentinel: { region, gid: guild.id, maxRounds: SENT_ROUNDS, emblem: guild.emblem, defenders: defenders.map((b) => ({ id: b.id, name: b.name, classKey: b.classKey, level: b.level })) },
+  };
+}
+
+// ---- défendre sa propre sentinelle ----
+// La sentinelle devient l'alliée du joueur (même caractéristiques et mêmes sorts que lorsqu'on l'attaque) ; ses attaquants sont les ennemis.
+export function sentinelAllySpec(guild) {
+  const s = sentinelStats(guild);
+  return {
+    name: "Sentinelle", sentinel: true, level: guild.level, img: SENT_IMG, emblem: guild.emblem, gid: guild.id, weaponType: null, classKey: null, spells: [],
+    stats: { maxHp: s.hp, atkPhys: s.atkPhys, atkMagie: s.atkMagie, defPhys: s.defPhys, defMagie: s.defMagie, esquive: s.esquive, critique: s.critique, vitesse: s.vitesse },
+    actions: equippedSpells(guild).map(({ id, name, pa, type, power, weight, effect, aoe, self }) => ({ id, name, pa, type, power, weight, effect, aoe, self })),
+  };
+}
+
+// Les alliés du joueur qui défend : la sentinelle d'abord, puis jusqu'à DEFENDERS_MAX - 1 membres connectés de la guilde (hors attaquants)
+export function defenseAllies(guild, population, attackerIds = [], now = Date.now()) {
+  const mates = defenderBots(guild, population, now).filter((b) => !attackerIds.includes(b.id)).slice(0, DEFENDERS_MAX - 1);
+  return [sentinelAllySpec(guild), ...mates.map(allySpecOf)];
+}
+
+// La rencontre de défense : `attack` = { id, region, from, by }, `attackers` = leurs personnages (population vivante)
+export function defenseEncounter(guild, attack, attackers, fromName = "une guilde") {
+  const r = SENT_BY_KEY[attack.region];
+  return {
+    id: `defense:${attack.id}`, name: `Défense de ${r.name}`, level: `Guilde niv. ${guild.level}`,
+    enemies: attackers.map((b) => ensureDefenderEnemy(b, "attaquant")),
+    banner: "Défends ta sentinelle !",
+    desc: `${fromName} attaque ta sentinelle. Tiens ${SENT_ROUNDS} tours ou abats tous les attaquants ; si la sentinelle tombe, tout son stock est perdu.`,
+    defense: { region: attack.region, attackId: attack.id, maxRounds: SENT_ROUNDS, emblem: guild.emblem, gid: guild.id, from: fromName },
   };
 }

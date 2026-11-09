@@ -15,6 +15,9 @@ import { classLabel, classIcon } from "../../utils/ranking.js";
 import { getPopulation } from "../../sim/population.js";
 import Emblem from "./Emblem.jsx";
 import Sentinels from "./Sentinels.jsx";
+import Defense from "./Defense.jsx";
+import { EncounterFight } from "../combat/CombatScreen.jsx";
+import { endDefenseAction } from "../../utils/guildActions.js";
 import EmblemEditor from "./EmblemEditor.jsx";
 import { EMBLEM_DEFAULT } from "../../data/emblems.js";
 
@@ -323,8 +326,8 @@ function Vault({ player, g, run, spend, wd }) {
 }
 
 // ---------------------------------------------------------------- ma guilde
-function Mine({ player, g, run }) {
-  const [tab, setTab] = useState("apercu");
+function Mine({ player, g, run, onDefend, firstTab = "apercu" }) {
+  const [tab, setTab] = useState(firstTab);
   const [leaving, setLeaving] = useState(false);
   const leader = g.leader === "player", rank = rankOf(g, "player"), spend = canSpend(g, "player"), wd = canWithdraw(g, "player");
   const need = g.level >= GUILD_MAX_LEVEL ? 1 : guildXpToNext(g.level);
@@ -363,7 +366,7 @@ function Mine({ player, g, run }) {
         <BonusChips bonus={bonus} />
       </div>
       <div className="gd-tabs">
-        {[["apercu", "Aperçu"], ["membres", "Membres"], ["coffre", "Coffre"], ["paliers", "Paliers"], ["sentinelles", "Sentinelles"]].map(([k, label]) => (
+        {[["apercu", "Aperçu"], ["membres", "Membres"], ["coffre", "Coffre"], ["paliers", "Paliers"], ["sentinelles", "Sentinelles"], ["defense", g.attacks?.length ? `Défense (${g.attacks.length})` : "Défense"]].map(([k, label]) => (
           <button key={k} className={`gd-tab${tab === k ? " on" : ""}`} data-gd-tab={k} onClick={() => setTab(k)}>{label}</button>
         ))}
       </div>
@@ -372,13 +375,15 @@ function Mine({ player, g, run }) {
       {tab === "coffre" && <Vault player={player} g={g} run={run} spend={spend} wd={wd} />}
       {tab === "paliers" && <Paliers player={player} g={g} run={run} spend={spend} />}
       {tab === "sentinelles" && <Sentinels player={player} g={g} run={run} spend={spend} wd={wd} />}
+      {tab === "defense" && <Defense player={player} g={g} run={run} onDefend={onDefend} />}
     </>
   );
 }
 
 // Guilde : fonder ou rejoindre une guilde, puis ses quêtes, sa caisse, ses membres, son coffre et ses paliers de bonus.
-export default function GuildPanel({ player, onPlayerChange }) {
+export default function GuildPanel({ player, stats, onPlayerChange, firstTab = "apercu" }) {
   const [msg, setMsg] = useState(null);
+  const [duel, setDuel] = useState(null);     // { attack, encounter, allies } : le combat où je défends ma sentinelle
   const g = myGuild(player);
   const run = (act, okText, after) => {
     const r = act();
@@ -386,11 +391,24 @@ export default function GuildPanel({ player, onPlayerChange }) {
     else setMsg({ ok: false, text: REASONS[r.reason] || "Impossible." });
   };
   const ready = !!player.market?.sims;
+  if (duel) {
+    return (
+      <EncounterFight encounter={duel.encounter} allySpecs={duel.allies} player={player} stats={stats} onRewards={() => {}}
+        onExit={(won, info) => {
+          if (!info?.finished) setMsg({ ok: true, text: "Tu as quitté le combat : ta sentinelle se défend seule." });   // l'attaque sera réglée sans toi à l'échéance
+          else {
+            onPlayerChange((p) => { const r = endDefenseAction(p, duel.attack.id, !!won); return r.ok ? r.player : p; });
+            setMsg({ ok: true, text: won ? "Sentinelle sauvée : elle est protégée pendant 1 h." : "Ta sentinelle a été détruite." });
+          }
+          setDuel(null);
+        }} />
+    );
+  }
   return (
     <div className="gd" data-guild>
       <div className="gd-note">Une guilde réunit jusqu'à {GUILD_MAX_MEMBERS} aventuriers (simulés compris) : quêtes communes, caisse, coffre partagé et bonus d'xp, de butin, de récolte, de raffinage et de fabrication.</div>
       <div className="gd-msg" data-gd-msg role="status" aria-live="polite"><span className={msg ? (msg.ok ? "ok" : "ko") : ""} style={{ color: msg ? (msg.ok ? "#8fd08a" : "#e0796a") : undefined }}>{msg?.text || ""}</span></div>
-      {!ready ? <div className="gd-empty">Le monde des aventuriers se charge…</div> : g ? <Mine player={player} g={g} run={run} /> : <Browse player={player} run={run} />}
+      {!ready ? <div className="gd-empty">Le monde des aventuriers se charge…</div> : g ? <Mine player={player} g={g} run={run} onDefend={setDuel} firstTab={firstTab} /> : <Browse player={player} run={run} />}
     </div>
   );
 }

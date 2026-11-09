@@ -9,6 +9,20 @@ import { hasLost } from "../../utils/bag.js";
 // Écran de fin de combat : butin en cas de victoire, relance en cas de défaite
 // `dungeon` : { index, total } quand c'est une salle de donjon (on enchaîne la suite, et une défaite met fin à l'expédition)
 export default function ResultOverlay({ ended, cs, encounter, player, backLabel, dungeon = null, onClaim, onRestart, onExit }) {
+  if (encounter.defense && (ended === "victory" || ended === "defeat")) {
+    const won = ended === "victory";
+    return (
+      <div className="cb-overlay">
+        <div className={`cb-card${won ? "" : " lose"}`}>
+          <h2>{won ? "Sentinelle sauvée" : "Sentinelle détruite"}</h2>
+          <div className="sub">{won ? "L'attaque est repoussée : ta sentinelle est protégée pendant 1 h. Pas de butin, mais son stock est sauf." : "Les attaquants emportent son stock, et ta guilde pourra en poser une autre."}</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button className="cb-btn primary" data-defense-done onClick={() => onExit(won, { finished: true })}>Retour à la guilde</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (ended === "victory" && encounter.sentinel) {
     return (
       <div className="cb-overlay">

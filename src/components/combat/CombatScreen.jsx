@@ -47,15 +47,17 @@ export default function CombatScreen({ player, stats, onRewards }) {
 }
 
 // Combat lancé depuis la carte : onExit(true) si victoire (butin récupéré)
-export function EncounterFight({ encounter, player, stats, party = false, onRewards, onExit }) {
+export function EncounterFight({ encounter, player, stats, party = false, allySpecs = null, onRewards, onExit }) {
   const [fightKey, setFightKey] = useState(0);
   const weaponType = player.equipped.arme?.weaponType || null;
   const heroSrc = heroSpriteUrl(heroLook(player, stats));
   return (
-    <Fight key={fightKey} encounter={encounter} player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc} party={party}
+    <Fight key={fightKey} encounter={encounter} player={player} stats={stats} weaponType={weaponType} heroSrc={heroSrc} party={party} allySpecs={allySpecs}
       onRewards={onRewards} onRestart={() => setFightKey((k) => k + 1)} onExit={onExit} backLabel="Retour à la carte" />
   );
 }
+
+const SENT_ALLY_H = 300;   // la sentinelle alliée, un peu plus basse que lorsqu'elle est ennemie
 
 // ------------------------------------------------------------
 // Un combat : règles (état du moteur, actions du joueur) ici,
@@ -65,8 +67,8 @@ export function EncounterFight({ encounter, player, stats, party = false, onRewa
 export function Fight({ encounter, player, stats, weaponType, heroSrc, party = false, onRewards, onRestart, onExit, backLabel = "Changer d'adversaire", carry = null, dungeon = null, allySpecs: givenAllies = null }) {
   // En groupe : les compagnons choisis (joueurs simulés), complétés au besoin par des alliés génériques ; pilotés par le moteur
   const allySpecs = useMemo(() => givenAllies || (party ? buildAllies(player, player.companions, getLivePopulation(player)) : []), []); // eslint-disable-line
-  const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, heroSpriteUrl(a.look)])), [allySpecs]);
-  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry, maxRounds: encounter.sentinel?.maxRounds ?? null, objective: encounter.sentinel ? "sentinel" : null }), []); // eslint-disable-line
+  const allySrc = useMemo(() => Object.fromEntries(allySpecs.map((a, i) => [`ally${i}`, a.img || heroSpriteUrl(a.look)])), [allySpecs]);
+  const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry, maxRounds: (encounter.sentinel || encounter.defense)?.maxRounds ?? null, objective: encounter.defense ? "defense" : encounter.sentinel ? "sentinel" : null }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
   const [speed, setSpeed] = useState(1);
@@ -174,7 +176,9 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
                   <div className="cb-shadow" />
                   <div className="cb-idle" style={{ animationDelay: `${0.3 + i * 0.4}s` }}>
                     <div ref={(el) => { spriteRefs.current[al.id] = el; }}>
-                      <img className="cb-sprite" src={allySrc[al.id]} alt={al.name} style={{ height: allyH }} draggable={false} />
+                      {al.sentinel
+                        ? <SentinelSprite emblem={encounter.defense?.emblem} seed={encounter.defense?.gid} width={Math.round(SENT_ALLY_H * 320 / 736)} flip />
+                        : <img className="cb-sprite" src={allySrc[al.id]} alt={al.name} style={{ height: allyH }} draggable={false} />}
                     </div>
                   </div>
                 </div>

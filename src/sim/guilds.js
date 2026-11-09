@@ -18,6 +18,7 @@ import {
 import { bonusFromPaliers } from "../utils/guildBonus.js";
 import { rebuildSent, placeProblem, placeSentinel, collectStock, sentinelsOf } from "../utils/sentinel.js";
 import { SENT_REGIONS } from "../data/sentinel.js";
+import { launchWars, resolveWars } from "./sentinelWar.js";
 import { autoAlloc } from "../utils/sentinelBuild.js";
 import { GUILD_CREATE_COST, SIM_FOUND_GOLD, SIM_FOUND_MIN_LEVEL, SIM_DONATE_ABOVE, SIM_DONATE_SHARE, QUEST_TYPES } from "../data/guild.js";
 
@@ -75,7 +76,9 @@ export function stepGuilds(sims, population, step) {
   const lives = sims.lives;
   if (step % HOUR_STEPS === 0) rebuildSent(G);                   // l'annuaire des sentinelles est remis d'aplomb à chaque heure
   for (const g of Object.values(G.byId)) syncGuild(g, lives, step);
+  resolveWars(sims, G, population, step);                        // les attaques arrivées à échéance sont réglées
   if (step % HOUR_STEPS !== 0) return;
+  launchWars(sims, G, population, step);                         // et des guildes simulées en lancent de nouvelles
 
   // dons, puis dépenses du chef
   for (const g of Object.values(G.byId)) {

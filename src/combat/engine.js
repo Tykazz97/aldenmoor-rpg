@@ -49,7 +49,7 @@ export function spellsFor(weaponType, classKey = null, level = 1) {
 }
 
 // Un héros (le joueur ou un allié bot) à partir de ses stats calculées (calcStats), son arme et ses sorts.
-function makeHero({ id, name, stats, weaponType = null, classKey = null, level = 1, spells = null, ally = false }) {
+function makeHero({ id, name, stats, weaponType = null, classKey = null, level = 1, spells = null, ally = false, actions = null, sentinel = false }) {
   const bonuses = (stats.setBonuses || []).map((b) => b.bonus);
   const pv = stats.passives || {};                                            // passifs d'objets (armes uniques) : mêmes drapeaux que les sets
   const riposte = Math.max(0, ...bonuses.map((b) => b.riposte || 0));
@@ -67,6 +67,8 @@ function makeHero({ id, name, stats, weaponType = null, classKey = null, level =
     classKey,
     isPlayer: true,                // « côté héros » : le joueur ET ses alliés
     isAlly: ally,                  // allié piloté par le moteur (bot)
+    actions,                       // allié qui agit comme un monstre (la sentinelle qu'on défend) : ses actions { pa, type, power, effect, aoe, self }
+    sentinel,                      // c'est la sentinelle : sa mort fait perdre la défense
     hp: stats.maxHp,
     maxHp: stats.maxHp,
     stats: {
@@ -104,7 +106,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
   const s = { seed: seed >>> 0 };
 
   const player = makeHero({ id: "player", name: "Héros", stats, weaponType, classKey, level, spells });
-  const allyHeroes = allies.map((a, i) => makeHero({ id: `ally${i}`, name: a.name || `Allié ${i + 1}`, stats: a.stats, weaponType: a.weaponType, classKey: a.classKey, level: a.level ?? level, spells: a.spells, ally: true }));
+  const allyHeroes = allies.map((a, i) => makeHero({ id: `ally${i}`, name: a.name || `Allié ${i + 1}`, stats: a.stats, weaponType: a.weaponType, classKey: a.classKey, level: a.level ?? level, spells: a.spells, ally: true, actions: a.actions || null, sentinel: !!a.sentinel }));
   if (carry) {
     const apply = (h, hp) => { if (Number.isFinite(hp)) h.hp = Math.min(h.maxHp, Math.max(Math.ceil(h.maxHp * DUNGEON_REVIVE), Math.round(hp))); };
     apply(player, carry.player);
@@ -139,7 +141,7 @@ export function createCombat({ stats, weaponType = null, classKey = null, level 
     turns: 0,       // nombre de tours joués par le joueur
     hpScale,        // multiplicateur de PV des ennemis (aussi appliqué aux renforts appelés)
     maxRounds,      // nombre de tours de table à ne pas dépasser (null : pas de limite)
-    objective,      // "sentinel" : le combat est gagné dès que le premier ennemi (la sentinelle) tombe, ses défenseurs fussent-ils debout (null : tuer tout le monde)
+    objective,      // "defense" : on défend la sentinelle (alliée) : le combat est perdu si elle tombe, gagné si tous les attaquants tombent ou si le temps passe. "sentinel" : le combat est gagné dès que le premier ennemi (la sentinelle) tombe, ses défenseurs fussent-ils debout (null : tuer tout le monde)
     player,
     allies: allyHeroes,
     enemies,
@@ -368,7 +370,7 @@ function rollRewards(s) {
 
 function checkEnd(s, events) {
   if (s.phase === "victory" || s.phase === "defeat") return;
-  if (!s.player.alive) {
+  if (!s.player.alive || (s.objective === "defense" && (s.allies || []).some((a) => a.sentinel && !a.alive))) {
     s.phase = "defeat";
     events.push({ type: "defeat" });
   } else if (s.objective === "sentinel" ? !s.enemies[0].alive : aliveEnemies(s).length === 0) {
@@ -459,7 +461,11 @@ export function advance(state) {
   let guard = 0;
   while (s.phase === "running" && guard++ < 1000) {
     if (s.cursor >= s.order.length) {
-      if (s.maxRounds && s.round >= s.maxRounds) { s.phase = "defeat"; events.push({ type: "defeat", reason: "temps" }); break; }
+      if (s.maxRounds && s.round >= s.maxRounds) {
+        if (s.objective === "defense") { s.phase = "victory"; s.rewards = rollRewards(s); events.push({ type: "victory", reason: "temps", rewards: s.rewards }); }
+        else { s.phase = "defeat"; events.push({ type: "defeat", reason: "temps" }); }
+        break;
+      }
       s.round += 1;
       if (s.order.length === 0) s.order = buildOrder(s);   // une seule fois : l'ordre ne change plus
       s.cursor = 0;
@@ -588,7 +594,30 @@ export function pickAllySpell(s, ally) {
   return best;
 }
 
+// Un allié qui agit comme un monstre (la sentinelle qu'on défend) : mêmes choix que enemyAct, mais contre les ennemis (le plus faible d'abord)
+function allyActions(s, events, ally) {
+  let pa = ally.pa;
+  while (pa > 0 && ally.alive && s.phase === "running") {
+    const options = ally.actions.filter((a) => (a.pa ?? ACTION_PA) <= pa && !(a.self && selfUseless(ally, a)));
+    if (!options.length) break;
+    const action = chooseAction(s, options);
+    pa -= action.pa ?? ACTION_PA;
+    if (action.self) { enemySelf(s, events, ally, action); continue; }
+    const living = aliveEnemies(s).sort((a, b) => a.hp - b.hp);
+    const targets = action.aoe ? living : living.slice(0, 1);
+    if (!targets.length) break;
+    events.push({ type: "cast", from: ally.id, label: action.name, spellType: action.type, targets: targets.map((t) => t.id), aoe: !!action.aoe });
+    for (const t of targets) {
+      if (!t.alive) continue;
+      const res = attack(s, events, ally, t, { type: action.type, power: action.power, label: action.name });
+      if (res.hit && action.effect) applyEffect(s, events, ally, t, action.effect);
+    }
+    checkEnd(s, events);
+  }
+}
+
 function allyAct(s, events, ally) {
+  if (ally.actions) { allyActions(s, events, ally); ally.pa = 0; return; }
   for (let guard = 0; guard < 20 && ally.alive && s.phase === "running"; guard++) {
     const spell = pickAllySpell(s, ally);
     const target = aliveEnemies(s).sort((a, b) => a.hp - b.hp)[0];

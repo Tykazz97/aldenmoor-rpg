@@ -13,7 +13,8 @@ import QuestPanel from "./components/city/QuestPanel.jsx";
 import BestiaryPanel from "./components/bestiary/BestiaryPanel.jsx";
 import RankingPanel from "./components/ranking/RankingPanel.jsx";
 import GuildPanel from "./components/guild/GuildPanel.jsx";
-import { syncPlayerGuild } from "./utils/guildActions.js";
+import { syncPlayerGuild, myGuild } from "./utils/guildActions.js";
+import { SENT_BY_KEY } from "./data/sentinel.js";
 import ComingSoon from "./components/shared/ComingSoon.jsx";
 import CharacterCreator from "./components/character/CharacterCreator.jsx";
 import { usePlayer } from "./hooks/usePlayer.js";
@@ -64,8 +65,11 @@ export default function App() {
 
 function Game({ initial, onNewCharacter }) {
   const [activeTab, setActiveTab] = useState("personnage");
+  const [guildTab, setGuildTab] = useState("apercu");     // l'onglet de guilde à l'ouverture (« defense » depuis l'alerte d'attaque)
+  useEffect(() => { if (activeTab !== "guilde" && guildTab !== "apercu") setGuildTab("apercu"); }, [activeTab, guildTab]);
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
   const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, bag, spellbook } = usePlayer(initial.player);
+  const attack = myGuild(player)?.attacks?.[0] || null;        // une attaque en cours contre une sentinelle de ma guilde
 
   // Le monde des simulés (qui vit dans le marché) rattrape le temps écoulé à l'ouverture, puis avance toutes les minutes
   // (par tranches : une semaine d'absence se rattrape en quelques secondes sans figer la page, voir CATCHUP_SLICE)
@@ -139,6 +143,12 @@ function Game({ initial, onNewCharacter }) {
 
   return (
     <AppShell active={activeTab} onChangeTab={setActiveTab}>
+      {attack && activeTab !== "guilde" && (
+        <div data-defense-alert style={{ position: "fixed", top: 14, right: 18, zIndex: 80, display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#3a1612", border: "1px solid #a8443a", borderRadius: 8, color: "#f1c9c2", boxShadow: "0 6px 20px rgba(0,0,0,.5)", fontSize: 14 }}>
+          <span>⚔ Ta sentinelle de {SENT_BY_KEY[attack.region]?.name || "la région"} est attaquée !</span>
+          <button style={{ cursor: "pointer", padding: "4px 12px", borderRadius: 6, border: "1px solid #a8443a", background: "#5a2119", color: "#fff" }} onClick={() => { setGuildTab("defense"); setActiveTab("guilde"); }}>Défendre</button>
+        </div>
+      )}
       {activeTab === "personnage" && (
         <CharacterSheet
           player={player}
@@ -197,7 +207,7 @@ function Game({ initial, onNewCharacter }) {
       )}
       {activeTab === "bestiaire" && <BestiaryPanel player={player} stats={stats} />}
       {activeTab === "classement" && <RankingPanel player={player} />}
-      {activeTab === "guilde" && <GuildPanel player={player} onPlayerChange={setPlayer} />}
+      {activeTab === "guilde" && <GuildPanel player={player} stats={stats} onPlayerChange={setPlayer} firstTab={guildTab} />}
       {activeTab !== "personnage" && activeTab !== "forge" && activeTab !== "coffre" && activeTab !== "marche" && activeTab !== "journal" && activeTab !== "combat" && activeTab !== "carte" && activeTab !== "bestiaire" && activeTab !== "classement" && activeTab !== "guilde" && activeTab !== "sac" && <ComingSoon title={TAB_TITLES[activeTab] || activeTab} />}
     </AppShell>
   );

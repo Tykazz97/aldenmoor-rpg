@@ -19,6 +19,8 @@ import {
   palierProblem, tabProblem, buyPalier, buyTab, logOf, tabFree, cleanName, rankOf, canSpend, canWithdraw, canKick, ranksAssignable, setRank, passLead,
 } from "./guildCore.js";
 import { donate } from "../sim/guilds.js";
+import { settleAttack } from "../sim/sentinelWar.js";
+import { liveBots } from "../sim/lives.js";
 import { cleanEmblem } from "../data/emblems.js";
 import { getPopulation } from "../sim/population.js";
 
@@ -57,6 +59,7 @@ export const REASONS = {
   points_max: "Une caractéristique ne peut recevoir que 60 % des points.",
   sorts: "Ces sorts ne sont pas permis (3 au maximum, et seulement ceux que la guilde a débloqués).",
   protegee: "Cette sentinelle vient de tenir bon : elle est protégée pour le moment.",
+  pas_d_attaque: "Cette attaque est déjà réglée.",
 };
 
 const fail = (player, reason) => ({ ok: false, reason, player });
@@ -387,4 +390,35 @@ export function setSentinelSpellsAction(player, ids, now = Date.now()) {
   if (problem) return fail(player, problem);
   setSpells(r.g, ids);
   return { ok: true, player: commit(player, r.m, r.G) };
+}
+
+// ---------- défendre sa propre sentinelle ----------
+export const DEFENSE_HOLD_STEPS = 4;    // le temps de son combat : l'attaque est suspendue 40 minutes, puis la sentinelle se débrouille seule
+
+// L'attaque en cours (si elle y est encore) sur la guilde `g`
+const attackOf = (g, attackId) => (g.attacks || []).find((x) => x.id === attackId) || null;
+
+// Le joueur prend la défense en main : l'attaque est suspendue pendant son combat
+export function startDefenseAction(player, attackId, now = Date.now()) {
+  const o = mine(player, now);
+  if (o.error) return fail(player, o.error);
+  const a = attackOf(o.g, attackId);
+  if (!a || !sentinelsOf(o.g)[a.region]) return fail(player, "pas_d_attaque");
+  a.hold = o.step + DEFENSE_HOLD_STEPS;
+  return { ok: true, attack: structuredClone(a), player: commit(player, o.m, o.G) };
+}
+
+// Le combat est fini : `won` = la sentinelle a tenu (elle est protégée 1 h) ; sinon elle est détruite et son stock est perdu
+export function endDefenseAction(player, attackId, won, now = Date.now()) {
+  const o = mine(player, now);
+  if (o.error) return fail(player, o.error);
+  const a = attackOf(o.g, attackId);
+  if (!a) return fail(player, "pas_d_attaque");
+  const rest = o.g.attacks.filter((x) => x !== a);
+  if (rest.length) o.g.attacks = rest; else delete o.g.attacks;
+  // l'or du butin va aux simulés qui ont attaqué : leurs fiches sont copiées avant (le joueur d'avant ne doit pas changer)
+  const sims = { ...o.m.sims, lives: { ...o.m.sims.lives } };
+  for (const id of a.by) if (sims.lives[id]) sims.lives[id] = { ...sims.lives[id] };
+  const r = settleAttack(o.G, o.g, a, liveBots(sims, getPopulation()), sims, o.step, won ? "def" : "att");
+  return { ok: true, won: r?.won || null, gold: r?.gold || 0, player: commit(player, o.m, o.G, {}, sims) };
 }

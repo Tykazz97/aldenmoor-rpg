@@ -456,11 +456,11 @@ try {
     const founder = Object.keys(sims.lives)[0];
     const g = createGuild(G, { founder, name: "Les Gardiens de Test", step: s.player.market.bucket });
     g.level = 3; g.gold = 9999;
-    // trois membres connectés en ce moment (les plus jeunes, pour que l'attaque réussisse ; SENT_DEF_NEAR=1 : les plus proches de mon niveau, pour la capture d'écran) : ils défendent la sentinelle
+    // un membre connecté en ce moment (le plus jeune, pour que l'attaque réussisse ; SENT_DEF_NEAR=1 : les plus proches de mon niveau, pour la capture d'écran) : ils défendent la sentinelle
     const { getPopulation } = await import("../src/sim/population.js");
     const { isActive, STEP_MS } = await import("../src/sim/lives.js");
     const { addMember } = await import("../src/utils/guildCore.js");
-    const online = getPopulation().filter((b) => sims.lives[b.id] && b.id !== founder && isActive(b, Math.floor(Date.now() / STEP_MS))).sort((a, b) => process.env.SENT_DEF_NEAR ? Math.abs(sims.lives[a.id].level - s.player.level) - Math.abs(sims.lives[b.id].level - s.player.level) : sims.lives[a.id].level - sims.lives[b.id].level).slice(0, 3);
+    const online = getPopulation().filter((b) => sims.lives[b.id] && b.id !== founder && isActive(b, Math.floor(Date.now() / STEP_MS))).sort((a, b) => process.env.SENT_DEF_NEAR ? Math.abs(sims.lives[a.id].level - s.player.level) - Math.abs(sims.lives[b.id].level - s.player.level) : sims.lives[a.id].level - sims.lives[b.id].level).slice(0, 1);
     for (const b of online) addMember(G, g, b.id, s.player.market.bucket);
     placeSentinel(G, g, "prairies_sauvages", s.player.market.bucket);
     Object.assign(sentinelsOf(g).prairies_sauvages, { gold: 400, res: { croc_de_loup: 7 } });
@@ -493,6 +493,58 @@ try {
     const after = (await save()).player;
     assert.ok(after.gold >= gold0 + 400, "les 400 or du stock sont à moi");
     assert.equal(after.resources.croc_de_loup, 7, "les ressources du stock aussi");
+    assert.deepEqual(errors, []);
+  });
+
+  await step("Défense : l'alerte d'attaque, l'onglet Défense, le combat avec la sentinelle à mes côtés, puis le résultat", async () => {
+    const { createGuild, addMember } = await import("../src/utils/guildCore.js");
+    const { placeSentinel, sentinelsOf, rebuildSent } = await import("../src/utils/sentinel.js");
+    const { getPopulation } = await import("../src/sim/population.js");
+    const { isActive, STEP_MS } = await import("../src/sim/lives.js");
+    const s = await save();
+    const sims = s.player.market.sims, G = sims.guilds, step0 = s.player.market.bucket;
+    const lone = Object.values(G.byId).find((x) => x.name === "Les Gardiens de Test");
+    assert.ok(lone, "la guilde de l'étape précédente est là");
+    const g = createGuild(G, { founder: "player", name: "Les Veilleurs", step: step0 });
+    g.level = 12; g.gold = 5000;
+    const byLevel = getPopulation().filter((b) => sims.lives[b.id] && !G.of[b.id]).sort((a, b) => sims.lives[a.id].level - sims.lives[b.id].level);
+    const online = byLevel.filter((b) => isActive(b, Math.floor(Date.now() / STEP_MS))).slice(-2);          // deux membres connectés, forts
+    for (const b of online) addMember(G, g, b.id, step0);
+    placeSentinel(G, g, "prairies_sauvages", step0);
+    Object.assign(sentinelsOf(g).prairies_sauvages, { gold: 300, res: {} });
+    rebuildSent(G);
+    const by = byLevel.slice(0, 2).map((b) => b.id);                                                       // deux attaquants débutants
+    g.attacks = [{ id: "ui:1", region: "prairies_sauvages", from: lone.id, by, at: step0, due: step0 + 50 }];
+    s.world.mapKey = "prairies_sauvages"; s.savedAt = Date.now() + 2000;
+    await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-defense")) { sessionStorage.setItem("ui-defense", "1"); localStorage.setItem("aldenmoor:save", m); } }, JSON.stringify(s));
+    await page.reload(); await page.waitForTimeout(1000);
+    await tab("Personnage").click();
+    await page.locator("[data-defense-alert]").waitFor({ timeout: 10000 });
+    assert.match(await page.locator("[data-defense-alert]").innerText(), /attaquée/);
+    await page.locator("[data-defense-alert] button").click();
+    await page.locator("[data-gd-defense]").waitFor({ timeout: 10000 });
+    assert.equal(await page.locator("[data-gd-attack]").count(), 1);
+    assert.match(await page.locator("[data-gd-def-timer]").innerText(), /min/);
+    await page.locator('[data-gd-defend="ui:1"]').click();
+    await page.locator(".cb-spell:not([disabled]), .cb-overlay").first().waitFor({ timeout: 20000 });
+    if (process.env.SHOT_DEFENSE) await page.screenshot({ path: process.env.SHOT_DEFENSE });
+    assert.ok((await page.locator(".cb-actor").count()) >= 4, "moi, la sentinelle, des alliés et les attaquants sont à l'écran");
+    assert.equal(await page.locator("[data-sentinel-sprite]").count(), 1, "la sentinelle est à mes côtés");
+    for (let i = 0; i < 300 && !(await page.locator(".cb-overlay").count()); i++) {
+      const sp = page.locator(".cb-spell:not([disabled])");
+      if (await sp.count()) await sp.first().click();
+      else if (await page.locator(".cb-btn:not([disabled])", { hasText: "Fin du tour" }).count()) await page.keyboard.press("Space");
+      await page.waitForTimeout(400);
+    }
+    const title = (await page.locator(".cb-card h2").innerText()).toLowerCase();
+    assert.match(title, /sentinelle (sauvée|détruite)/);
+    await page.locator("[data-defense-done]").click(); await page.waitForTimeout(1500);
+    assert.equal(await page.locator(".cb-root").count(), 0, "retour à la guilde");
+    const after = (await save()).player.market.sims.guilds, mine = Object.values(after.byId).find((x) => x.name === "Les Veilleurs");
+    assert.equal(mine.attacks, undefined, "l'attaque est réglée");
+    const sentinel = sentinelsOf(mine).prairies_sauvages;
+    if (/sauvée/.test(title)) assert.ok(sentinel && sentinel.shield > Date.now(), "sentinelle protégée 1 h");
+    else assert.equal(sentinel, undefined, "sentinelle détruite");
     assert.deepEqual(errors, []);
   });
 

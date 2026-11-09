@@ -10,8 +10,8 @@ export const RANGED = new Set(["tir_rapide", "tir_percant", "pluie_de_fleches"])
 export const STATUS_LABEL = { dot: { feu: "Brûlure", poison: "Poison" }, paLoss: "PA retirés", weaken: "Affaibli", defDown: "Armure brisée", parade: "Parade", shadow: "Disparition", armor: "Défense accrue", reduce: "Rempart", shield: "Bouclier", hot: "Régénération" };
 export const BADGE = { feu: "🔥", poison: "☠️", weaken: "❄️", defDown: "💔", parade: "🛡️", paLoss: "🔻", shadow: "🌑", armor: "🪨", reduce: "🏰", shield: "🛡️", hot: "🌿" };
 
-// Alliés bots : un peu en retrait du héros (le premier derrière, le second devant)
-export const ALLY_POS = [{ x: 6, b: 108 }, { x: 28, b: 30 }];
+// Alliés bots : un peu en retrait du héros (le premier derrière, le second devant, le troisième tout devant : seulement quand on défend sa sentinelle)
+export const ALLY_POS = [{ x: 6, b: 108 }, { x: 28, b: 30 }, { x: 14, b: 12 }];
 export const ALLY_H = 225;       // un peu plus petits que le héros (ils sont plus loin ou à demi-cachés)
 export const isHeroId = (id) => id === "player" || String(id).startsWith("ally");
 
