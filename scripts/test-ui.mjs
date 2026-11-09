@@ -382,6 +382,16 @@ try {
       c[0].click();
     });
     await page.locator("[data-engage-member]").first().waitFor({ timeout: 15000 });
+    await page.locator("button", { hasText: "Reculer" }).click(); await page.waitForTimeout(300);
+    await page.locator("[data-map-group]").waitFor({ timeout: 5000 });
+    assert.equal(await page.locator("[data-map-group-member]").count(), 2, "le rappel du groupe sur la carte montre les 2 membres");
+    await page.evaluate(() => {
+      const v = document.querySelector(".mp-map").getBoundingClientRect();
+      const cx = (v.left + v.right) / 2, cy = (v.top + v.bottom) / 2;
+      const d = (e) => { const r = e.getBoundingClientRect(); return Math.hypot((r.left + r.right) / 2 - cx, (r.top + r.bottom) / 2 - cy); };
+      [...document.querySelectorAll(".mp-group:not(.boss):not(.busy)")].sort((a, b) => d(a) - d(b))[0].click();
+    });
+    await page.locator("[data-engage-member]").first().waitFor({ timeout: 15000 });
     assert.equal(await page.locator("[data-engage-member]").count(), 2, "les 2 membres du groupe apparaissent dans la fenêtre d'engagement");
     await page.locator("button", { hasText: "En groupe" }).click({ timeout: 15000 });
     await page.locator(".cb-tl.ally").first().waitFor({ timeout: 30000 });

@@ -9,6 +9,7 @@ import CityCrowd from "./CityCrowd.jsx";
 import CityChat from "./CityChat.jsx";
 import EngagePopup from "./EngagePopup.jsx";
 import SentinelTag from "./SentinelTag.jsx";
+import GroupBadge from "./GroupBadge.jsx";
 import { sentinelOwner } from "../../utils/sentinel.js";
 import { sentinelEncounter } from "../../utils/sentinelFight.js";
 import { defenderBots } from "../../utils/sentinelDefense.js";
@@ -362,6 +363,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
 
           <div className="mp-vignette" />
           <Minimap map={map} groups={groups} nodes={nodes} dotRef={dotRef} />
+          {!popup && <GroupBadge player={player} onManage={onManageGroup} />}
           {!isCity && !popup && <SentinelTag player={player} region={map.regionKey} now={now} onAttack={(party) => {
             const G = guildsOf(player), g = G && sentinelOwner(G, map.regionKey);
             if (!g) return;
