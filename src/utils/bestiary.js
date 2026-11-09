@@ -3,6 +3,7 @@
 // Le calcul du drop reproduit exactement celui du combat (combat/engine.js, rollRewards).
 // ============================================================
 import { ENEMIES, ZONES } from "../data/zones.js";
+import { MINIBOSS_HP_SCALE } from "../combat/engine.js";
 import { DUNGEONS } from "../data/dungeons.js";
 import { PARTY_DROP_MULT } from "../combat/engine.js";
 
@@ -60,9 +61,14 @@ export function effectText(effect, type = "phys") {
 }
 
 // Sorts d'un monstre, prêts à afficher. needsPhase : le sort n'est utilisé qu'à partir d'une phase donnée du combat.
+// Points de vie d'un monstre selon la taille du groupe de héros (1, 2 ou 3) : seuls les mini-boss en gagnent (voir MINIBOSS_HP_SCALE du moteur)
+export function hpFor(enemy, group = 1) {
+  return Math.round(enemy.stats.hp * (enemy.miniBoss ? (MINIBOSS_HP_SCALE[group] ?? 1) : 1));
+}
+
 export function spellsOf(enemy) {
   return (enemy.actions || []).map((a) => ({
-    id: a.id, name: a.name, pa: a.pa, type: a.type, power: a.power, weight: a.weight,
+    id: a.id, name: a.name, pa: a.pa, type: a.type, power: a.power, weight: a.weight, aoe: !!a.aoe,
     text: effectText(a.effect, a.type), element: a.effect?.element || null,
     // sort réservé à la seconde phase : seuil de PV (en %) sous lequel le monstre commence à l'utiliser
     belowHp: a.needsPhase != null && enemy.phases?.[a.needsPhase] ? Math.round(enemy.phases[a.needsPhase].below * 100) : null,

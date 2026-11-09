@@ -10,7 +10,7 @@ import { PARTY_DROP_MULT } from "../../combat/engine.js";
 import { ZONES } from "../../data/zones.js";
 import { DUNGEONS } from "../../data/dungeons.js";
 import {
-  GROUP_SIZES, ROLE_LABEL, bestiarySections, dropMultiplier, dropRate, dropVisibleFor, matchesSearch, pct, phasesOf, spellsOf, spellFrequencies,
+  GROUP_SIZES, ROLE_LABEL, bestiarySections, dropMultiplier, dropRate, dropVisibleFor, matchesSearch, pct, phasesOf, spellsOf, spellFrequencies, hpFor,
 } from "../../utils/bestiary.js";
 
 // Bestiaire : tous les monstres, leurs caractéristiques, leurs sorts et leur butin — avec les taux de drop calculés
@@ -72,6 +72,7 @@ function SpellCard({ sp, freq, twoPhases }) {
       <div style={{ display: "flex", gap: 14, marginTop: 6, fontSize: 11, color: color.parchmentDim, flexWrap: "wrap" }}>
         <span title="Multiplie l'attaque du monstre">Puissance <b style={{ fontFamily: font.data, color: color.parchment }}>{mult(sp.power)}</b></span>
         <span title="Part de ses tours où il choisit ce sort (parmi ceux qu'il peut payer)">Fréquence <b style={{ fontFamily: font.data, color: color.parchment }}>{Math.round((sp.belowHp != null ? freq.second : freq.first) * 100)} %</b>{twoPhases && sp.belowHp == null && <span style={{ color: color.mist }}> ({Math.round(freq.second * 100)} % en seconde phase)</span>}</span>
+        {sp.aoe && <Pill c={color.bloodBright} title="Cette attaque touche tous les héros du groupe">Zone : tout le groupe</Pill>}
         {sp.belowHp != null && <Pill c={color.bloodBright} title="Ce sort n'apparaît qu'en seconde phase du combat">Sous {sp.belowHp} % de PV</Pill>}
       </div>
       {sp.text && <div style={{ marginTop: 6, fontSize: 12, color: ec || color.parchment }}>{sp.text}</div>}
@@ -150,7 +151,7 @@ function Detail({ entry, dropBonus, group, classKey }) {
 
       <Section title="Caractéristiques">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))", gap: 8 }}>
-          <StatCell label="Points de vie" value={num(st.hp)} c={color.bloodBright} />
+          <StatCell label="Points de vie" value={num(hpFor(e, group))} c={color.bloodBright} />
           <StatCell label="Attaque phys." value={num(st.atkPhys)} c={color.phys} dim={!st.atkPhys} />
           <StatCell label="Attaque magie" value={num(st.atkMagie)} c={color.mag} dim={!st.atkMagie} />
           <StatCell label="Défense phys." value={num(st.defPhys)} />

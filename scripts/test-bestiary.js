@@ -8,7 +8,7 @@ import { createCombat, advance, castSpell, endTurn, PARTY_DROP_MULT } from "../s
 import { gearSections, gearCount, recipeOf, itemDrops, resourceSources, setTotals, itemStats, gearMatches, setClass } from "../src/utils/gearbook.js";
 import { SETS } from "../src/data/items.js";
 import { RECIPES } from "../src/data/recipes.js";
-import { dropMultiplier, dropRate, dropVisibleFor, bestiarySections, spellsOf, spellFrequencies, phasesOf, effectText, matchesSearch, pct, expectedQty } from "../src/utils/bestiary.js";
+import { dropMultiplier, dropRate, dropVisibleFor, bestiarySections, spellsOf, spellFrequencies, phasesOf, effectText, matchesSearch, pct, expectedQty, hpFor } from "../src/utils/bestiary.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -169,6 +169,25 @@ test("recherche d'équipement : par nom, par set ou par ressource de la recette"
   assert.equal(gearMatches(ITEMS.plastron_garou, "croc de pleine lune"), true);
   assert.equal(gearMatches(ITEMS.plastron_veteran, "croc de pleine lune"), false);
   assert.equal(gearMatches(ITEMS.plastron_veteran, ""), true);
+});
+
+test("mini-boss : PA, PV selon le groupe (le même que le combat) et attaques de zone signalées ; les autres monstres ne changent pas", () => {
+  for (const key of ["cavalier_dechu", "epouvantail_ancestral", "veilleur_corrompu"]) {
+    const e = ENEMIES[key];
+    assert.equal(e.stats.pa, 8, `${key} : 8 PA`);
+    assert.deepEqual([1, 2, 3].map((g) => hpFor(e, g)), [e.stats.hp, e.stats.hp * 2, e.stats.hp * 3]);
+    // la fiche annonce les mêmes PV que le combat
+    for (const g of [1, 2, 3]) {
+      const allies = Array.from({ length: g - 1 }, () => ({ name: "A", stats: { atkPhys: 1, atkMagie: 0, defPhys: 0, defMagie: 0, maxHp: 100, esquive: 0, critique: 0, vitesse: 1, dropBonus: 0, setBonuses: [] }, weaponType: "epee", classKey: "guerrier", level: 10 }));
+      const st = createCombat({ stats: { atkPhys: 1, atkMagie: 0, defPhys: 0, defMagie: 0, maxHp: 100, esquive: 0, critique: 0, vitesse: 1, dropBonus: 0, setBonuses: [] }, weaponType: "epee", classKey: "guerrier", level: 10, enemyKeys: [key], allies, seed: 1 });
+      assert.equal(st.enemies[0].maxHp, hpFor(e, g), `${key} en groupe de ${g}`);
+    }
+  }
+  assert.equal(hpFor(ENEMIES.loup_des_plaines, 3), ENEMIES.loup_des_plaines.stats.hp, "un monstre ordinaire ne change pas");
+  assert.equal(ENEMIES.dame_en_deuil.stats.pa, 8);
+  assert.equal(ENEMIES.dame_en_deuil_difficile.stats.pa, 8);
+  for (const key of ["cavalier_dechu", "veilleur_corrompu"]) assert.ok(spellsOf(ENEMIES[key]).some((sp) => sp.aoe), `${key} : une attaque de zone affichée`);
+  assert.ok(!spellsOf(ENEMIES.loup_des_plaines).some((sp) => sp.aoe));
 });
 
 console.log(`\n${n} tests OK`);
