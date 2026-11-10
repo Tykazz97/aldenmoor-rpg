@@ -297,7 +297,7 @@ try {
     await tab("Bestiaire").click();
     await page.locator('[data-mode-btn="equipements"]').click();
     await page.locator("[data-gearbook]").waitFor();
-    assert.equal(await page.locator("[data-gear-entry]").count(), 88, "les 88 équipements sont listés");
+    assert.equal(await page.locator("[data-gear-entry]").count(), 92, "les 92 équipements sont listés (88 + les 4 bijoux d'apprentissage du bijoutier)");
     await page.locator('[data-gear-entry="plastron_garou"]').click();
     assert.equal(await page.locator("[data-ingredient]").count(), 5, "5 ingrédients pour la veste du Loup-Garou");
     assert.ok((await page.locator('[data-ingredient="griffe_de_garou"]').innerText()).includes("Loup-garou"), "provenance de la griffe");
