@@ -418,5 +418,173 @@
    }
   },
   "pngH": 384
+ },
+ "m/charognard": {
+  "w": 254,
+  "h": 329,
+  "box": [
+   152,
+   151,
+   576,
+   700
+  ],
+  "anchor": [
+   106.8,
+   311.4
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.125
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.125
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.292
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.667
+   }
+  },
+  "pngH": 384
+ },
+ "f/charognard": {
+  "w": 226,
+  "h": 297,
+  "box": [
+   177,
+   185,
+   553,
+   680
+  ],
+  "anchor": [
+   91.8,
+   291.0
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.292
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 1.875
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 1.792
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 3
+   }
+  },
+  "pngH": 384
+ },
+ "m/brasier": {
+  "w": 295,
+  "h": 298,
+  "box": [
+   130,
+   193,
+   621,
+   689
+  ],
+  "anchor": [
+   120.0,
+   286.2
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.375
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.125
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.417
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.917
+   }
+  },
+  "pngH": 384
+ },
+ "f/brasier": {
+  "w": 268,
+  "h": 277,
+  "box": [
+   175,
+   219,
+   621,
+   680
+  ],
+  "anchor": [
+   93.0,
+   270.6
+  ],
+  "scale": 0.6,
+  "actions": {
+   "walk": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.125
+   },
+   "mine": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.167
+   },
+   "chop": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.125
+   },
+   "herb": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "duration": 2.542
+   }
+  },
+  "pngH": 384
  }
 }

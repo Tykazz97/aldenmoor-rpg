@@ -16,8 +16,8 @@ import { SETS } from "./items.js";
 
 const HERO_BASE = "/assets/combat/hero";
 
-export const HERO_OUTFITS = ["base", "veteran", "apprenti", "traqueur", "fossoyeur"];
-export const OUTFIT_LABELS = { base: "Voyageur", veteran: "Vétéran", apprenti: "Apprenti", traqueur: "Traqueur", fossoyeur: "Fossoyeur" };
+export const HERO_OUTFITS = ["base", "veteran", "apprenti", "traqueur", "fossoyeur", "charognard", "brasier"];
+export const OUTFIT_LABELS = { base: "Voyageur", veteran: "Vétéran", apprenti: "Apprenti", traqueur: "Traqueur", fossoyeur: "Fossoyeur", charognard: "Charognard", brasier: "Brasier" };
 export const BODIES = { m: "Masculin", f: "Féminin" };
 
 // Looks dont l'image de combat existe ; un look manquant retombe sur le corps masculin
