@@ -21,6 +21,7 @@ import { MAPS } from "../data/maps.js";
 import { ZONES } from "../data/zones.js";
 import { xpToNext, MAX_LEVEL } from "../utils/progression.js";
 import { xpForLevel, MAX_PROFESSION_LEVEL } from "../data/professions.js";
+import { outfitFromGear } from "../data/heroSprites.js";
 import { BAG_ITEMS_MAX, starterGear, tierGear, acquireItem, craftStep, sellSurplus } from "./lifeCraft.js";
 import { makeRng, hashString } from "./rng.js";
 import { bankStep, drawFromBank } from "./lifeBank.js";
@@ -261,7 +262,7 @@ export function advanceLives(world, population, now = Date.now(), opts = {}) {
 
 // La population « vivante » : les mêmes aventuriers, avec leur niveau du moment
 export function liveBots(world, population) {
-  return population.map((b) => { const l = world.lives[b.id]; return l ? { ...b, level: l.level, gold: l.gold, life: l } : b; });
+  return population.map((b) => { const l = world.lives[b.id]; return l ? { ...b, level: l.level, gold: l.gold, life: l, look: `${b.look.split("/")[0]}/${outfitFromGear(l.gear, b.classKey)}` } : b; });
 }
 
 // Une sauvegarde lue du navigateur est-elle utilisable ? (bonne version, même départ, même population)

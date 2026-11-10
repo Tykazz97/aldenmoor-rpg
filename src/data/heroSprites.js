@@ -31,6 +31,18 @@ function outfitFromSets(setBonuses = []) {
   return best ? best.set.key : null;
 }
 
+// Apparence d'un simulé d'après les pièces qu'il porte (`life.gear`) : même règle que le joueur, 2 pièces ou plus d'un set
+// qui a ses images (le set le plus complet l'emporte), sinon la tenue de sa classe.
+export function outfitFromGear(gear = {}, classKey) {
+  const worn = new Set(Object.values(gear || {}).filter(Boolean));
+  let best = null, bestN = 1;
+  for (const o of HERO_OUTFITS) {
+    const n = (SETS[o]?.pieces || []).filter((id) => worn.has(id)).length;
+    if (n > bestN) { best = o; bestN = n; }
+  }
+  return best || CLASSES[classKey]?.outfit || "base";
+}
+
 export function heroOutfit(player, stats) {
   if (HERO_OUTFITS.includes(player.appearance)) return player.appearance;
   return outfitFromSets(stats?.setBonuses) || CLASSES[player.classKey]?.outfit || "base";
