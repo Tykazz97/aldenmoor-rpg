@@ -48,6 +48,24 @@ function buildPlayer({ name, classKey, gender = "m", testMode = false }) {
   };
 }
 
+// Les objets rangés dans une sauvegarde (sac, équipement, coffre, annonces…) gardent le chemin d'image qu'ils avaient à leur création. Depuis la
+// conversion des images en WebP, ceux d'avant pointent vers un .png qui n'existe plus : on remet le chemin du catalogue (ou, à défaut, .webp).
+// Parcours « copie à l'écriture » : ce qui n'a pas à changer garde son objet, et une sauvegarde saine ressort identique.
+export function modernizeImages(v) {
+  if (Array.isArray(v)) { let out = v; v.forEach((x, i) => { const y = modernizeImages(x); if (y !== x) { if (out === v) out = [...v]; out[i] = y; } }); return out; }
+  if (!v || typeof v !== "object") return v;
+  let out = v;
+  for (const k of Object.keys(v)) {
+    const x = v[k];
+    let y;
+    if (k === "img" && typeof x === "string" && x.startsWith("/assets/") && x.endsWith(".png")) y = (typeof v.id === "string" && ITEMS[v.id]?.img) || x.replace(/\.png$/, ".webp");
+    else if (x && typeof x === "object") y = modernizeImages(x);
+    else continue;
+    if (y !== x) { if (out === v) out = { ...v }; out[k] = y; }
+  }
+  return out;
+}
+
 // Remet d'aplomb une sauvegarde ancienne ou abîmée : tout champ absent ou du mauvais type reprend sa valeur de départ.
 // Ne retire rien et ne touche pas aux champs valides (une sauvegarde saine ressort identique).
 export function repairPlayer(p) {
@@ -66,5 +84,5 @@ export function repairPlayer(p) {
   out.bank = { ...fresh.bank, ...out.bank };
   if (!Array.isArray(out.bank.items)) out.bank = { ...out.bank, items: [] };
   if (!isObj(out.bank.resources)) out.bank = { ...out.bank, resources: {} };
-  return grandfatherBag(out);                      // un sac qui contient déjà plus que sa capacité est agrandi sans frais (voir utils/bag.js)
+  return modernizeImages(grandfatherBag(out));     // un sac qui contient déjà plus que sa capacité est agrandi sans frais (voir utils/bag.js)
 }

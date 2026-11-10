@@ -43,7 +43,14 @@ let ctx = null, page = null, errors = [];
 const tab = (n) => page.locator("nav button", { hasText: n }).first();
 const rawSave = () => page.evaluate(() => new Promise((res) => { const r = indexedDB.open("aldenmoor"); r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("save"); g.onsuccess = () => { r.result.close(); res(g.result ?? null); }; g.onerror = () => res(null); }; r.onerror = () => res(null); }));
 const save = async () => { await wait(750); const raw = await rawSave(); return raw ? JSON.parse(raw) : null; };
-const noCrash = async (label) => { assert.equal(await page.getByText("Télécharger ma sauvegarde").count(), 0, `${label} : écran de crash`); assert.deepEqual(errors, [], `${label} : erreurs dans la console`); };
+// images cassées : un fichier manquant renvoie la page d'accueil (code 200), donc seul naturalWidth le révèle
+const brokenImages = () => page.evaluate(() => [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.src && !i.src.startsWith("data:")).map((i) => i.src.replace(location.origin, "")));
+const noCrash = async (label) => {
+  assert.equal(await page.getByText("Télécharger ma sauvegarde").count(), 0, `${label} : écran de crash`);
+  assert.deepEqual(errors, [], `${label} : erreurs dans la console`);
+  await wait(300);                                                                 // le temps que les images finissent de charger
+  assert.deepEqual([...new Set(await brokenImages())].slice(0, 6), [], `${label} : images cassées`);
+};
 
 // ouvre un navigateur propre ; `s` (sauvegarde déjà prête) est injectée, sinon on arrive sur la création du héros
 async function open({ s = null, viewport = { width: 1500, height: 960 }, time = null } = {}) {
@@ -319,6 +326,18 @@ try {
     assert.equal(s1.player.inventory.length, nInv, "la pièce part chez le client : ton sac n'a pas bougé");
     assert.equal(s1.player.taxPaid?.aldenmoor, tax, "la taxe est inscrite au registre de la ville");
     await noCrash("commandes (artisan)");
+  });
+
+  await step("Ancienne sauvegarde : les objets rangés avec un chemin d'image .png (supprimé par la conversion en WebP) s'affichent quand même", async () => {
+    const s = fresh();
+    const toPng = (o) => { if (o && typeof o === "object" && typeof o.img === "string") o.img = o.img.replace(/\.webp$/, ".png"); return o; };
+    s.player.inventory.forEach(toPng); Object.values(s.player.equipped).forEach(toPng);
+    assert.ok(JSON.stringify(s.player).includes(".png"), "la sauvegarde de départ contient bien des .png");
+    await open({ s });
+    await tab("Personnage").click(); await page.waitForTimeout(700);
+    assert.ok((await page.locator("img").count()) > 5, "des images d'objets");
+    await noCrash("ancienne sauvegarde");                                  // vérifie aussi qu'aucune image n'est cassée
+    assert.ok(!JSON.stringify((await save()).player).includes(".png"), "la sauvegarde est réparée au chargement");
   });
 
   // ---------- voyage ----------

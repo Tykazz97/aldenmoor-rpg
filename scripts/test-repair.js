@@ -1,6 +1,7 @@
 // Réparation des sauvegardes anciennes ou abîmées :  node scripts/test-repair.js
 import assert from "node:assert/strict";
-import { createPlayer, repairPlayer } from "../src/utils/newPlayer.js";
+import { createPlayer, repairPlayer, modernizeImages } from "../src/utils/newPlayer.js";
+import { ITEMS } from "../src/data/items.js";
 import { marketOf, newMarket } from "../src/utils/market.js";
 
 let n = 0;
@@ -38,6 +39,23 @@ test("marché abîmé : complété, les annonces du joueur sont gardées", () =>
   assert.ok(Object.keys(m.stock).length > 0 && Array.isArray(m.returns) && Array.isArray(m.sales));
   assert.equal(marketOf({ market: { v: 1, junk: true } }, now).v, 2);
   assert.equal(marketOf({}, now).v, 2);
+});
+
+test("images : les objets d'une ancienne sauvegarde (chemins .png supprimés à la conversion en WebP) retrouvent leur image", () => {
+  const p = createPlayer({ name: "Aldric", classKey: "guerrier", testMode: true });
+  const png = (id) => ({ ...ITEMS[id], img: ITEMS[id].img.replace(/\.webp$/, ".png") });
+  const old = { ...p, inventory: [png("epee_milicien"), { id: "objet_disparu", img: "/assets/icons/items/x/objet_disparu.png" }], equipped: { ...p.equipped, arme: png("masse_rouillee") },
+    bank: { ...p.bank, items: [png("chapeau_veteran")] }, market: { listings: [{ id: 1, item: png("arc_chasse") }], sims: { lives: { a: { gear: { arme: "epee_milicien" } } } } } };
+  const r = repairPlayer(old);
+  assert.equal(r.inventory[0].img, ITEMS.epee_milicien.img, "sac");
+  assert.equal(r.inventory[1].img, "/assets/icons/items/x/objet_disparu.webp", "objet inconnu : .webp");
+  assert.equal(r.equipped.arme.img, ITEMS.masse_rouillee.img, "équipement");
+  assert.equal(r.bank.items[0].img, ITEMS.chapeau_veteran.img, "coffre");
+  assert.equal(r.market.listings[0].item.img, ITEMS.arc_chasse.img, "annonces");
+  assert.ok(!JSON.stringify(r).includes(".png"), "plus aucun .png");
+  assert.equal(r.market.sims, old.market.sims, "ce qui n'a pas à changer garde son objet");
+  assert.equal(modernizeImages(p), p, "une sauvegarde saine : le même objet");
+  assert.equal(repairPlayer(r).inventory[0], r.inventory[0], "relire ne change rien");
 });
 
 console.log(`\n${n} tests OK`);
