@@ -37,6 +37,7 @@ import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
 import { potionShopping, POTION_KEEP } from "../sim/lifePotions.js";
 import { upgradeShopping } from "../sim/lifeUpgrade.js";
+import { magnatsTrade, returnToMagnat } from "./magnats.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 
@@ -130,13 +131,18 @@ function creditSeller(s, l, take, bucket) {
   if (l.seller === "player") {
     s.proceeds += take * l.unit;
     s.sales.push({ b: bucket, kind: l.kind, rid: l.rid, qty: take, unit: l.unit, ...(l.kind === "item" ? { name: l.item?.name } : {}) });
-  } else if (s.sims && s.sims.lives[l.seller]) s.sims.lives[l.seller].gold += take * l.unit;
+  } else if (s.sims && s.sims.lives[l.seller]) {
+    const life = s.sims.lives[l.seller];
+    life.gold += take * l.unit;
+    if (l.mag != null && life.magnat) life.magnat.gain = (life.magnat.gain || 0) + take * (l.unit - l.mag);      // bénéfice d'un magnat (avant taxes de mise en vente)
+  }
 }
 
 // Une annonce de simulé qui expire : la marchandise retourne dans son sac
-function returnToSim(s, l) {
+function returnToSim(s, l, bucket) {
   const life = s.sims?.lives[l.seller];
   if (!life) return;
+  if (l.mag != null) return returnToMagnat(life, l, bucket);          // un magnat retrouve sa marchandise dans son stock de commerce
   if (l.kind === "res") life.bag.res[l.rid] = (life.bag.res[l.rid] || 0) + l.qty;
   else stashPlus(life, l.rid, l.item?.plus || 0);
 }
@@ -221,6 +227,13 @@ function pickSeller(s, id, lot, supplyTotal, T, ref, rng) {
   return null;
 }
 
+export const MAGNAT_TOOLS = {
+  get population() { return getPopulation(); },
+  refPrice, multiplier, targetStock, saleTax, creditSeller, tally,
+  lotMax: (id) => LOT[RESOURCES[id].rarity][1],
+  worthOf: (l) => (l.item ? itemWorth(l.item) : itemValue(l.rid)),
+};
+
 function stepListings(s, bucket) {
   const rng = makeRng(hashString(`mk:${bucket}`));
   const { weighted } = bots();
@@ -234,13 +247,13 @@ function stepListings(s, bucket) {
   // 1. expiration
   s.listings = s.listings.filter((l) => {
     if (l.exp > bucket) return true;
-    if (sims && l.seller !== "player") returnToSim(s, l);
+    if (sims && l.seller !== "player") returnToSim(s, l, bucket);
     if (l.seller === "player") s.returns.push(l.kind === "res" ? { kind: "res", rid: l.rid, qty: l.qty } : { kind: "item", rid: l.rid, item: l.item });
     return false;
   });
 
   // 1b. les simulés vivent : ils achètent leurs ingrédients, puis jouent leur pas (combat, récolte, fabrication)
-  if (live) { simsShop(s, bucket, rng); stepLivesOne(sims, getPopulation(), bucket, { merchant: false, keep: 120, onFight: sentinelFeeder(sims) }); stepGuilds(sims, getPopulation(), bucket); }
+  if (live) { simsShop(s, bucket, rng); stepLivesOne(sims, getPopulation(), bucket, { merchant: false, keep: 120, onFight: sentinelFeeder(sims) }); stepGuilds(sims, getPopulation(), bucket); magnatsTrade(s, bucket, makeRng(hashString(`mg:${bucket}`)), MAGNAT_TOOLS); }
 
   // 2. cours caché
   for (const id of RESOURCE_ORDER) s.stock[id] = stepStock(id, s.stock[id], bucket);

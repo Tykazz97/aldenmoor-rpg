@@ -26,7 +26,7 @@ export const GROUP_REASONS = {
 
 // Un simulé n'accepte pas toujours : selon son profil (un acharné des métiers est pris par sa fabrication, un occasionnel est plus réservé) et
 // un peu de hasard, tiré une fois par pas de 10 minutes (insister ne change rien, réessayer plus tard oui). Ceux de ma guilde disent plus souvent oui.
-export const ACCEPT_P = { occasionnel: 0.7, regulier: 0.8, acharne_xp: 0.9, acharne_metiers: 0.4 };
+export const ACCEPT_P = { occasionnel: 0.7, regulier: 0.8, acharne_xp: 0.9, acharne_metiers: 0.4, acharne_magnat: 0.5 };
 export function acceptChance(player, bot) {
   const t = traitsOf(bot), key = t.profile === "acharne" ? `acharne_${t.focus || "xp"}` : t.profile;
   const G = player?.market?.sims?.guilds, same = !!G?.of?.player && G.of[bot.id] === G.of.player;

@@ -65,6 +65,7 @@ export const overlevelMult = (level) => { const hi = regionFor(level).hi; return
 
 // --- Traits de caractère qui ne changent pas (déduits de l'id, rien à sauvegarder) -----------------------------------
 const START_HOURS = [[17, 3], [18, 4], [19, 4], [20, 4], [21, 3], [22, 2], [13, 2], [14, 1], [9, 2], [10, 2], [15, 1]];
+export const MAGNAT_SHARE = 1 / 3;                                   // part des acharnés qui jouent surtout l'hôtel des ventes (les magnats, voir utils/market.js)
 export const PROFILE_MIX = { occasionnel: 0.6, regulier: 0.3, acharne: 0.1 };      // part de chaque profil (le reste : acharnés)
 const TRAITS_CACHE = new Map();
 export function traitsOf(bot) {
@@ -82,7 +83,7 @@ export function traitsOf(bot) {
   // une bonne part de joueurs réguliers, et quelques acharnés qui ont un objectif (monter vite en niveau, ou monter les métiers).
   const rp = r(), rf = r();
   traits.profile = rp < PROFILE_MIX.occasionnel ? "occasionnel" : rp < PROFILE_MIX.occasionnel + PROFILE_MIX.regulier ? "regulier" : "acharne";
-  traits.focus = traits.profile === "acharne" ? (rf < 0.5 ? "xp" : "metiers") : null;
+  traits.focus = traits.profile === "acharne" ? (rf < MAGNAT_SHARE ? "magnat" : rf < MAGNAT_SHARE + (1 - MAGNAT_SHARE) / 2 ? "xp" : "metiers") : null;
   if (traits.profile === "occasionnel") {                         // une heure ou deux, pas tous les jours, sans se presser
     traits.diligence = Math.round(traits.diligence * 0.7 * 100) / 100;
     traits.hours = Math.max(1, Math.round(traits.hours * 0.6));
@@ -110,7 +111,9 @@ const SHARES = { combattant: { fight: 0.75, gather: 0.1, craft: 0.15 }, recolteu
 const RUSH_XP = { fight: 0.85, gather: 0.04, craft: 0.11 }, RUSH_METIERS = { fight: 0.06, gather: 0.5, craft: 0.44 };
 // un acharné des métiers suit sa vocation : le récolteur passe ses séances à récolter, l'artisan à raffiner et fabriquer
 const RUSH_RECOLTE = { fight: 0.05, gather: 0.78, craft: 0.17 }, RUSH_ARTISAN = { fight: 0.05, gather: 0.2, craft: 0.75 };
-export const shareOf = (bot, traits) => (traits.focus === "xp" ? RUSH_XP : traits.focus === "metiers" ? (bot.activity === "recolteur" ? RUSH_RECOLTE : bot.activity === "artisan" ? RUSH_ARTISAN : RUSH_METIERS) : SHARES[bot.activity] || SHARES.flaneur);
+// un magnat produit de quoi vendre (récolte, fabrication) et passe le reste de son temps à l'hôtel des ventes
+const RUSH_MAGNAT = { fight: 0.1, gather: 0.4, craft: 0.5 };
+export const shareOf = (bot, traits) => (traits.focus === "magnat" ? RUSH_MAGNAT : traits.focus === "xp" ? RUSH_XP : traits.focus === "metiers" ? (bot.activity === "recolteur" ? RUSH_RECOLTE : bot.activity === "artisan" ? RUSH_ARTISAN : RUSH_METIERS) : SHARES[bot.activity] || SHARES.flaneur);
 
 // --- État d'un simulé --------------------------------------------------------------------------------------------------
 // { id, level, xp, gold, kills, gathers, crafted, prof: { key, level, xp }  (métier de récolte),
