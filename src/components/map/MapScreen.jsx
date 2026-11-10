@@ -1,4 +1,5 @@
 import { roomFor } from "../../utils/bag.js";
+import { pickAutoNode, AUTO_RETRY_MS, AUTO_WAIT_TEXT } from "../../utils/autoGather.js";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./map.css";
 import Terrain from "./Terrain.jsx";
@@ -53,6 +54,8 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const [view, setView] = useState("region");   // "region" | "world" (carte du monde)
   const [building, setBuilding] = useState(null); // lieu ouvert dans la ville (atelier, coffre...)
   const [now, setNow] = useState(() => Date.now());
+  const [auto, setAuto] = useState(false);       // récolte automatique : le héros va de ressource en ressource tout seul
+  const [autoStatus, setAutoStatus] = useState("");
 
   // le groupe permanent : ses membres présents suivent le héros sur la carte (et ne figurent plus parmi la foule)
   const mates = useMemo(() => groupOf(player).members, [player.companions, player.market?.sims]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -195,7 +198,17 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
     setMarker({ x: p[p.length - 1].x, y: p[p.length - 1].y, id: Date.now() });
   }, [map]);
 
+  // un geste du joueur (clic sur la carte, sur un objet, flèches) coupe la récolte automatique
+  const autoRef = useRef({});
+  const stopAuto = useCallback(() => {
+    if (!autoRef.current.auto) return;
+    autoRef.current = { ...autoRef.current, auto: false };
+    setAuto(false);
+    showToast("Récolte automatique désactivée.");
+  }, [showToast]);
+
   const onWorldClick = (ev) => {
+    stopAuto();
     const r = worldElRef.current.getBoundingClientRect();
     const tile = r.width / W;
     goToPoint((ev.clientX - r.left) / tile, (ev.clientY - r.top) / tile);
@@ -205,6 +218,40 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
     map, W, H, fight, syncPos, openPopup, openBuilding, startHarvest, setPopup, setFacing, setWalking,
     refs: { viewRef, worldElRef, heroRef, heroAnimRef, dotRef, harvestAct, animKey, posRef, camRef, pathRef, keysRef, touchRef, harvestRef, pausedRef, facingRef, walkingRef, outfitRef, blockedRef, objsRef },
   });
+
+  // ---------- récolte automatique ----------
+  // Toutes les demi-secondes, si le héros est libre (ni en marche, ni en récolte, ni fenêtre ouverte), il choisit la ressource la plus
+  // proche qu'il peut récolter et y va ; quand il n'y en a plus, il attend qu'elles repoussent, puis repart, sans jamais s'arrêter.
+  autoRef.current = { auto, popup, fight, run, building, view, isCity };
+  const startHarvestRef = useRef(startHarvest);
+  startHarvestRef.current = startHarvest;
+  const autoSkip = useRef(new Map());              // id -> instant avant lequel on ne retente pas cette ressource
+  const autoGoal = useRef(null);                   // { id, started } : la ressource visée en ce moment
+  useEffect(() => {
+    if (!auto) { setAutoStatus(""); autoSkip.current.clear(); autoGoal.current = null; return undefined; }
+    const tick = () => {
+      const a = autoRef.current;
+      if (!a.auto || a.popup || a.fight || a.run || a.building || a.view !== "region") return;
+      if (a.isCity) { setAutoStatus("pas de ressource en ville"); return; }
+      if (keysRef.current.size) { stopAuto(); return; }          // le joueur reprend les commandes aux flèches
+      if (harvestRef.current || pathRef.current) return;
+      const now = Date.now();
+      const g = autoGoal.current;
+      if (g && !g.started) autoSkip.current.set(g.id, now + AUTO_RETRY_MS / 2);    // le chemin a été coupé avant d'arriver : on essaie ailleurs
+      autoGoal.current = null;
+      const r = pickAutoNode({ map, pos: posRef.current, nodes: objsRef.current.nodes, blocked: blockedRef.current, player: playerRef.current, skip: autoSkip.current, now });
+      for (const id of r.unreachable) autoSkip.current.set(id, now + AUTO_RETRY_MS);
+      if (!r.node) { setAutoStatus(AUTO_WAIT_TEXT[r.wait]); return; }
+      const n = r.node;
+      setAutoStatus(`récolte : ${NODES[n.node].name}`);
+      autoGoal.current = { id: n.id, started: false };
+      const go = () => { autoGoal.current = { id: n.id, started: true }; autoSkip.current.set(n.id, Date.now() + 15000); startHarvestRef.current(n); };
+      if (!r.path.length) go(); else pathRef.current = { pts: r.path, then: go };
+    };
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, [auto, map]); // eslint-disable-line react-hooks/exhaustive-deps -- boucle relancée seulement à l'activation ou au changement de carte ; le reste passe par des refs
 
   // ---------- donjon ----------
   if (run) {
@@ -271,8 +318,16 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
         <div>
           <div className="mp-title">{region.name}</div>
           <div className="mp-desc">{region.desc}</div>
+          {auto && autoStatus && <div className="mp-desc" data-auto-status style={{ color: "#9fcf9a" }}>🌿 Mode auto : {autoStatus}</div>}
         </div>
-        <button className="cb-btn" onClick={() => setView(view === "world" ? "region" : "world")}>🗺 {view === "world" ? "Retour à la région" : "Carte du monde"}</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          {!isCity && (
+            <button className="cb-btn" data-auto-gather={auto ? "on" : "off"} aria-pressed={auto} onClick={() => { if (auto) { setAuto(false); showToast("Récolte automatique désactivée."); } else { setView("region"); setPopup(null); setAuto(true); showToast("Récolte automatique activée : le héros va de ressource en ressource."); } }}
+              title="Le héros récolte tout seul toutes les ressources de la carte, en boucle (un clic ou les flèches reprennent la main)"
+              style={auto ? { borderColor: "#6fa86a", color: "#cfe8c8", boxShadow: "0 0 10px rgba(111,168,106,.45)" } : undefined}>🌿 Récolte auto : {auto ? "ON" : "OFF"}</button>
+          )}
+          <button className="cb-btn" onClick={() => setView(view === "world" ? "region" : "world")}>🗺 {view === "world" ? "Retour à la région" : "Carte du monde"}</button>
+        </div>
       </div>
 
       {view === "world" ? (
@@ -298,7 +353,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
                   key={n.id}
                   className={`mp-node ${chk.ok ? "" : "locked"} ${busy ? "busy" : ""}`}
                   style={{ left: `calc(var(--tile) * ${n.x + 0.5})`, top: `calc(var(--tile) * ${n.y + 0.95})`, zIndex: n.y * 10 + 3 }}
-                  onClick={(e) => { e.stopPropagation(); goToObject(n, startHarvest); }}
+                  onClick={(e) => { e.stopPropagation(); stopAuto(); goToObject(n, startHarvest); }}
                 >
                   <span className="mp-plate">{def.name}<i>{PROFESSIONS[def.profession].icon} niv. {def.minLevel}</i></span>
                   <span className="mp-shadow" style={{ width: cq(Math.min(def.size, 2) * 3) }} />
@@ -314,7 +369,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
                 key={b.id}
                 className="mp-node mp-building"
                 style={{ left: `calc(var(--tile) * ${b.cx})`, top: `calc(var(--tile) * ${b.y + 0.95})`, zIndex: b.y * 10 + 3 }}
-                onClick={(e) => { e.stopPropagation(); goToObject(b, openBuilding); }}
+                onClick={(e) => { e.stopPropagation(); stopAuto(); goToObject(b, openBuilding); }}
               >
                 <span className="mp-plate">{b.name}<i>{b.hint}</i></span>
                 <img src={b.img} alt={b.name} draggable={false} style={{ width: `calc(var(--tile) * ${b.w})`, height: "auto" }} />
@@ -336,7 +391,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
                   key={g.id}
                   className={`mp-group ${enc.boss ? "boss" : ""} ${mapLife && whoFights(mapLife, g.id) ? "busy" : ""}`}
                   style={{ left: `calc(var(--tile) * ${g.x + 0.5})`, top: `calc(var(--tile) * ${g.y + 0.95})`, zIndex: g.y * 10 + 4 }}
-                  onClick={(e) => { e.stopPropagation(); goToObject(g, openPopup); }}
+                  onClick={(e) => { e.stopPropagation(); stopAuto(); goToObject(g, openPopup); }}
                 >
                   <span className="mp-mark">{enc.boss ? "☠" : "⚔"}</span>
                   <span className="mp-plate">{enc.name}<i>{enc.level}</i></span>

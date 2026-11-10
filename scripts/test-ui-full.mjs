@@ -398,6 +398,42 @@ try {
     await noCrash("récolte");
   });
 
+  await step("Récolte auto : le héros enchaîne les ressources tout seul, un clic sur la carte l'arrête", async () => {
+    const s = fresh(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 };
+    await open({ s });
+    await tab("Carte").click(); await page.waitForTimeout(1500);
+    const btn = page.locator("[data-auto-gather]");
+    assert.equal(await btn.getAttribute("data-auto-gather"), "off");
+    const total = async () => Object.values((await save()).player.resources || {}).reduce((a, b) => a + b, 0);
+    const before = await total();
+    await btn.click();
+    assert.equal(await btn.getAttribute("data-auto-gather"), "on");
+    await page.locator(".mp-prog").waitFor({ timeout: 30000 });                       // il marche jusqu'à une ressource et la récolte
+    await page.waitForFunction(() => !document.querySelector(".mp-prog"), null, { timeout: 30000 });
+    await page.locator(".mp-prog").waitFor({ timeout: 40000 });                       // puis il enchaîne sur la suivante sans qu'on touche à rien
+    await page.waitForFunction(() => !document.querySelector(".mp-prog"), null, { timeout: 30000 });
+    assert.ok((await total()) > before, "des ressources récoltées en mode auto");
+    assert.ok(await page.locator("[data-auto-status]").count() > 0, "la ligne d'état du mode auto");
+    await page.evaluate(() => { const v = document.querySelector(".mp-map").getBoundingClientRect(); document.querySelector(".mp-world").dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: v.left + v.width * 0.3, clientY: v.top + v.height * 0.3 })); });   // un clic sur la carte l'arrête
+    await page.waitForTimeout(400);
+    assert.equal(await btn.getAttribute("data-auto-gather"), "off");
+    await noCrash("récolte auto");
+  });
+
+  await step("Récolte auto : sans ressource sur la carte il attend, et repart tout seul dès que ça repousse", async () => {
+    const s = fresh(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 };
+    const { MAPS } = await import("../src/data/maps.js");
+    s.world.cleared = Object.fromEntries(MAPS.prairies_sauvages.nodes.map((o) => [o.id, Date.now() - 45000 + 9000]));   // tout repousse dans ~9 s
+    await open({ s });
+    await tab("Carte").click(); await page.waitForTimeout(1200);
+    assert.equal(await page.locator(".mp-node:not(.locked):not(.mp-building)").count(), 0, "plus aucune ressource au départ");
+    await page.locator("[data-auto-gather]").click();
+    await page.waitForTimeout(800);
+    assert.match(await page.locator("[data-auto-status]").innerText(), /repousse/);
+    await page.locator(".mp-prog").waitFor({ timeout: 40000 });                       // la repousse est détectée : il marche et récolte
+    await noCrash("récolte auto, repousse");
+  });
+
   // ---------- journal, chat ----------
   await step("Journal de quêtes et chat de la ville", async () => {
     const s = fresh();
