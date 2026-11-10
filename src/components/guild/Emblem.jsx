@@ -1,4 +1,4 @@
-import React, { useId } from "react";
+import { useId } from "react";
 import { PALETTE, SHAPES, MOTIFS, SYMBOLS, cleanEmblem, randomEmblem } from "../../data/emblems.js";
 
 // Le blason d'une guilde : forme d'écu + motif (deux couleurs) + symbole teinté. `seed` : sans blason enregistré, on en tire un à partir de cette graine.

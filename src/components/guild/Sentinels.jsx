@@ -1,4 +1,3 @@
-import React from "react";
 import { RESOURCES } from "../../data/resources.js";
 import { SENT_REGIONS, sentinelSlots, sentinelGoldCap, sentinelResCap } from "../../data/sentinel.js";
 import { sentinelsOf, sentinelCount, sentinelOwner, placeProblem, stockEmpty } from "../../utils/sentinel.js";

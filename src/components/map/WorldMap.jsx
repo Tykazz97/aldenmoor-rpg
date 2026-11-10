@@ -1,4 +1,3 @@
-import React from "react";
 import { MAPS, CITY_KEY } from "../../data/maps.js";
 
 // Carte du monde : on choisit la région où l'on veut aller. Une région sans carte

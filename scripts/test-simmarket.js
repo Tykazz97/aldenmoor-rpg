@@ -1,9 +1,6 @@
 // Tests du marché relié aux joueurs simulés :  node scripts/test-simmarket.js
 import assert from "node:assert/strict";
-import {
-  newMarket, tickMarket, marketOf, enableSimMarket, simMarketEnabled, buyFromListing, buyCheapest, postListing, settleMarket,
-  listingsFor, sellerName, STEP_MS, supplyOf, targetStock, marketBehind, CATCHUP_SLICE, simBuysGear, GEAR_RICH, GEAR_RESERVE,
-} from "../src/utils/market.js";
+import { newMarket, tickMarket, marketOf, enableSimMarket, simMarketEnabled, buyFromListing, buyCheapest, postListing, settleMarket, sellerName, STEP_MS, supplyOf, marketBehind, CATCHUP_SLICE, simBuysGear, GEAR_RICH, GEAR_RESERVE } from "../src/utils/market.js";
 import { getPopulation } from "../src/sim/population.js";
 import { RESOURCES, RESOURCE_ORDER } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";

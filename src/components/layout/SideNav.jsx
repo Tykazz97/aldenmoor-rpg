@@ -1,4 +1,3 @@
-import React from "react";
 import { color, border, font } from "../../styles/theme.js";
 
 const NAV_ITEMS = [

@@ -1,4 +1,3 @@
-import React from "react";
 import { enemyDef } from "../../data/zones.js";
 
 // Frise de l'ordre de jeu (comme dans Dofus)

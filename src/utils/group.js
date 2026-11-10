@@ -37,7 +37,6 @@ export const acceptsInvite = (player, bot, now = Date.now()) => hashString(`invi
 const stepOfNow = (now) => Math.floor(now / STEP_MS);
 export const isOnline = (bot, now = Date.now()) => isActive(bot, stepOfNow(now));
 const fail = (player, reason) => ({ ok: false, reason, player });
-const lifeOf = (player, id) => player?.market?.sims?.lives?.[id] || null;
 
 // Pendant qu'un simulé est dans mon groupe, sa vie simulée est en pause (`sims.busy[id]` = dernier pas où il est occupé) : il ne gagne qu'avec moi.
 // La marque est renouvelée tant qu'il est dans le groupe (toutes les 10 s) et expire seule peu après son départ ou si je ferme le jeu.

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 import { RESOURCES } from "../../data/resources.js";
 import { CLASSES } from "../../data/classes.js";

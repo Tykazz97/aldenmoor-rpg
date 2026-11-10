@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Fil de discussion de la ville + saisie. Les messages des simulés arrivent comme ceux de vrais joueurs.
 export default function CityChat({ feed, online, onSend, playerName }) {

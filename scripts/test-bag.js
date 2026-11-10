@@ -4,7 +4,7 @@ import {
   BAG_START, BAG_STEP, BAG_UPGRADES, bagCapacity, bagUsed, bagFree, bagFull, nextBagCost, upgradeBag, bagGuard, roomFor, fitRewards, hasLost, resTypes, grandfatherBag,
 } from "../src/utils/bag.js";
 import { applyRewards } from "../src/utils/progression.js";
-import { applyCraft, applyRefine } from "../src/utils/crafting.js";
+import { applyCraft } from "../src/utils/crafting.js";
 import { buyFromListing, buyCheapest, postListing, cancelListing, marketOf } from "../src/utils/market.js";
 import { depositItem, withdrawItem, depositResource, withdrawResource } from "../src/utils/bank.js";
 import { RESOURCE_ORDER } from "../src/data/resources.js";

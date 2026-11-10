@@ -1,13 +1,7 @@
 // Guildes :  node scripts/test-guild.js
 import assert from "node:assert/strict";
-import {
-  GUILD_MAX_MEMBERS, GUILD_CREATE_COST, GUILD_MAX_LEVEL, PALIERS, TABS, TAB_SLOTS, QUEST_SLOTS, QUEST_TYPES, guildXpToNext,
-  SIM_FOUND_GOLD, BONUS_KEYS,
-} from "../src/data/guild.js";
-import {
-  newGuilds, createGuild, addMember, removeMember, isFull, memberCount, fillQuests, questGoal, addProgress, addGuildXp, nameProblem,
-  palierProblem, tabProblem, buyPalier, buyTab, tagOf, makeGuildName, tabFree, guildFor, rankOf, canSpend, canWithdraw, canKick, ranksAssignable, setRank, passLead,
-} from "../src/utils/guildCore.js";
+import { GUILD_MAX_MEMBERS, GUILD_CREATE_COST, GUILD_MAX_LEVEL, PALIERS, TABS, TAB_SLOTS, QUEST_SLOTS, guildXpToNext, SIM_FOUND_GOLD, BONUS_KEYS } from "../src/data/guild.js";
+import { newGuilds, createGuild, addMember, removeMember, isFull, memberCount, questGoal, addProgress, addGuildXp, nameProblem, palierProblem, tabProblem, buyPalier, buyTab, tagOf, makeGuildName, tabFree, guildFor, rankOf, canSpend, canWithdraw, canKick, ranksAssignable, setRank, passLead } from "../src/utils/guildCore.js";
 import { bonusFromPaliers, guildBonusOf, withBonus, NO_BONUS } from "../src/utils/guildBonus.js";
 import {
   createGuildAction, joinGuildAction, leaveGuildAction, donateAction, depositAction, withdrawAction, buyPalierAction, buyTabAction,

@@ -1,4 +1,3 @@
-import React from "react";
 import { RESOURCES } from "../../data/resources.js";
 import { ITEMS } from "../../data/items.js";
 import { classSpellsAt } from "../../data/classes.js";

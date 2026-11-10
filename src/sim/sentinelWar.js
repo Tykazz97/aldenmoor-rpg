@@ -15,7 +15,7 @@ import { buildSpellBar } from "../utils/spellbook.js";
 import { createCombat, advance, castSpell, endTurn } from "../combat/engine.js";
 import { logOf } from "../utils/guildCore.js";
 import { sentinelsOf, removeSentinel, rebuildSent } from "../utils/sentinel.js";
-import { SENT_BY_KEY, SENT_REGIONS } from "../data/sentinel.js";
+import { SENT_BY_KEY } from "../data/sentinel.js";
 import { ensureSentinelEnemy, SENT_ROUNDS, SENT_SHIELD_MS } from "../utils/sentinelFight.js";
 import { defenderBots, ensureDefenderEnemy, plusOf } from "../utils/sentinelDefense.js";
 

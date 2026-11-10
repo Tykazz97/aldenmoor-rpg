@@ -1,4 +1,3 @@
-import React from "react";
 import { STATUS_LABEL, BADGE } from "./stage.js";
 
 // Barres au-dessus d'un combattant : pastilles d'effets, nom, points de vie

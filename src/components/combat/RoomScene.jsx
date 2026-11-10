@@ -1,4 +1,3 @@
-import React from "react";
 import { ENEMIES } from "../../data/zones.js";
 import { ALCHEMY } from "../../data/alchemy.js";
 import { RESOURCES } from "../../data/resources.js";

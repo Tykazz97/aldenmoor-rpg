@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { heroAnimMeta, heroSheetUrl, heroFrameLayout, frameBackground } from "../../data/heroAnims.js";
 import { stepCityLife } from "../../sim/cityLife.js";
 

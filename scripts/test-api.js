@@ -61,6 +61,7 @@ await test("modèle en erreur ou réponse vide : 502, jamais de texte inventé",
 
 await test("entrées nettoyées : longueurs bornées, caractères de contrôle retirés, valeurs inconnues ramenées à un défaut", async () => {
   const s = sanitize({ bot: { name: "A\u0000B".repeat(30), level: 999, classKey: "dragon" }, message: "x".repeat(1000), history: Array(50).fill({ text: "y" }), feed: Array(50).fill({ name: "n", text: "z" }) });
+  // eslint-disable-next-line no-control-regex -- les caractères de contrôle sont voulus ici
   assert.ok(s.bot.name.length <= 20 && !/[\u0000-\u001f]/.test(s.bot.name));
   assert.equal(s.bot.level, 50); assert.equal(s.bot.classKey, "guerrier");
   assert.equal(s.message.length, 160); assert.equal(s.history.length, 8); assert.equal(s.feed.length, 6);

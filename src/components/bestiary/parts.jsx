@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 import { PARTY_DROP_MULT } from "../../combat/engine.js";
 import { GROUP_SIZES, dropMultiplier } from "../../utils/bestiary.js";

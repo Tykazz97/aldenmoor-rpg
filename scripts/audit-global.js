@@ -2,7 +2,7 @@
 //   node scripts/audit-global.js [generated|fresh] [jours=60]
 // Hors de `npm test` (une minute environ). Affiche les anomalies (✖) puis un petit tableau de bord ; code de sortie 1 s'il y en a.
 import { getPopulation } from "../src/sim/population.js";
-import { enableSimMarket, newMarket, tickMarket, marketBehind, STEP_MS } from "../src/utils/market.js";
+import { enableSimMarket, newMarket, tickMarket, marketBehind } from "../src/utils/market.js";
 import { SIM_START } from "../src/sim/config.js";
 import { ITEMS } from "../src/data/items.js";
 import { RESOURCES, RESOURCE_ORDER } from "../src/data/resources.js";

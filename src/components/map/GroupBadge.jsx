@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { groupOf, GROUP_MAX } from "../../utils/group.js";
 import { heroSpriteUrl } from "../../data/heroSprites.js";
 import { CLASSES } from "../../data/classes.js";

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Fight } from "./CombatScreen.jsx";
 import RoomScene from "./RoomScene.jsx";
 import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";

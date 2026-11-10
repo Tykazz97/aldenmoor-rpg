@@ -16,7 +16,7 @@ import { RESOURCES } from "../src/data/resources.js";
 import { perkLines } from "../src/utils/perks.js";
 import { CLASSES } from "../src/data/classes.js";
 import { CHAIN_QUESTS } from "../src/data/quests.js";
-import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
+import { craftFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

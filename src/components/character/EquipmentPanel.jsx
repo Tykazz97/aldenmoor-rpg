@@ -1,5 +1,4 @@
 import { itemLabel, plusOf } from "../../utils/upgrade.js";
-import React from "react";
 import SLOT_ICONS from "../icons/SlotIcons.jsx";
 import SLOT_LUDO_ICONS from "../icons/SlotLudoIcons.jsx";
 import BannerHeader from "../shared/BannerHeader.jsx";

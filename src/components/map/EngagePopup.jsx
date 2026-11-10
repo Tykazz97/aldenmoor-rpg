@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ENEMIES } from "../../data/zones.js";
 import { RESOURCES, RESOURCE_RARITIES } from "../../data/resources.js";
 import { ITEMS } from "../../data/items.js";

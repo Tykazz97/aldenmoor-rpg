@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { sentinelOwner, sentinelsOf } from "../../utils/sentinel.js";
 import { attackCheck, guildsOf } from "../../utils/guildActions.js";
 import { SENT_ROUNDS } from "../../utils/sentinelFight.js";

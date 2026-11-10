@@ -1,4 +1,3 @@
-import React from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 
 export default function ComingSoon({ title }) {

@@ -7,7 +7,7 @@ import { PROFESSIONS, PROFESSION_ORDER } from "../src/data/professions.js";
 import { canRefine, applyRefine, maxRefine, applyCraft, canCraft, professionOf, emptyProfessions, gainProfessionXp } from "../src/utils/crafting.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { newMarket, listingsFor } from "../src/utils/market.js";
-import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
+import { unitFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

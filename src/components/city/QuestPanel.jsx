@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 import { boardFor, questsOf, acceptQuest, abandonQuest, completeQuest, progressOf, standingOf, perksOf, questLabel } from "../../utils/quests.js";
 import { MAX_ACTIVE_QUESTS, TOWN } from "../../data/quests.js";

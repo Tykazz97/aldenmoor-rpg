@@ -9,22 +9,21 @@ import {
 } from "../src/utils/sentinel.js";
 import { createGuildAction, placeSentinelAction, removeSentinelAction, collectSentinelAction, myGuild, guildsOf, donateAction } from "../src/utils/guildActions.js";
 import { stepGuilds } from "../src/sim/guilds.js";
-import { stepLivesOne, createLives } from "../src/sim/lives.js";
+import { stepLivesOne } from "../src/sim/lives.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { enableSimMarket, newMarket } from "../src/utils/market.js";
 import { getPopulation } from "../src/sim/population.js";
 import { makeRng } from "../src/sim/rng.js";
 import { winAttackAction, loseAttackAction, attackCheck } from "../src/utils/guildActions.js";
-import { attackProblem } from "../src/utils/sentinel.js";
 import { ensureSentinelEnemy, sentinelStats, sentinelEncounter, SENT_ROUNDS, SENT_SHIELD_MS } from "../src/utils/sentinelFight.js";
-import { SENT_SPELLS, SENT_STATS, SENT_STAT_KEYS, SENT_MAX_SPELLS, SENT_STAT_CAP } from "../src/data/sentinel.js";
+import { SENT_SPELLS, SENT_STATS, SENT_STAT_KEYS, SENT_STAT_CAP } from "../src/data/sentinel.js";
 import {
   totalPoints, freePoints, spentPoints, ptsOf, sharesOf, lootMult, lootShareOf, unlockedSpells, equippedIds, equippedSpells, pointsProblem, setPoints, resetCost,
   spellsProblem, setSpells, autoAlloc, emptyPts,
 } from "../src/utils/sentinelBuild.js";
 import { setSentinelPointsAction, resetSentinelPointsAction, setSentinelSpellsAction } from "../src/utils/guildActions.js";
 import { ENEMY_EXTRA, enemyDef } from "../src/data/zones.js";
-import { createCombat, advance, endTurn, castSpell } from "../src/combat/engine.js";
+import { createCombat, advance, endTurn } from "../src/combat/engine.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
 import { evaluate, fight, guildWith } from "./simulate-sentinel.js";

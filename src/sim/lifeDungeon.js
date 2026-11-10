@@ -23,7 +23,6 @@ export const HARD_DUNGEON = DUNGEONS.manoir_englouti_difficile;
 export const DJ_COOLDOWN_STEPS = 288;              // au plus une expédition tous les 2 jours réels
 export const DJ_MIN_CHANCE = 0.3;                  // il n'y va qu'avec au moins 30 % de chances d'en voir le bout
 export const DJ_FRIENDS = 0.8;                     // chance de trouver deux amis libres
-const KEY = DUNGEON.keyItem;
 
 // Deux donjons : le normal (`life.dj`) et le difficile (`life.djh`, même forme). Le rare de la clé doit venir de ses propres combats :
 // l'essence du Veilleur pour le normal, l'essence de deuil (butin de la Dame) pour le difficile ; le reste (lingots, ectoplasme, larmes) s'achète.

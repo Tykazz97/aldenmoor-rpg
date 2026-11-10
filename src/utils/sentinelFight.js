@@ -49,7 +49,6 @@ export function ensureSentinelEnemy(guild) {
 // La rencontre à jouer (comme les autres rencontres, avec en plus `sentinel` : ce qui sert à régler l'issue). La sentinelle est toujours le
 // premier ennemi (e0) : l'attaque est gagnée dès qu'elle tombe ; les défenseurs (bots de la guilde connectés, 3 au plus) la suivent.
 export function sentinelEncounter(guild, region, defenders = []) {
-  const r = SENT_BY_KEY[region];
   const key = ensureSentinelEnemy(guild);
   const defs = defenders.map((b) => ensureDefenderEnemy(b));
   return {

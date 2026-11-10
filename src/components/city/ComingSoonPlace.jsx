@@ -1,4 +1,3 @@
-import React from "react";
 import { color, font } from "../../styles/theme.js";
 
 // Lieux de la ville pas encore ouverts : on explique à quoi ils serviront.

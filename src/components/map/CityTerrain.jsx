@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import { tileAt, mapWidth, mapHeight } from "../../utils/mapPath.js";
 
 // Décor de la ville : une cité fortifiée (remparts, tours d'angle, portes, maisons), dessinée en SVG

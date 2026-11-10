@@ -1,5 +1,5 @@
 import BagPanel from "./components/bag/BagPanel.jsx";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import AppShell from "./components/layout/AppShell.jsx";
 import CharacterSheet from "./components/character/CharacterSheet.jsx";
 import ForgePanel from "./components/forge/ForgePanel.jsx";

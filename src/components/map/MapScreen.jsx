@@ -1,5 +1,5 @@
 import { roomFor } from "../../utils/bag.js";
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./map.css";
 import Terrain from "./Terrain.jsx";
 import CityTerrain from "./CityTerrain.jsx";

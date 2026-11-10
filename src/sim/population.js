@@ -4,7 +4,7 @@
 // plus quelques traits de comportement. La population est déterministe : une même graine
 // donne toujours les mêmes 200 aventuriers, sans rien à sauvegarder.
 // ============================================================
-import { CLASSES, CLASS_ORDER } from "../data/classes.js";
+import { CLASSES } from "../data/classes.js";
 import { HERO_OUTFITS } from "../data/heroSprites.js";
 import { MAX_LEVEL } from "../utils/progression.js";
 import { makeRng, hashString } from "./rng.js";

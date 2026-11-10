@@ -1,6 +1,6 @@
 // Hôtel des ventes (présentation) :  node scripts/test-marketbook.js
 import assert from "node:assert/strict";
-import { RESOURCES, RESOURCE_ORDER } from "../src/data/resources.js";
+import { RESOURCE_ORDER } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { newMarket, marketOf, postListing, quoteBuy, listingSlots } from "../src/utils/market.js";

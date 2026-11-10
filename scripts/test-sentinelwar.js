@@ -6,7 +6,7 @@ import { createLives, liveBots, STEP_MS } from "../src/sim/lives.js";
 import { getPopulation } from "../src/sim/population.js";
 import { stepGuilds } from "../src/sim/guilds.js";
 import { launchWars, resolveWars, settleAttack, autoFight, WAR_DELAY_STEPS, WAR_COOLDOWN_STEPS, ATTACKERS_MAX } from "../src/sim/sentinelWar.js";
-import { ensureSentinelEnemy, SENT_SHIELD_MS, sentinelAllySpec, defenseAllies, defenseEncounter, SENT_ROUNDS } from "../src/utils/sentinelFight.js";
+import { ensureSentinelEnemy, SENT_SHIELD_MS, sentinelAllySpec, defenseEncounter, SENT_ROUNDS } from "../src/utils/sentinelFight.js";
 import { createCombat, advance, endTurn } from "../src/combat/engine.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { enableSimMarket, newMarket } from "../src/utils/market.js";
@@ -18,7 +18,6 @@ import { allySpecOf, ensureDefenderEnemy } from "../src/utils/sentinelDefense.js
 import { enemyDef } from "../src/data/zones.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { endDefenseAction, startDefenseAction, resolveDueAttacksNow } from "../src/utils/guildActions.js";
-import { sentinelsOf as sOf } from "../src/utils/sentinel.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

@@ -1,4 +1,3 @@
-import React from "react";
 import Emblem from "./Emblem.jsx";
 import { PALETTE, SHAPES, MOTIFS, SYMBOLS, randomEmblem } from "../../data/emblems.js";
 

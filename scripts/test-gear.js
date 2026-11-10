@@ -5,7 +5,6 @@ import { RECIPES } from "../src/data/recipes.js";
 import { getCraftInfo } from "../src/data/professions.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { createCombat, advance, castSpell, endTurn } from "../src/combat/engine.js";
-import { CLASSES } from "../src/data/classes.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { SENT_BY_KEY } from "../../data/sentinel.js";
 import { CLASSES } from "../../data/classes.js";
 import { STEP_MS } from "../../sim/lives.js";

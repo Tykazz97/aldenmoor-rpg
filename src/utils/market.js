@@ -20,7 +20,6 @@
 import { bagGuard } from "./bag.js";
 import { RESOURCES, RESOURCE_ORDER } from "../data/resources.js";
 import { ITEMS, ITEM_ORDER } from "../data/items.js";
-import { RECIPES } from "../data/recipes.js";
 import { makeRng, hashString } from "../sim/rng.js";
 import { generatePopulation } from "../sim/population.js";
 import { MASTERWORK_VALUE_RATE, isMasterwork } from "./perks.js";
@@ -32,7 +31,7 @@ import { SIM_START } from "../sim/config.js";
 import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
 import { stepGuilds } from "../sim/guilds.js";
 import { sentinelFeeder } from "./sentinel.js";
-import { shoppingList, stash, stashPlus, acquireItem, gearScore, scoreWithPlus, targetPieces } from "../sim/lifeCraft.js";
+import { shoppingList, stashPlus, acquireItem, scoreWithPlus, targetPieces } from "../sim/lifeCraft.js";
 import { BUILDS } from "../sim/partyBots.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";

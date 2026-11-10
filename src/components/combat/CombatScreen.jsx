@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./combat.css";
 import { createCombat, advance, castSpell, endTurn, canCast } from "../../combat/engine.js";
 import { enemyDef } from "../../data/zones.js";

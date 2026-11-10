@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { color, border, radius, font, shadow } from "../../styles/theme.js";
 import { RESOURCES, RESOURCE_RARITIES } from "../../data/resources.js";
 import { ITEMS, SETS } from "../../data/items.js";

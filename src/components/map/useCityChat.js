@@ -12,6 +12,7 @@ export function useCityChat({ map, isCity, playerRef, posRef }) {
   const [heroBubble, setHeroBubble] = useState(null);
   const feedKey = useRef(0);
   const bubbleTimer = useRef(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- playerRef est une ref : la vie de la ville est recréée seulement quand la carte change
   const life = useMemo(() => (isCity && SIM_PLAYERS ? createCityLife({ map, population: getLivePopulation(playerRef.current), seed: (Date.now() & 0xfffff) + 1 }) : null), [isCity, map]);
   const addFeed = useCallback((m) => setFeed((f) => [...f, { ...m, key: ++feedKey.current }].slice(-40)), []);
   useEffect(() => {
@@ -39,6 +40,7 @@ export function useCityChat({ map, isCity, playerRef, posRef }) {
       remember(agent.id, [{ me: true, text }, { me: false, text: reply }]);
       queueSay(life, agent.id, reply, 0.5 + Math.min(2.5, reply.length * 0.05));   // le temps de taper
     } else playerSays(life, text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs (playerRef, posRef) : stables
   }, [addFeed, life]);
   useEffect(() => () => clearTimeout(bubbleTimer.current), []);
 

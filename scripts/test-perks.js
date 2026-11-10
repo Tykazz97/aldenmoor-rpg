@@ -14,7 +14,7 @@ import { itemWorth, itemValue } from "../src/utils/market.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { makeRng } from "../src/sim/rng.js";
 import { HARVEST_MS } from "../src/components/map/mapConstants.js";
-import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
+import { unitFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

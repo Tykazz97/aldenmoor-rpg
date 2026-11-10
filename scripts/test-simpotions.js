@@ -1,9 +1,9 @@
 // Tests des simulés et des potions (distillation, achats, usage entre les salles du donjon) :  node scripts/test-simpotions.js
 import assert from "node:assert/strict";
 import { getPopulation } from "../src/sim/population.js";
-import { initialLife, stepLife, STEP_MS } from "../src/sim/lives.js";
+import { initialLife, stepLife } from "../src/sim/lives.js";
 import { makeRng } from "../src/sim/rng.js";
-import { acquireItem, tierGear } from "../src/sim/lifeCraft.js";
+import { acquireItem } from "../src/sim/lifeCraft.js";
 import { djOf, dungeonStep, DUNGEON } from "../src/sim/lifeDungeon.js";
 import { wantsPotions, brewPlan, brewStep, potionShopping, POTION_KIT } from "../src/sim/lifePotions.js";
 import { dungeonOdds, kitOfBag, autoDungeon } from "../src/sim/botFight.js";

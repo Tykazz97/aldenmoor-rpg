@@ -1,4 +1,3 @@
-import React from "react";
 import SideNav from "./SideNav.jsx";
 import { color } from "../../styles/theme.js";
 

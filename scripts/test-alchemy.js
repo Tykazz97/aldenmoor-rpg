@@ -8,7 +8,7 @@ import { perksFor, perkLines } from "../src/utils/perks.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { newMarket } from "../src/utils/market.js";
 import { makeRng } from "../src/sim/rng.js";
-import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
+import { unitFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

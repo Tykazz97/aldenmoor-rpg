@@ -19,6 +19,7 @@ const PER_MINUTE = 8, PER_DAY_PER_IP = 120;
 const hits = new Map();           // ip -> { minute: [timestamps], day: n, dayKey }
 let global = { day: "", n: 0 };
 
+// eslint-disable-next-line no-control-regex -- on retire volontairement les caractères de contrôle
 const clean = (v, max) => String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 const dayKey = () => new Date().toISOString().slice(0, 10);
 

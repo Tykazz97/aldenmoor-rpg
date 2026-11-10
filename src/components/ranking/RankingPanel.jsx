@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 import { PROFESSIONS } from "../../data/professions.js";
 import { CLASSES, CLASS_ORDER } from "../../data/classes.js";
@@ -28,18 +28,17 @@ export default function RankingPanel({ player }) {
   const [metier, setMetier] = useState("");
   const [query, setQuery] = useState("");
   const sims = player?.market?.sims;
-  const rows = useMemo(() => buildRanking(player, getLivePopulation(player)), [sims, player.level, player.xp, player.gold, player.professions, player.playSec, player.name]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => buildRanking(player, getLivePopulation(player)), [sims, player.level, player.xp, player.gold, player.professions, player.playSec, player.name]);   // eslint-disable-line react-hooks/exhaustive-deps -- on ne suit que les champs du joueur qui comptent pour le classement
   const total = rows.length;
   const guilds = sims?.guilds;
   const guildTag = (r) => { const g = guilds?.byId?.[guilds?.of?.[r.isMe ? "player" : r.id]]; return g ? g.tag : null; };
   const m = metier || null;
   const globalRank = useMemo(() => ranksFor(rows, sort, m), [rows, sort, m]);
   const mine = rows.find((r) => r.isMe);
-  const myRanks = useMemo(() => Object.fromEntries(Object.keys(SORTS).map((s) => [s, ranksFor(rows, s, s === "metier" ? m : null)[mine?.id]])), [rows, mine?.id, m]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const myRanks = useMemo(() => Object.fromEntries(Object.keys(SORTS).map((s) => [s, ranksFor(rows, s, s === "metier" ? m : null)[mine?.id]])), [rows, mine?.id, m]);
   const filtered = useMemo(() => sortRows(rows, sort, m).filter((r) => (!cls || r.classKey === cls) && (!query.trim() || r.name.toLowerCase().includes(query.trim().toLowerCase()))), [rows, sort, m, cls, query]);
   const shown = filtered.slice(0, TOP);
   const meShown = shown.some((r) => r.isMe), meFiltered = filtered.some((r) => r.isMe);
-  const myProf = professionOf(mine, null);
 
   const th = (key, label, align) => (
     <button data-rank-sort={key} onClick={() => setSort(key)} title={`Trier par ${label.toLowerCase()}`} style={{ background: "none", border: 0, padding: 0, cursor: "pointer", color: sort === key ? color.goldBright : color.mist, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.07em", textAlign: align || "left", fontFamily: font.body, fontWeight: sort === key ? 700 : 500 }}>

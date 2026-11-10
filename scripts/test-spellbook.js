@@ -8,10 +8,7 @@ import { WEAPON_TYPES } from "../src/data/weapons.js";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { createCombat, advance, castSpell } from "../src/combat/engine.js";
-import {
-  MAX_RANK, classSlots, rankCost, pointsSpentOn, spellPointsTotal, spellPointsLeft, spellPointsSpent, resetCost,
-  rankSpell, rankOf, loadoutOf, buildSpellBar, rankUp, equipSpell, resetRanks, weaponSpellOf, spellbookOf,
-} from "../src/utils/spellbook.js";
+import { MAX_RANK, classSlots, rankCost, pointsSpentOn, spellPointsTotal, spellPointsLeft, spellPointsSpent, resetCost, rankSpell, rankOf, loadoutOf, buildSpellBar, rankUp, equipSpell, resetRanks, spellbookOf } from "../src/utils/spellbook.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

@@ -1,4 +1,3 @@
-import React from "react";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { CARACS, CARAC_ORDER } from "../../data/caracs.js";
 import { color, border, radius, font } from "../../styles/theme.js";

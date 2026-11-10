@@ -1,4 +1,3 @@
-import React from "react";
 import { SENT_STATS, SENT_SPELLS, SENT_MAX_SPELLS, SENT_STAT_CAP } from "../../data/sentinel.js";
 import { totalPoints, freePoints, ptsOf, equippedIds, resetCost, lootMult } from "../../utils/sentinelBuild.js";
 import { sentinelStats } from "../../utils/sentinelFight.js";

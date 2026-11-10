@@ -36,7 +36,7 @@ export function nameProblem(G, name) {
   const n = cleanName(name);
   if (n.length < GUILD_NAME_MIN) return "nom_court";
   if (n.length > GUILD_NAME_MAX) return "nom_long";
-  if (!/^[\p{L}\p{N}][\p{L}\p{N} '’\-]*$/u.test(n)) return "nom_invalide";
+  if (!/^[\p{L}\p{N}][\p{L}\p{N} '’-]*$/u.test(n)) return "nom_invalide";
   if (nameTaken(G, n)) return "nom_pris";
   return null;
 }

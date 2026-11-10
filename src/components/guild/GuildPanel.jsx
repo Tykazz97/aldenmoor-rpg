@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import "./guild.css";
 import { RESOURCES, RESOURCE_ORDER } from "../../data/resources.js";
 import {
@@ -6,12 +6,11 @@ import {
   BONUS_ICONS, guildXpToNext, RANK_LABELS, RANK_ICONS,
 } from "../../data/guild.js";
 import { bonusFromPaliers } from "../../utils/guildBonus.js";
-import { memberCount, nextPalier, nextTab, palierProblem, tabProblem, tabUsed, nameProblem, newGuilds, cleanName } from "../../utils/guildCore.js";
+import { memberCount, nextPalier, nextTab, palierProblem, tabProblem, tabUsed, nameProblem, newGuilds } from "../../utils/guildCore.js";
 import {
   REASONS, guildList, myGuild, memberRows, createGuildAction, joinGuildAction, leaveGuildAction, donateAction, depositAction, withdrawAction,
   buyPalierAction, buyTabAction, setMinLevelAction, kickAction, transferAction, setRankAction, rankOf, canSpend, canWithdraw, canKick, ranksAssignable,
 } from "../../utils/guildActions.js";
-import { classLabel, classIcon } from "../../utils/ranking.js";
 import { getPopulation } from "../../sim/population.js";
 import Emblem from "./Emblem.jsx";
 import Sentinels from "./Sentinels.jsx";

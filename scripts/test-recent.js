@@ -18,7 +18,7 @@ import { createPlayer } from "../src/utils/newPlayer.js";
 import { enableSimMarket, newMarket } from "../src/utils/market.js";
 import { getPopulation } from "../src/sim/population.js";
 import { getLivePopulation } from "../src/sim/simWorld.js";
-import { createLives, liveBots, stepLife, stepLivesOne, groupFightStep, traitsOf, isActive, STEP_MS } from "../src/sim/lives.js";
+import { createLives, liveBots, stepLife, stepLivesOne, traitsOf, isActive, STEP_MS } from "../src/sim/lives.js";
 import { makeRng } from "../src/sim/rng.js";
 import { groupCandidates, acceptsInvite, inviteAction, kickAction, cleanGroupAction, creditGroup, groupOf, GROUP_MAX } from "../src/utils/group.js";
 import { buildAllies } from "../src/sim/partyBots.js";

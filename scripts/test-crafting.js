@@ -50,7 +50,7 @@ assert.equal(canCraft(r, "plastron_veteran").ok, true);
 // 9. niveau maximum des métiers : 100 (courbe de 30 xp × niveau)
 import { gainProfessionXp } from "../src/utils/crafting.js";
 import { MAX_PROFESSION_LEVEL, xpForLevel } from "../src/data/professions.js";
-import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
+import { craftFee } from "../src/utils/cityTax.js";
 assert.equal(MAX_PROFESSION_LEVEL, 100);
 assert.equal(xpForLevel(1), 30);
 assert.equal(xpForLevel(99), 2970);

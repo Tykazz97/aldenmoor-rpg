@@ -27,8 +27,8 @@ export function useHeroLoop({ map, W, H, fight, syncPos, openPopup, openBuilding
     window.addEventListener("keyup", up);
     window.addEventListener("blur", clear);
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); window.removeEventListener("blur", clear); };
-  }, []);
-  useEffect(() => { if (fight) { keysRef.current.clear(); pathRef.current = null; } }, [fight]);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps -- écouteurs clavier posés une seule fois (refs)
+  useEffect(() => { if (fight) { keysRef.current.clear(); pathRef.current = null; } }, [fight]);   // eslint-disable-line react-hooks/exhaustive-deps -- refs
 
   // ---------- boucle d'animation : déplacement, caméra ----------
   useEffect(() => {
@@ -147,5 +147,5 @@ export function useHeroLoop({ map, W, H, fight, syncPos, openPopup, openBuilding
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [map, W, H, syncPos, openPopup, openBuilding, startHarvest, fight]);
+  }, [map, W, H, syncPos, openPopup, openBuilding, startHarvest, fight]);   // eslint-disable-line react-hooks/exhaustive-deps -- boucle d'animation : relancée seulement quand la carte, sa taille ou les actions changent ; le reste passe par des refs
 }

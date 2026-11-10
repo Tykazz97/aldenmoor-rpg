@@ -1,4 +1,3 @@
-import React from "react";
 
 // ============================================================
 // Icônes de slots d'équipement — silhouettes SVG dessinées à la

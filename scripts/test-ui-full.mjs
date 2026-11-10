@@ -10,6 +10,7 @@ import { existsSync, mkdtempSync, cpSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
+import { eveningDelta, skewClock } from "./_evening.mjs";
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -47,7 +48,8 @@ async function open({ s = null, viewport = { width: 1500, height: 960 }, time = 
   if (ctx) await ctx.close();
   ctx = await browser.newContext({ viewport, acceptDownloads: true });
   page = await ctx.newPage();
-  if (time) await page.clock.setFixedTime(time);      // l'heure du jeu (qui est en ligne ?) est celle-ci
+  if (time) await page.clock.setFixedTime(time);
+  else await skewClock(page, eveningDelta());      // le soir : des simulés sont en ligne (voir _evening.mjs)      // l'heure du jeu (qui est en ligne ?) est celle-ci
   errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("response", (r) => { if (r.status() >= 400 && r.url().includes("/assets/")) errors.push(`image/fichier introuvable : ${r.url()}`); });   // un lien d'image cassé fait échouer le test

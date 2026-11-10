@@ -1,6 +1,5 @@
 // Courbes de progression des joueurs simulés :  node scripts/simulate-lives.js [fresh|generated] [jours=30]
 import { getPopulation } from "../src/sim/population.js";
-import { ITEMS } from "../src/data/items.js";
 import { gearScore, tierGear } from "../src/sim/lifeCraft.js";
 import { createLives, advanceLives, regionFor, FIGHTS_PER_STEP, GATHERS_PER_STEP } from "../src/sim/lives.js";
 

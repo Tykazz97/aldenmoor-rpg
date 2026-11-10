@@ -1,4 +1,3 @@
-import React from "react";
 
 // Fenêtre d'un lieu de la ville (atelier, coffre, marché...). Le contenu vient de `renderBuilding`.
 export default function BuildingModal({ building, onClose, renderBuilding }) {

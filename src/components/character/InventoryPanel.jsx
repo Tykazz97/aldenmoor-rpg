@@ -1,5 +1,4 @@
 import { itemLabel } from "../../utils/upgrade.js";
-import React from "react";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius } from "../../styles/theme.js";
 import { itemStatLines } from "../../utils/itemText.js";

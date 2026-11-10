@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius, font } from "../../styles/theme.js";
-import { NODES, nodesOfProfession } from "../../data/gathering.js";
+import { nodesOfProfession } from "../../data/gathering.js";
 import { PROFESSIONS, PROFESSION_ORDER, recipesOfProfession, xpForLevel, MAX_PROFESSION_LEVEL } from "../../data/professions.js";
 import { RECIPES } from "../../data/recipes.js";
 import { ITEMS } from "../../data/items.js";
@@ -12,7 +12,7 @@ import { canCraft, canRefine, maxRefine, canBrew, maxBrew, professionOf } from "
 import { perkLines, isMasterwork } from "../../utils/perks.js";
 import { itemStatLines } from "../../utils/itemText.js";
 import UpgradePanel from "./UpgradePanel.jsx";
-import { roomFor, bagUsed, bagCapacity } from "../../utils/bag.js";
+import { roomFor } from "../../utils/bag.js";
 import { upgradablePieces, canUpgrade } from "../../utils/upgrade.js";
 
 const UPGRADE = "__upgrade__";     // section « Amélioration » de la colonne des métiers

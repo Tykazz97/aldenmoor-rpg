@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { tileAt, mapWidth, mapHeight } from "../../utils/mapPath.js";
 
 // Mini-carte en coin : relief, groupes (rouge), ressources (vert) et héros (point doré,

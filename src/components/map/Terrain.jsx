@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import { tileAt, mapWidth, mapHeight } from "../../utils/mapPath.js";
 
 // Décor de la carte dessiné en SVG (une tuile = 100 unités). Rendu une seule

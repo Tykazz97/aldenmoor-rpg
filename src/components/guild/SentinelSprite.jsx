@@ -1,4 +1,3 @@
-import React from "react";
 import Emblem from "./Emblem.jsx";
 
 // La sentinelle : un golem de pierre qui tient une hampe nue ; la bannière de la guilde (son blason) est posée par-dessus, en haut de la hampe.

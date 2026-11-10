@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import GearBook from "./GearBook.jsx";
 import { gearCount } from "../../utils/gearbook.js";
 import { ITEM_COLOR, ROLE_COLOR, ELEMENT_COLOR, GROUP_LABEL, mult, num, Portrait, Pill, Controls, StatCell, Section } from "./parts.jsx";
@@ -9,9 +9,7 @@ import { CLASSES } from "../../data/classes.js";
 import { PARTY_DROP_MULT } from "../../combat/engine.js";
 import { ZONES } from "../../data/zones.js";
 import { DUNGEONS } from "../../data/dungeons.js";
-import {
-  GROUP_SIZES, ROLE_LABEL, bestiarySections, dropMultiplier, dropRate, dropVisibleFor, matchesSearch, pct, phasesOf, spellsOf, spellFrequencies, hpFor,
-} from "../../utils/bestiary.js";
+import { ROLE_LABEL, bestiarySections, dropRate, dropVisibleFor, matchesSearch, pct, phasesOf, spellsOf, spellFrequencies, hpFor } from "../../utils/bestiary.js";
 
 // Bestiaire : tous les monstres, leurs caractéristiques, leurs sorts et leur butin — avec les taux de drop calculés
 // pour TON bonus de butin et la taille de ton groupe (exactement comme au moment du tirage en combat).

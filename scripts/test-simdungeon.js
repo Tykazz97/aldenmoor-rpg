@@ -8,8 +8,7 @@ import { dungeonStep, keyCraftStep, keyShopping, djOf, DJ_COOLDOWN_STEPS, DUNGEO
 import { dungeonOdds } from "../src/sim/botFight.js";
 import { SETS, ITEMS } from "../src/data/items.js";
 import { BUILDS } from "../src/sim/partyBots.js";
-import { RECIPES } from "../src/data/recipes.js";
-import { craftFee, unitFee, taxFee } from "../src/utils/cityTax.js";
+import { craftFee } from "../src/utils/cityTax.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

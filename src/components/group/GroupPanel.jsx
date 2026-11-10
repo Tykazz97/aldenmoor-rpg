@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { color, border, radius, font } from "../../styles/theme.js";
 import { CLASSES } from "../../data/classes.js";
 import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createPlayer } from "../src/utils/newPlayer.js";
 import { buildRanking, sortRows, ranksFor, professionOf, formatHours, STEP_HOURS } from "../src/utils/ranking.js";
 import { getPopulation } from "../src/sim/population.js";
-import { createLives, advanceLives, liveBots, traitsOf, STEP_MS } from "../src/sim/lives.js";
+import { createLives, advanceLives, liveBots, traitsOf } from "../src/sim/lives.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };

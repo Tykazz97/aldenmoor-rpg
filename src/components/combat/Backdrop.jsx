@@ -1,4 +1,3 @@
-import React from "react";
 
 // ------------------------------------------------------------
 // Décor : crépuscule sur la prairie

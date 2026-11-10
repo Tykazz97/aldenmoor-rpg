@@ -13,14 +13,12 @@
 // avec 35 à 70 % de PV restants ; mini-boss gagné 50 à 80 % ; et trop dur 3 niveaux plus bas.
 // ============================================================
 
-import { ITEMS, SETS } from "../src/data/items.js";
 import { CLASSES } from "../src/data/classes.js";
 import { ENCOUNTERS } from "../src/data/encounters.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { createCombat, advance, castSpell, endTurn } from "../src/combat/engine.js";
-import { POINTS_PER_LEVEL, FREE_VITALITE_PER_LEVEL } from "../src/data/caracs.js";
 import { buildSpellBar } from "../src/utils/spellbook.js";
-import { BUILDS, tierOf, makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
+import { BUILDS, makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
 
 const N = Number(process.argv[2]) || 200;
 const ONLY = process.argv[3] && process.argv[3] !== "-" ? process.argv[3].split(",") : null;

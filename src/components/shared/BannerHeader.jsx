@@ -1,4 +1,3 @@
-import React from "react";
 
 // Élément signature de l'app — en-tête en forme de bannière héraldique,
 // utilisé pour toutes les sections plutôt qu'un titre de carte générique.

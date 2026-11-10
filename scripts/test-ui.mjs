@@ -6,6 +6,8 @@ import { createRequire } from "node:module";
 import { spawn, execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import assert from "node:assert/strict";
+import { eveningDelta, skewClock } from "./_evening.mjs";
+const EVENING = eveningDelta();     // décalage de l'horloge du jeu ; les sauvegardes injectées en tiennent compte (la plus récente gagne)
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -35,6 +37,7 @@ try {
   await waitServer();
   browser = await chromium.launch();
   const page = await (await browser.newContext({ viewport: { width: 1500, height: 960 } })).newPage();
+  await skewClock(page, EVENING);      // horloge du jeu : le soir, quand des simulés sont en ligne (voir _evening.mjs)
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error" && !/fonts|ERR_|403|Failed to load resource/.test(m.text())) errors.push(m.text()); });
@@ -183,7 +186,7 @@ try {
   });
 
   await step("Guilde : fonder, verser à la caisse, parcourir les onglets, quitter", async () => {
-    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 30000; s.savedAt = Date.now() + 2000; return s; })());
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 30000; s.savedAt = Date.now() + EVENING + 2000; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-guilde")) { sessionStorage.setItem("ui-guilde", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
     await page.reload(); await page.waitForTimeout(800);
     await tab("Guilde").click();
@@ -249,7 +252,7 @@ try {
   });
 
   await step("grimoire : points de sort, montée de rang, barre de combat équipable", async () => {
-    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.level = 12; s.player.gold = 5000; s.savedAt = Date.now() + 2000; return s; })());
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.level = 12; s.player.gold = 5000; s.savedAt = Date.now() + EVENING + 2000; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-grimoire")) { sessionStorage.setItem("ui-grimoire", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
     await page.reload(); await page.waitForTimeout(800);
     await tab("Personnage").click(); await page.waitForTimeout(300);
@@ -486,13 +489,13 @@ try {
     const { getPopulation } = await import("../src/sim/population.js");
     const { isActive, STEP_MS } = await import("../src/sim/lives.js");
     const { addMember } = await import("../src/utils/guildCore.js");
-    const online = getPopulation().filter((b) => sims.lives[b.id] && b.id !== founder && isActive(b, Math.floor(Date.now() / STEP_MS))).sort((a, b) => process.env.SENT_DEF_NEAR ? Math.abs(sims.lives[a.id].level - s.player.level) - Math.abs(sims.lives[b.id].level - s.player.level) : sims.lives[a.id].level - sims.lives[b.id].level).slice(0, 1);
+    const online = getPopulation().filter((b) => sims.lives[b.id] && b.id !== founder && isActive(b, Math.floor((Date.now() + EVENING) / STEP_MS))).sort((a, b) => process.env.SENT_DEF_NEAR ? Math.abs(sims.lives[a.id].level - s.player.level) - Math.abs(sims.lives[b.id].level - s.player.level) : sims.lives[a.id].level - sims.lives[b.id].level).slice(0, 1);
     for (const b of online) addMember(G, g, b.id, s.player.market.bucket);
     placeSentinel(G, g, "prairies_sauvages", s.player.market.bucket);
     Object.assign(sentinelsOf(g).prairies_sauvages, { gold: 400, res: { croc_de_loup: 7 } });
     rebuildSent(G);
     s.player.resources = {}; s.player.inventory = (s.player.inventory || []).slice(0, 6);
-    s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; s.savedAt = Date.now() + 2000;
+    s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 }; s.savedAt = Date.now() + EVENING + 2000;
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-sentinelle")) { sessionStorage.setItem("ui-sentinelle", "1"); localStorage.setItem("aldenmoor:save", m); } }, JSON.stringify(s));
     await page.reload(); await page.waitForTimeout(800);
     await tab("Carte").click(); await page.waitForTimeout(1000);
@@ -536,14 +539,14 @@ try {
     const g = createGuild(G, { founder: "player", name: "Les Veilleurs", step: step0 });
     g.level = 12; g.gold = 5000;
     const byLevel = getPopulation().filter((b) => sims.lives[b.id] && !G.of[b.id]).sort((a, b) => sims.lives[a.id].level - sims.lives[b.id].level);
-    const online = byLevel.filter((b) => isActive(b, Math.floor(Date.now() / STEP_MS))).slice(-2);          // deux membres connectés, forts
+    const online = byLevel.filter((b) => isActive(b, Math.floor((Date.now() + EVENING) / STEP_MS))).slice(-2);          // deux membres connectés, forts
     for (const b of online) addMember(G, g, b.id, step0);
     placeSentinel(G, g, "prairies_sauvages", step0);
     Object.assign(sentinelsOf(g).prairies_sauvages, { gold: 300, res: {} });
     rebuildSent(G);
     const by = byLevel.slice(0, 2).map((b) => b.id);                                                       // deux attaquants débutants
     g.attacks = [{ id: "ui:1", region: "prairies_sauvages", from: lone.id, by, at: step0, due: step0 + 50 }];
-    s.world.mapKey = "prairies_sauvages"; s.savedAt = Date.now() + 2000;
+    s.world.mapKey = "prairies_sauvages"; s.savedAt = Date.now() + EVENING + 2000;
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-defense")) { sessionStorage.setItem("ui-defense", "1"); localStorage.setItem("aldenmoor:save", m); } }, JSON.stringify(s));
     await page.reload(); await page.waitForTimeout(1000);
     await tab("Personnage").click();
@@ -571,7 +574,7 @@ try {
     const after = (await save()).player.market.sims.guilds, mine = Object.values(after.byId).find((x) => x.name === "Les Veilleurs");
     assert.equal(mine.attacks, undefined, "l'attaque est réglée");
     const sentinel = sentinelsOf(mine).prairies_sauvages;
-    if (/sauvée/.test(title)) assert.ok(sentinel && sentinel.shield > Date.now(), "sentinelle protégée 1 h");
+    if (/sauvée/.test(title)) assert.ok(sentinel && sentinel.shield > Date.now() + EVENING, "sentinelle protégée 1 h");
     else assert.equal(sentinel, undefined, "sentinelle détruite");
     assert.deepEqual(errors, []);
   });
@@ -584,8 +587,8 @@ try {
     const g = Object.values(G.byId).find((x) => x.name === "Les Veilleurs"), lone = Object.values(G.byId).find((x) => x.name === "Les Gardiens de Test");
     delete g.sentinels; rebuildSent(G); placeSentinel(G, g, "prairies_sauvages", step0);       // une sentinelle neuve, sans protection
     const by = getPopulation().filter((b) => sims.lives[b.id] && !G.of[b.id]).sort((a, b) => sims.lives[a.id].level - sims.lives[b.id].level).slice(0, 2).map((b) => b.id);
-    g.attacks = [{ id: "ui:2", region: "prairies_sauvages", from: lone.id, by, at: step0, due: step0 + 50, dueMs: Date.now() + 9000 }];
-    s.savedAt = Date.now() + 2000;
+    g.attacks = [{ id: "ui:2", region: "prairies_sauvages", from: lone.id, by, at: step0, due: step0 + 50, dueMs: Date.now() + EVENING + 9000 }];
+    s.savedAt = Date.now() + EVENING + 2000;
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-defense2")) { sessionStorage.setItem("ui-defense2", "1"); localStorage.setItem("aldenmoor:save", m); } }, JSON.stringify(s));
     await page.reload(); await page.waitForTimeout(800);
     await tab("Personnage").click();
@@ -601,7 +604,7 @@ try {
   });
 
   await step("Sac : emplacements, objets et ressources, agrandissement payant, rangement au coffre", async () => {
-    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 5000; s.player.inventory = s.player.inventory.slice(0, 6); s.player.resources = {}; delete s.player.bagUpgrades; s.savedAt = Date.now() + 2000; return s; })());
+    const mod = JSON.stringify(await (async () => { const s = await save(); s.player.gold = 5000; s.player.inventory = s.player.inventory.slice(0, 6); s.player.resources = {}; delete s.player.bagUpgrades; s.savedAt = Date.now() + EVENING + 2000; return s; })());
     await page.addInitScript((m) => { if (!sessionStorage.getItem("ui-sac")) { sessionStorage.setItem("ui-sac", "1"); localStorage.setItem("aldenmoor:save", m); } }, mod);
     await page.reload(); await page.waitForTimeout(800);
     await tab("Sac").click(); await page.waitForTimeout(300);

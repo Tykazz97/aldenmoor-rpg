@@ -8,7 +8,7 @@ import { DUNGEONS, dungeonOfKey } from "../src/data/dungeons.js";
 import { getCraftInfo } from "../src/data/professions.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { createCombat, advance, castSpell, endTurn, DUNGEON_REVIVE } from "../src/combat/engine.js";
-import { autoDungeon, autoFight } from "../src/sim/botFight.js";
+import { autoDungeon } from "../src/sim/botFight.js";
 import { makeBotPlayer, botSpec } from "../src/sim/partyBots.js";
 import { keyCount, consumeKey, roomEncounter, dungeonDrops, addRewards, emptyRewards } from "../src/utils/dungeon.js";
 import { MAPS, buildingObjects } from "../src/data/maps.js";

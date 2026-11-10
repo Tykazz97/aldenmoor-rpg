@@ -10,7 +10,6 @@
 // ============================================================
 import { boardFor, acceptQuest, completeQuest, abandonQuest, progressOf, dayKey } from "../utils/quests.js";
 import { MAX_ACTIVE_QUESTS } from "../data/quests.js";
-import { ENEMIES } from "../data/zones.js";
 import { emptyCounters } from "../utils/counters.js";
 import { bankHas, drawFromBank } from "./lifeBank.js";
 

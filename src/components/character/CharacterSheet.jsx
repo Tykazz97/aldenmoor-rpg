@@ -1,5 +1,4 @@
 import { bagUsed, bagCapacity } from "../../utils/bag.js";
-import React from "react";
 import EquipmentPanel from "./EquipmentPanel.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";

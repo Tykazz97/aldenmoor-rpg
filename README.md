@@ -18,6 +18,7 @@ npm run dev        # http://localhost:5173
 ```bash
 npm test           # validation des données + tous les tests (scripts/test-*.js)
 npm run check      # tests puis build : à lancer avant d'envoyer
+npm run lint        # contrôle du code (ESLint : variables inutilisées, règles des hooks React ; eslint.config.js). `npm run check` = lint + tests + build
 npm run test:ui     # test d'interface : joue un parcours complet dans un vrai navigateur (demande Playwright, voir scripts/test-ui.mjs)
 npm run test:full   # test d'interface « tout le jeu » : création, ville, quêtes, coffre, voyage, récolte, groupe, combat, défaite, rechargement, téléphone (scripts/test-ui-full.mjs ; ONLY=mot pour une seule étape)
 npm run test:stress # vieilles sauvegardes et toutes les fiches du bestiaire (scripts/test-ui-stress.mjs)
