@@ -26,7 +26,7 @@ await test("une commande : métier, niveau, ingrédients de la recette et salair
   assert.deepEqual(info.mats, RECIPES[ITEM].ingredients);
   assert.ok(info.fee >= 3 && info.fee === orderFeeBase(ITEM));
   assert.equal(orderInfo("epee_inconnue"), null);
-  const w = wageMin("sim_001", ITEM); assert.ok(w >= info.fee * 0.8 - 1e-9 && w <= info.fee * 1.2 + 1e-9);
+  const w = wageMin("sim_001", ITEM); assert.ok(w >= info.fee * 0.5 - 1e-9 && w <= info.fee * 1.5 + 1e-9);
 });
 
 await test("le joueur commande : ingrédients et salaire partent en séquestre ; limites et refus", () => run(() => {
@@ -141,7 +141,7 @@ await test("annuaire : les métiers, leurs paliers, les prix conseillés ; les a
   const dir = directory(base, "forgeron", base.bucket + 1, (id) => id);
   assert.ok(dir.length >= 5, `${dir.length} artisans`);
   for (let i = 1; i < dir.length; i++) assert.ok(dir[i - 1].level >= dir[i].level, "classés par niveau");
-  for (const e of dir) { assert.ok(!e.isMe); assert.ok(simListed(pop.find((b) => b.id === e.id))); assert.deepEqual(Object.keys(e.prices).map(Number), [1, 2, 3, 4]); assert.equal(e.prices[3], simTarif(e.id, "forgeron", 3)); const b = baseRate("forgeron", 3); assert.ok(e.prices[3] >= b * 0.8 - 1 && e.prices[3] <= b * 1.2 + 1); }
+  for (const e of dir) { assert.ok(!e.isMe); assert.ok(simListed(pop.find((b) => b.id === e.id))); assert.deepEqual(Object.keys(e.prices).map(Number), [1, 2, 3, 4]); assert.equal(e.prices[3], simTarif(e.id, "forgeron", 3)); const b = baseRate("forgeron", 3); assert.ok(e.prices[3] >= b * 0.5 - 1 && e.prices[3] <= b * 1.5 + 1); }
   assert.ok(dir.some((e) => e.online) && dir.some((e) => e.level >= 50), "des connectés, des hauts niveaux");
   // les occasionnels y figurent peu, les acharnés « métiers » tous
   const listed = pop.filter(simListed).length; assert.ok(listed > 100 && listed < pop.length, `${listed} listés sur ${pop.length}`);

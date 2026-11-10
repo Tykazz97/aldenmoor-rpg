@@ -2,8 +2,7 @@
 // Annuaire des artisans (sans React) : pour chaque métier de fabrication, qui propose ses services, à quel niveau, et combien il
 // demande pour une pièce de chaque palier (palier 1, 2, 3, 4 : voir data/tiers.js).
 //   - Un artisan SIMULÉ y figure si son caractère l'y pousse (les acharnés « métiers » et les magnats presque tous, les occasionnels
-//     rarement) et s'il a le niveau d'au moins une pièce du métier. Son tarif par palier est stable (sa marge propre autour du salaire
-//     de référence). « Connecté » : il joue en ce moment ; il prend les commandes qu'on lui adresse dès qu'il est là.
+//     rarement) et s'il a le niveau d'au moins une pièce du métier. Son tarif par palier est stable (de 50 % à 150 % du prix conseillé, selon lui). « Connecté » : il joue en ce moment ; il prend les commandes qu'on lui adresse dès qu'il est là.
 //   - TOI : tu règles ton atelier métier par métier (disponible ou non, visible dans l'annuaire ou non, ton prix par pièce de chaque
 //     palier). Ces réglages sont rangés dans le marché (`m.workshop[métier]`), avec ton niveau de métier du moment, pour que les
 //     simulés puissent te commander une pièce. Les commandes qui te sont adressées attendent ton « Fabriquer » (24 h).
@@ -14,7 +13,7 @@ import { ITEMS } from "../data/items.js";
 import { getCraftInfo } from "../data/professions.js";
 import { traitsOf, isActive } from "../sim/lives.js";
 import { getPopulation } from "../sim/population.js";
-import { orderFeeBase, simCanCraft, levelOf, hash01 } from "./orderFee.js";
+import { orderFeeBase, simCanCraft, levelOf, hash01, priceFactor } from "./orderFee.js";
 
 export const tierOfItem = (id) => ITEMS[id]?.tier || 1;
 
@@ -37,8 +36,8 @@ export const defaultPrices = (profession) => Object.fromEntries(tiersOf(professi
 const LISTED_P = { occasionnel: 0.25, regulier: 0.45, xp: 0.5, metiers: 1, magnat: 1 };
 const botsById = () => (botsById.cache ||= Object.fromEntries(getPopulation().map((b) => [b.id, b])));
 export const simListed = (bot) => { const t = traitsOf(bot); return hash01(`${bot.id}:listed`) < (LISTED_P[t.focus || t.profile] ?? 0.4); };
-// Son tarif pour une pièce du palier : de 80 à 120 % du prix conseillé, selon lui
-export const simTarif = (botId, profession, tier) => Math.max(1, Math.round(baseRate(profession, tier) * (0.8 + 0.4 * hash01(`${botId}:tarif`))));
+// Son tarif pour une pièce du palier : de 50 % à 150 % du prix conseillé, selon lui
+export const simTarif = (botId, profession, tier) => Math.max(1, Math.round(baseRate(profession, tier) * priceFactor(botId)));
 
 export const workshopOf = (m, profession) => m.workshop?.[profession] || { open: false, listed: false, prices: {}, level: 1 };
 

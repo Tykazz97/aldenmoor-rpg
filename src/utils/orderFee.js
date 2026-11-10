@@ -26,6 +26,7 @@ export function orderInfo(itemId) {
 // Un artisan simulé (niveau du métier) peut-il fabriquer cette pièce ?
 export const levelOf = (life, profession) => (life.prof.key === profession ? life.prof.level : life.pro?.[profession]?.level ?? 1);
 export const simCanCraft = (life, itemId) => { const i = getCraftInfo(itemId); return !!i && levelOf(life, i.profession) >= i.minLevel; };
-// Le salaire minimum qu'un artisan simulé accepte (de 80 à 120 % du salaire de référence, selon son caractère)
-export const wageMin = (crafterId, itemId) => orderFeeBase(itemId) * (0.8 + 0.4 * hash01(`${crafterId}:wage`));
+// Le prix d'un artisan simulé : de 50 % à 150 % du prix conseillé, selon lui (le même « caractère » sert à son tarif d'annuaire et au salaire minimum qu'il accepte sur une annonce ouverte)
+export const priceFactor = (crafterId) => 0.5 + hash01(`${crafterId}:tarif`);
+export const wageMin = (crafterId, itemId) => orderFeeBase(itemId) * priceFactor(crafterId);
 
