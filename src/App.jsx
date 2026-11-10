@@ -72,7 +72,7 @@ function Game({ initial, onNewCharacter }) {
   const [guildTab, setGuildTab] = useState("apercu");     // l'onglet de guilde à l'ouverture (« defense » depuis l'alerte d'attaque)
   useEffect(() => { if (activeTab !== "guilde" && guildTab !== "apercu") setGuildTab("apercu"); }, [activeTab, guildTab]);
   const [world, setWorld] = useState(initial.world || initialWorld);   // position sur la carte, groupes vaincus (conservé en changeant d'onglet)
-  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, bag, spellbook } = usePlayer(initial.player);
+  const { player, setPlayer, stats, equipItem, unequipSlot, addCaracPoint, craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, testMaxOut, setAppearance, bank, bag, spellbook } = usePlayer(initial.player);
   const attack = myGuild(player)?.attacks?.[0] || null;        // une attaque en cours contre une sentinelle de ma guilde
   // Le résultat d'une attaque réglée sans moi : un message à l'écran (la dernière ligne du journal de la guilde qui parle de ma sentinelle)
   const [warMsg, setWarMsg] = useState(null);
@@ -204,6 +204,7 @@ function Game({ initial, onNewCharacter }) {
           onEquipItem={equipItem}
           onSetAppearance={setAppearance}
           onExport={downloadSave}
+          onTestMaxOut={() => { if (window.confirm("Outil de test : passer au niveau maximum et ajouter un exemplaire de chaque objet du jeu dans le sac ?")) testMaxOut(); }}
           onNewCharacter={newCharacter}
           spellbook={spellbook}
         />

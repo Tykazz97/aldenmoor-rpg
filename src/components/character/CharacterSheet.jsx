@@ -25,7 +25,7 @@ function ResourceBar({ label, value, max, colorFrom, colorTo }) {
 
 const smallBtn = { background: color.panelRaised, color: color.parchmentDim, border, borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontFamily: font.body };
 
-export default function CharacterSheet({ player, stats, onEquipSlotClick, onUnequip, onAddCaracPoint, onEquipItem, onSetAppearance, onExport, onNewCharacter, spellbook }) {
+export default function CharacterSheet({ player, stats, onEquipSlotClick, onUnequip, onAddCaracPoint, onEquipItem, onSetAppearance, onExport, onTestMaxOut, onNewCharacter, spellbook }) {
   const cls = CLASSES[player.classKey];
   const outfits = availableOutfits(player);
   const current = heroOutfit(player, stats);
@@ -59,6 +59,7 @@ export default function CharacterSheet({ player, stats, onEquipSlotClick, onUneq
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <button onClick={onExport} style={smallBtn} title="Télécharger ta sauvegarde (fichier)">Exporter</button>
+          {onTestMaxOut && <button onClick={onTestMaxOut} style={smallBtn} title="Outil de test : niveau maximum et tous les objets du jeu dans le sac">Test : niv. max + tout</button>}
           <button onClick={onNewCharacter} style={smallBtn} title="Effacer ce personnage et en créer un nouveau">Nouveau perso</button>
         </div>
       </div>

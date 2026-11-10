@@ -6,12 +6,13 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 const ANIMS = JSON.parse(readFileSync("src/data/heroAnims.json", "utf8"));
 import { CLASSES, CLASS_ORDER, classSpellsAt, newSpellsAt } from "../src/data/classes.js";
-import { createPlayer } from "../src/utils/newPlayer.js";
+import { createPlayer, maxOutPlayer } from "../src/utils/newPlayer.js";
 import { calcStats } from "../src/utils/calcStats.js";
 import { heroOutfit, heroLook, availableOutfits, heroSpriteUrl } from "../src/data/heroSprites.js";
 import { exportSave, parseSave } from "../src/utils/save.js";
-import { gainXp } from "../src/utils/progression.js";
-import { ITEMS } from "../src/data/items.js";
+import { gainXp, MAX_LEVEL } from "../src/utils/progression.js";
+import { ITEMS, ITEM_ORDER } from "../src/data/items.js";
+import { bagUsed, bagCapacity } from "../src/utils/bag.js";
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log("  ✓", name); };
@@ -61,6 +62,20 @@ test("tenues proposées : celle de la classe, base, et les sets possédés", () 
   assert.deepEqual(availableOutfits(p).sort(), ["base", "veteran"]);
   const q = { ...p, inventory: [{ ...ITEMS.chapeau_apprenti, uid: "x" }] };
   assert.deepEqual(availableOutfits(q).sort(), ["apprenti", "base", "veteran"]);
+});
+
+test("outil de test : niveau maximum et tous les objets (une seule fois), sans rien retirer au joueur", () => {
+  const p0 = createPlayer({ name: "T", classKey: "guerrier" });
+  const p = maxOutPlayer(p0);
+  assert.equal(p.level, MAX_LEVEL); assert.equal(p.xp, 0);
+  assert.ok(p.caracPoints >= (MAX_LEVEL - 1) * 3, `points de caractéristiques : ${p.caracPoints}`);
+  const ids = new Set([...Object.values(p.equipped), ...p.inventory].filter(Boolean).map((i) => i.id));
+  for (const id of ITEM_ORDER) assert.ok(ids.has(id), `${id} manque`);
+  assert.equal(new Set(p.inventory.map((i) => i.uid)).size, p.inventory.length, "uid uniques");
+  assert.ok(bagUsed(p) <= bagCapacity(p), "le sac tient");
+  const again = maxOutPlayer(p);
+  assert.equal(again.inventory.length, p.inventory.length, "deuxième appel : rien en double");
+  for (const [slot, it] of Object.entries(p0.equipped)) assert.equal(p.equipped[slot]?.id, it?.id, `${slot} intact`);
 });
 
 test("carte : chaque tenue a de quoi calculer sa taille d'affichage (un NaN rend le héros et les simulés invisibles)", () => {

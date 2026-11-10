@@ -10,6 +10,7 @@ import { applyRewards } from "../utils/progression.js";
 import { applyGather } from "../utils/gathering.js";
 import { rankUp, equipSpell, resetRanks } from "../utils/spellbook.js";
 import { bagGuard, upgradeBag } from "../utils/bag.js";
+import { maxOutPlayer } from "../utils/newPlayer.js";
 import { depositItem, withdrawItem, depositResource, withdrawResource, upgradeBank } from "../utils/bank.js";
 
 let craftCounter = 0;
@@ -119,8 +120,10 @@ export function usePlayer(initial) {
     setPlayer((prev) => ({ ...prev, gold: prev.gold + n }));
   }, []);
 
+  const testMaxOut = useCallback(() => setPlayer((prev) => maxOutPlayer(prev)), []);
+
   return {
-    player, setPlayer, stats,
+    player, setPlayer, stats, testMaxOut,
     equipItem, unequipSlot, addCaracPoint,
     craft, refine, brew, upgrade, applyCombatRewards, gather, testAddResources, testAddGold, setAppearance, bank, bag, spellbook,
   };

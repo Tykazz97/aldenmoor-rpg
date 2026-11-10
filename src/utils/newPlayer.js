@@ -7,6 +7,7 @@ import { CLASSES } from "../data/classes.js";
 import { PROFESSION_ORDER } from "../data/professions.js";
 import { emptyProfessions } from "./crafting.js";
 import { emptyBank } from "./bank.js";
+import { gainXp, xpToNext, MAX_LEVEL } from "./progression.js";
 
 export const EMPTY_EQUIPPED = {
   chapeau: null, cape: null, plastron: null, amulette: null,
@@ -17,6 +18,21 @@ export const EMPTY_EQUIPPED = {
 
 // Mode test : tous les objets du jeu dans le sac
 const testInventory = () => ITEM_ORDER.map((id, i) => ({ ...ITEMS[id], uid: `test-${i}` }));
+
+// Outil de test (bouton de la fiche du personnage) : niveau maximum (avec les points de caractéristiques qui vont avec) et un exemplaire de
+// chaque objet du jeu dans le sac, pour essayer tous les sets et leur apparence. Ce que le joueur possède déjà n'est pas touché.
+export function maxOutPlayer(player) {
+  let p = player;
+  if (p.level < MAX_LEVEL) {
+    let need = 0;
+    for (let l = p.level; l < MAX_LEVEL; l++) need += xpToNext(l);
+    p = gainXp(p, need - (p.xp || 0)).player;
+  }
+  const owned = new Set([...Object.values(p.equipped || {}), ...(p.inventory || [])].filter(Boolean).map((i) => i.id));
+  const uid = Date.now().toString(36);
+  const added = ITEM_ORDER.filter((id) => !owned.has(id)).map((id, i) => ({ ...ITEMS[id], uid: `test-${uid}-${i}` }));
+  return grandfatherBag({ ...p, hp: Math.max(p.hp || 0, p.baseHp || 100), inventory: [...(p.inventory || []), ...added] }, 120);
+}
 
 export function createPlayer({ name, classKey, gender = "m", testMode = false }) {
   return testMode ? grandfatherBag(buildPlayer({ name, classKey, gender, testMode }), 120) : buildPlayer({ name, classKey, gender, testMode });   // mode test : le sac contient tous les objets, avec de la place pour les ressources
