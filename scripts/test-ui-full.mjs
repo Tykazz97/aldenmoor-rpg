@@ -12,6 +12,7 @@ import { join } from "node:path";
 import assert from "node:assert/strict";
 import { eveningDelta, skewClock } from "./_evening.mjs";
 import { RESOURCE_ORDER } from "../src/data/resources.js";
+import { newMarket, tickMarket, enableSimMarket } from "../src/utils/market.js";
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -293,6 +294,33 @@ try {
     await noCrash("commandes");
   });
 
+  await step("Commandes d'artisanat : le joueur est l'artisan, il fabrique la commande d'un simulé (salaire net de la taxe d'atelier, ses stocks intacts)", async () => {
+    const s = fresh(); s.player.gold = 1000; s.player.resources = {};
+    for (const k of ["forgeron", "tailleur", "maroquinier", "menuisier", "bijoutier", "bricoleur", "alchimiste"]) s.player.professions[k] = { level: 60, xp: 0 };
+    // un marché déjà vécu trois jours : des simulés ont des commandes ouvertes (sur une partie neuve il faut attendre qu'elles arrivent)
+    const now = Date.now() + eveningDelta();
+    enableSimMarket(true);
+    try { s.player.market = JSON.parse(JSON.stringify(tickMarket(newMarket(now - 3 * 86400e3), now - 30000))); } finally { enableSimMarket(false); }
+    await open({ s });
+    await tab("Marché").click(); await page.waitForTimeout(600);
+    await page.locator('[data-tab="orders"]').click(); await page.waitForTimeout(500);
+    assert.ok((await page.locator("[data-order-open]").count()) > 0, "des commandes de simulés à fabriquer");
+    const gold = async () => Number((await page.locator("[data-gold]").innerText()).replace(/\D/g, ""));
+    const g0 = await gold(), nInv = s.player.inventory.length;
+    const row = page.locator("[data-order-open]").first();
+    const wage = Number((await row.locator("b", { hasText: /^\+/ }).first().innerText()).replace(/\D/g, ""));
+    assert.match(await row.innerText(), /taxe d'atelier −\d+/, "la taxe d'atelier est affichée");
+    await row.locator('[data-act="accept-order"]').click(); await page.waitForTimeout(400);
+    assert.match(await page.locator("[data-msg]").innerText(), /Fabriqué : .*Salaire : \+\d+ or \(taxe d'atelier de Aldenmoor : \d+ or\)/);
+    const g1 = await gold(), tax = Math.max(1, Math.round(wage * 0.01));
+    assert.equal(g1 - g0, wage - tax, "salaire net de la taxe d'atelier (1 %)");
+    const s1 = await save();
+    assert.deepEqual(s1.player.resources, {}, "tes ressources n'ont pas bougé");
+    assert.equal(s1.player.inventory.length, nInv, "la pièce part chez le client : ton sac n'a pas bougé");
+    assert.equal(s1.player.taxPaid?.aldenmoor, tax, "la taxe est inscrite au registre de la ville");
+    await noCrash("commandes (artisan)");
+  });
+
   // ---------- voyage ----------
   await step("Carte du monde et portail : on rejoint chaque région et on revient en ville", async () => {
     await open({ s: fresh() });
@@ -480,6 +508,25 @@ try {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       assert.ok(overflow <= 4, `téléphone : ${n} déborde de ${overflow}px`);
     }
+  });
+
+  await step("Commandes d'artisanat sur téléphone (390 × 844) : atelier réglé, pas de débordement horizontal de la page", async () => {
+    const s = fresh(); s.player.gold = 1000;
+    for (const k of ["forgeron", "tailleur"]) s.player.professions[k] = { level: 60, xp: 0 };
+    const now = Date.now() + eveningDelta();
+    enableSimMarket(true);
+    try { s.player.market = JSON.parse(JSON.stringify(tickMarket(newMarket(now - 3 * 86400e3), now - 30000))); } finally { enableSimMarket(false); }
+    await open({ s, viewport: { width: 390, height: 844 } });
+    const t = tab("Marché"), menu = page.locator("button[aria-label*=enu], button:has-text('☰')").first();
+    if (!(await t.isVisible().catch(() => false))) { if (await menu.count()) await menu.click(); }
+    await t.click({ timeout: 8000 }); await page.waitForTimeout(500);
+    await page.locator('[data-tab="orders"]').click(); await page.waitForTimeout(500);
+    assert.ok((await page.locator("[data-order-open]").count()) > 0, "des commandes à fabriquer");
+    const ws = page.locator('[data-workshop-prof="forgeron"]');
+    await ws.scrollIntoViewIfNeeded(); await ws.locator("[data-ws-open]").check(); await ws.locator("[data-ws-listed]").check(); await page.waitForTimeout(300);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    assert.ok(overflow <= 4, `téléphone : l'onglet Commandes déborde de ${overflow}px`);
+    await noCrash("commandes (téléphone)");
   });
 
   console.log(`\n${passed} étapes réussies, aucune erreur dans la console.`);

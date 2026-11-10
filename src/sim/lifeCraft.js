@@ -154,19 +154,20 @@ function chooseTargets(life, bot) {
 
 // La pièce de son palier qu'il ne peut PAS fabriquer encore (niveau de métier trop bas) et qui le ferait progresser : c'est celle qu'il fait
 // fabriquer par un artisan (commande d'artisanat, voir utils/orders.js). Les moins chères d'abord. Renvoie l'id ou null.
-export function orderTarget(life, bot) {
+// `can(id)` : y a-t-il quelqu'un pour la fabriquer ? (un simulé ne commande pas une pièce que personne ne sait faire : il s'entraîne plutôt)
+export function orderTarget(life, bot, can = () => true) {
   const base = asPlayer(life);
   const cost = (id) => Object.entries(RECIPES[id].ingredients).reduce((s, [r, q]) => s + RESOURCES[r].value * q, RECIPES[id].gold);
   const picks = targetPieces(bot.classKey, tierFor(life)).filter((id) => {
     const info = getCraftInfo(id);
     return RECIPES[id] && info && professionOf(base, info.profession).level < info.minLevel
-      && gearScore(id) > gearScore(life.gear[ITEMS[id].type] || "") && !life.bag.items.includes(id);
+      && gearScore(id) > gearScore(life.gear[ITEMS[id].type] || "") && !life.bag.items.includes(id) && can(id);
   });
   return picks.sort((a, b) => cost(a) - cost(b))[0] || null;
 }
 // Ce qu'il lui reste à acheter pour cette commande : { idRessource: quantité } (les ingrédients tels quels : l'artisan ne raffine pas pour lui)
-export function orderShopping(life, bot) {
-  const id = orderTarget(life, bot);
+export function orderShopping(life, bot, can = () => true) {
+  const id = orderTarget(life, bot, can);
   if (!id) return {};
   const want = {};
   let price = 0;

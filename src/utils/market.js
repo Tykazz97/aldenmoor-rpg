@@ -38,7 +38,7 @@ import { keyShopping } from "../sim/lifeDungeon.js";
 import { potionShopping, POTION_KEEP } from "../sim/lifePotions.js";
 import { upgradeShopping } from "../sim/lifeUpgrade.js";
 import { magnatsTrade, returnToMagnat } from "./magnats.js";
-import { ordersStep, ORDER_CFG } from "./orders.js";
+import { ordersStep, ORDER_CFG, hasCrafter } from "./orders.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 
@@ -188,7 +188,7 @@ function simsShop(s, bucket, rng) {
     const life = s.sims.lives[b.id];
     if (!life || life.gold < 1 || !isActive(b, bucket) || rng() > 0.4) continue;
     simBuysGear(s, life, b, bucket);
-    const want = drawFromBank(life, mergeWant(mergeWant(mergeWant(mergeWant(shoppingList(life, b), (ORDER_CFG.enabled ? orderShopping(life, b) : {})), keyShopping(life)), potionShopping(life)), upgradeShopping(life, b)));          // d'abord son coffre
+    const want = drawFromBank(life, mergeWant(mergeWant(mergeWant(mergeWant(shoppingList(life, b), (ORDER_CFG.enabled ? orderShopping(life, b, (id) => hasCrafter(s, id, b.id, bucket)) : {})), keyShopping(life)), potionShopping(life)), upgradeShopping(life, b)));          // d'abord son coffre
     for (const [rid, qty] of Object.entries(want)) {
       if (!RESOURCES[rid]) continue;
       const cap = refPrice(s, rid) * (life.gold >= RICH_CAP ? 2.2 : 1.6);

@@ -20,6 +20,7 @@ import { applyCraft } from "./crafting.js";
 import { taxFee } from "./cityTax.js";
 import { CITIES, cityTaxRate } from "../data/cities.js";
 import { tarifFor } from "./workshop.js";
+import { getPopulation } from "../sim/population.js";
 
 export const ORDER_CFG = { enabled: true };      // faux : plus aucune commande (pour comparer, ou en cas de souci)
 export const ORDER_STEPS = 144;                 // une commande reste ouverte 24 h
@@ -33,6 +34,20 @@ export const simCity = () => CITIES.aldenmoor.key;
 // ce que touche l'artisan (au moins 1 or si le taux n'est pas nul), puis inscrite au registre des taxes de la ville
 export const workshopTax = (fee, rate = cityTaxRate(null, simCity())) => taxFee(fee, rate);
 export const netWage = (fee, rate) => fee - workshopTax(fee, rate);
+// Y a-t-il au moins un artisan (autre que `exceptId`) qui sait fabriquer cette pièce : un simulé de niveau suffisant, ou toi si ton atelier est ouvert et visible ?
+// Un simulé n'achète pas d'ingrédients et ne commande pas pour une pièce que personne ne sait faire. Mémorisé par pas.
+let capCache = { s: null, bucket: -1, map: new Map() };
+export function hasCrafter(s, itemId, exceptId = null, bucket = s.bucket) {
+  if (capCache.s !== s || capCache.bucket !== bucket) capCache = { s, bucket, map: new Map() };
+  let set = capCache.map.get(itemId);
+  if (!set) {
+    set = new Set();
+    for (const b of getPopulation()) { const l = s.sims?.lives[b.id]; if (l && simCanCraft(l, itemId)) set.add(b.id); }
+    if (tarifFor(s, "player", itemId) != null) set.add("player");
+    capCache.map.set(itemId, set);
+  }
+  return set.size > (exceptId && set.has(exceptId) ? 1 : 0);
+}
 // Livre la pièce au client (simulé ou toi) et lui rend les ingrédients qui n'ont pas servi
 function deliver(s, client, itemId, item, back = {}, uid = "") {
   if (client === "player") {
@@ -107,7 +122,7 @@ export function ordersStep(s, bucket, rng, population, tally) {
   for (const b of population) {
     const life = sims.lives[b.id];
     if (!life || busyClients.has(b.id) || !isActive(b, bucket) || (life.orderCool || 0) > bucket || rng() > 0.1) continue;
-    const item = orderTarget(life, b);
+    const item = orderTarget(life, b, (id) => hasCrafter(s, id, b.id, bucket));
     if (!item) continue;
     const info = orderInfo(item);
     if (!Object.entries(info.mats).every(([r, q]) => (life.bag.res[r] || 0) >= q)) continue;           // il n'a pas encore tous les ingrédients

@@ -1,12 +1,13 @@
 // Tests des commandes d'artisanat :  node scripts/test-orders.js
 import assert from "node:assert/strict";
 import { newMarket, tickMarket, enableSimMarket, settleMarket, STEP_MS } from "../src/utils/market.js";
-import { orderInfo, orderFeeBase, wageMin, simCanCraft, ORDER_CFG, ORDER_STEPS, MAX_PLAYER_ORDERS, workshopTax } from "../src/utils/orders.js";
+import { orderInfo, orderFeeBase, wageMin, simCanCraft, ORDER_CFG, ORDER_STEPS, MAX_PLAYER_ORDERS, workshopTax, hasCrafter, ordersStep } from "../src/utils/orders.js";
 import { postOrder, cancelOrder, acceptOrder, myOrders, openOrders, postOrderIssue, acceptIssue, setWorkshop, syncWorkshop } from "../src/utils/orderActions.js";
 import { CRAFT_PROFESSIONS, tiersOf, baseRate, defaultPrices, directory, tarifFor, simListed, simTarif, tierOfItem, piecesOf } from "../src/utils/workshop.js";
 import { orderTarget, orderShopping, tierFor } from "../src/sim/lifeCraft.js";
 import { getPopulation } from "../src/sim/population.js";
 import { isActive } from "../src/sim/lives.js";
+import { makeRng, hashString } from "../src/sim/rng.js";
 import { RECIPES } from "../src/data/recipes.js";
 
 let n = 0;
@@ -237,6 +238,52 @@ await test("6 jours : les commandes circulent, plusieurs artisans, rien de néga
   for (let d = 1; d <= 6; d++) two = tickMarket(two, T0 + d * DAY);
   assert.ok(JSON.stringify(m.sims.lives) === JSON.stringify(two.sims.lives), "simulés différents");
   assert.ok(JSON.stringify(m.orders) === JSON.stringify(two.orders), "commandes différentes");
+}));
+
+await test("personne pour la fabriquer : un simulé ne commande pas et n'achète pas d'ingrédients pour rien", () => run(() => {
+  const m = newMarket(T0), high = "chapeau_chevalier";
+  // dans le monde de départ, personne n'a le niveau 18 de forgeron ; toi non plus (atelier fermé)
+  for (const b of pop) { const l = m.sims.lives[b.id]; if (l.prof.key === "forgeron") l.prof.level = 1; if (l.pro?.forgeron) l.pro.forgeron.level = 1; }
+  assert.equal(hasCrafter(m, high), false, "aucun artisan");
+  const x = pop.map((b) => ({ b, l: m.sims.lives[b.id] })).find(({ b, l }) => orderTarget(l, b));
+  assert.ok(x, "un simulé bloqué");
+  assert.equal(orderTarget(x.l, x.b, () => false), null, "pas de commande sans artisan");
+  assert.deepEqual(orderShopping(x.l, x.b, () => false), {}, "pas d'ingrédients achetés pour rien");
+  assert.ok(orderTarget(x.l, x.b, () => true), "avec un artisan : il commande");
+  // toi, atelier ouvert et visible, au niveau : un artisan existe ; le client lui-même ne compte pas
+  const p = setWorkshop(player(m, { professions: { forgeron: { level: 40, xp: 0 } } }), "forgeron", { open: true, listed: true, prices: { 3: 50 } }, nowOf(m)).player;
+  assert.equal(hasCrafter(p.market, high), true, "toi");
+  assert.equal(hasCrafter(p.market, high, "player"), false, "toi seul, sans toi : personne");
+  const q = structuredClone(p.market); q.sims.lives[pop[3].id].pro = { forgeron: { level: 40, xp: 0 } }; if (q.sims.lives[pop[3].id].prof.key === "forgeron") q.sims.lives[pop[3].id].prof.level = 40;
+  q.bucket += 1;
+  assert.equal(hasCrafter(q, high, pop[3].id), true, "toi, même si lui est le client");
+  assert.equal(hasCrafter(q, high, "player"), true, "lui, même sans toi");
+}));
+
+await test("l'or ne se crée pas : à chaque pas il ne diminue que de la taxe d'atelier ; aucune ressource créée", () => run(() => {
+  let m = newMarket(T0);
+  m = tickMarket(m, T0 + 3 * DAY);
+  const totals = (s) => {
+    let gold = s.proceeds || 0; const res = {};
+    const add = (r, q) => { res[r] = (res[r] || 0) + q; };
+    for (const l of Object.values(s.sims.lives)) { gold += l.gold; for (const [r, q] of Object.entries(l.bag.res)) add(r, q); }
+    for (const o of s.orders || []) { gold += o.fee; for (const [r, q] of Object.entries(o.mats)) add(r, q); }
+    for (const x of s.returns || []) if (x.kind === "res") add(x.rid, x.qty);
+    for (const d of s.deliveries || []) for (const [r, q] of Object.entries(d.back)) add(r, q);
+    return { gold, res };
+  };
+  let crafts = 0, expired = 0;
+  for (let i = 0; i < 150; i++) {
+    const bucket = m.bucket + 1, s = structuredClone(m), ids = new Map((s.orders || []).map((o) => [o.id, o])), a = totals(s);
+    ordersStep(s, bucket, makeRng(hashString(`od:${bucket}`)), pop, () => {});
+    const b = totals(s), left = new Set(s.orders.map((o) => o.id));
+    let tax = 0; const used = {};
+    for (const [id, o] of ids) if (!left.has(id)) { if (o.exp > bucket) { crafts++; tax += workshopTax(o.fee); for (const [r, q] of Object.entries(o.mats)) used[r] = (used[r] || 0) + q; } else expired++; }
+    assert.equal(b.gold, a.gold - tax, `pas ${i} : or`);
+    for (const r of new Set([...Object.keys(a.res), ...Object.keys(b.res)])) { const d = (b.res[r] || 0) - (a.res[r] || 0); assert.ok(d <= 0 && -d <= (used[r] || 0), `pas ${i} : ${r} ${d}`); }
+    m = tickMarket(m, bucket * STEP_MS);
+  }
+  assert.ok(crafts > 0, `${crafts} fabrications contrôlées (${expired} expirations)`);
 }));
 
 await test("interrupteur : sans commandes, personne ne commande ni n'achète pour commander", () => run(() => {
