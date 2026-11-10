@@ -6,7 +6,7 @@ import { RECIPES } from "../../data/recipes.js";
 import { PROFESSIONS, getCraftInfo } from "../../data/professions.js";
 import { professionOf } from "../../utils/crafting.js";
 import { sellerName } from "../../utils/market.js";
-import { orderInfo, MAX_PLAYER_ORDERS } from "../../utils/orders.js";
+import { orderInfo, workshopTax, MAX_PLAYER_ORDERS } from "../../utils/orders.js";
 import { myOrders, openOrders, orderMinutesLeft, postOrderIssue, acceptIssue } from "../../utils/orderActions.js";
 import { CRAFT_PROFESSIONS, directory, tiersOf, tarifFor, workshopOf, defaultPrices, piecesOf } from "../../utils/workshop.js";
 
@@ -106,7 +106,7 @@ function Workshop({ m, player, onWorkshop }) {
 }
 
 // ---------------- Commander une pièce ----------------
-function OrderForm({ m, player, onPost, mine, target, onClearTarget }) {
+function OrderForm({ m, player, city, onPost, mine, target, onClearTarget }) {
   const [prof, setProf] = useState("");
   const [onlyOwned, setOnlyOwned] = useState(false);
   const [pick, setPick] = useState(null);
@@ -120,7 +120,7 @@ function OrderForm({ m, player, onPost, mine, target, onClearTarget }) {
   const sel = pick && orderInfo(pick);
   const tarif = target && pick ? tarifFor(m, target.id, pick) : null;
   const feeNum = tarif ?? Math.floor(Number(fee) || (sel ? sel.fee : 0));
-  const issue = sel ? postOrderIssue(player, pick, feeNum, target?.id || null) : null;
+  const issue = sel ? postOrderIssue(player, pick, feeNum, target?.id || null, city) : null;
   const why = { ressources: "Il te manque des ingrédients.", or: "Pas assez d'or pour le salaire.", limite: `Tu as déjà ${MAX_PLAYER_ORDERS} commandes ouvertes.`, prix: "Salaire invalide.", indisponible: "Les artisans ne sont pas là pour l'instant.", artisan: "Cet artisan ne propose plus cette pièce." };
   return (
     <>
@@ -165,7 +165,7 @@ function OrderForm({ m, player, onPost, mine, target, onClearTarget }) {
   );
 }
 
-export default function OrdersTab({ m, player, onPost, onCancel, onAccept, onWorkshop }) {
+export default function OrdersTab({ m, player, city = null, onPost, onCancel, onAccept, onWorkshop }) {
   const [target, setTarget] = useState(null);
   if (!m.sims) return <div className="hv-empty">Les artisans ne sont pas disponibles pour l'instant.</div>;
   const mine = myOrders(m), open = openOrders(m).sort((a, b) => (b.crafter === "player") - (a.crafter === "player") || b.fee - a.fee);
@@ -185,18 +185,18 @@ export default function OrdersTab({ m, player, onPost, onCancel, onAccept, onWor
         {mine.length === 0 && <div className="hv-sum" style={{ color: color.mist }}>Aucune commande en cours. La pièce fabriquée pour toi arrive dans ta marchandise à récupérer, comme une vente.</div>}
       </div>
       <Directory m={m} player={player} target={target} onChoose={setTarget} />
-      <OrderForm m={m} player={player} onPost={onPost} mine={mine} target={target} onClearTarget={() => setTarget(null)} />
-      <div className="hv-section" style={{ marginTop: 10 }}>Commandes à fabriquer <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: color.mist }}>· avec leurs ingrédients : tu gardes le salaire et tu gagnes l'xp</span></div>
+      <OrderForm m={m} player={player} city={city} onPost={onPost} mine={mine} target={target} onClearTarget={() => setTarget(null)} />
+      <div className="hv-section" style={{ marginTop: 10 }}>Commandes à fabriquer <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: color.mist }}>· avec leurs ingrédients : tu gardes le salaire (moins la taxe d'atelier{city ? ` de ${city.name} : ${Math.round(city.rate * 1000) / 10} %` : ""}) et tu gagnes l'xp</span></div>
       <div className="hv-slots" data-orders-open>
         {open.slice(0, 30).map((o) => {
-          const it = ITEMS[o.item], info = orderInfo(o.item), lvl = professionOf(player, info.profession).level, issue = acceptIssue(player, o);
+          const it = ITEMS[o.item], info = orderInfo(o.item), lvl = professionOf(player, info.profession).level, issue = acceptIssue(player, o, city);
           return (
             <div key={o.id} className="hv-slot" data-order-open={o.id} style={o.crafter === "player" ? { borderColor: "#d9b568" } : undefined}>
               <div className="hv-slotn">{sellerName(o.client)} · {o.crafter === "player" ? "adressée à toi · " : ""}expire dans {duration(orderMinutesLeft(m, o))}</div>
               <div className="hv-name"><Icon src={it.img} name={it.name} /><span style={{ whiteSpace: "normal" }}>{it.name}</span></div>
               <div className="hv-sum">{profName(info.profession)} niveau <b>{info.minLevel}</b> <span style={{ color: issue ? DOWN : UP }}>(toi : {lvl})</span></div>
-              <div className="hv-sum">Salaire : <b style={{ color: UP }}>+{num(o.fee)} or</b> · ingrédients fournis</div>
-              <button className="hv-btn" style={{ alignSelf: "flex-start" }} data-act="accept-order" disabled={!!issue} onClick={() => onAccept(o.id)} title={issue ? `Il te faut le niveau ${info.minLevel} en ${PROFESSIONS[info.profession]?.name}` : "Fabriquer cette pièce"}>Fabriquer</button>
+              <div className="hv-sum">Salaire : <b style={{ color: UP }}>+{num(o.fee)} or</b> · taxe d'atelier −{num(workshopTax(o.fee, city ? city.rate : undefined))} · ingrédients fournis</div>
+              <button className="hv-btn" style={{ alignSelf: "flex-start" }} data-act="accept-order" disabled={!!issue} onClick={() => onAccept(o.id)} title={issue === "ville" ? "Tu dois être dans la ville du client" : issue ? `Il te faut le niveau ${info.minLevel} en ${PROFESSIONS[info.profession]?.name}` : "Fabriquer cette pièce"}>Fabriquer</button>
             </div>
           );
         })}

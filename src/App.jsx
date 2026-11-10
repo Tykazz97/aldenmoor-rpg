@@ -160,7 +160,7 @@ function Game({ initial, onNewCharacter }) {
   const renderBuilding = (kind) => {
     if (kind === "atelier") return <ForgePanel city={workshopOf(world)} player={player} onCraft={craft} onRefine={refine} onBrew={brew} onUpgrade={upgrade} onTestResources={testAddResources} onTestGold={testAddGold} />;
     if (kind === "coffre") return <BankPanel player={player} bank={bank} />;
-    if (kind === "marche") return <MarketPanel player={player} onPlayerChange={setPlayer} />;
+    if (kind === "marche") return <MarketPanel player={player} onPlayerChange={setPlayer} city={workshopOf(world)} />;
     if (kind === "panneau") return <QuestPanel player={player} onPlayerChange={setPlayer} atBoard />;
     return null;
   };
@@ -235,7 +235,7 @@ function Game({ initial, onNewCharacter }) {
       {activeTab === "marche" && (
         <div style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
           <div style={{ fontFamily: font.display, fontSize: 22, color: color.goldBright, marginBottom: 16 }}>Marché d'Aldenmoor</div>
-          <MarketPanel player={player} onPlayerChange={setPlayer} />
+          <MarketPanel player={player} onPlayerChange={setPlayer} city={workshopOf(world)} />
         </div>
       )}
       {activeTab === "combat" && (

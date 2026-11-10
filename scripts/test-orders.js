@@ -117,7 +117,16 @@ await test("le joueur est l'artisan : il fabrique pour un simulé avec ses ingr�
   const a = acceptOrder(pro, id, nowOf(cl), () => 0.99);               // pas de chef-d'œuvre ni d'économie de matières
   assert.ok(a.ok, a.reason);
   assert.equal(workshopTax(300), 3);
+  assert.equal(workshopTax(300, 0.05), 15, "au taux de la ville");
+  assert.equal(workshopTax(300, 0), 0, "ville à 0 %");
   assert.equal(a.player.gold, 5000 + 300 - 3, "salaire touché moins 1 % de taxe d'atelier");
+  assert.equal(a.tax, 3);
+  assert.equal(a.player.taxPaid.aldenmoor, 3, "la taxe est inscrite au registre de la ville");
+  const rich = acceptOrder(pro, id, nowOf(cl), () => 0.99, { key: "aldenmoor", rate: 0.05 });
+  assert.equal(rich.player.gold, 5000 + 300 - 15, "au taux fixé par la ville");
+  assert.equal(rich.player.taxPaid.aldenmoor, 15);
+  assert.equal(acceptOrder(pro, id, nowOf(cl), () => 0.99, { key: "ailleurs", rate: 0.01 }).reason, "ville", "il faut être dans la ville du client");
+  assert.equal(postOrderIssue(player(cl), ITEM, 100, null, { key: "ailleurs", rate: 0.01 }), "ville");
   const broke = acceptOrder({ ...pro, gold: 0 }, id, nowOf(cl), () => 0.99);
   assert.ok(broke.ok && broke.player.gold === 297, "même sans un sou, il peut fabriquer (la taxe est retenue sur le salaire)");
   assert.deepEqual(a.player.resources, { plaque_noircie: 1 }, "ses propres ressources ne bougent pas");

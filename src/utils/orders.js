@@ -9,7 +9,7 @@
 //   - Elle est ouverte à tous les artisans : un simulé (de niveau suffisant, connecté, qui trouve le salaire correct) ou toi.
 //   - Les simulés commandent la pièce de leur palier qu'ils ne peuvent pas fabriquer (`orderTarget`, sim/lifeCraft.js), après
 //     avoir acheté les ingrédients à l'hôtel des ventes ; le salaire proposé suit leur caractère et monte après un refus.
-// m.orders = [{ id, client:"player"|"sim_001", item, mats:{ressource:qty}, fee, exp, crafter? }]   crafter : commande adressée à un artisan de l'annuaire (utils/workshop.js)   (m = player.market, voir market.js)
+// m.orders = [{ id, client:"player"|"sim_001", item, mats:{ressource:qty}, fee, exp, city, crafter? }]   crafter : commande adressée à un artisan de l'annuaire (utils/workshop.js)   (m = player.market, voir market.js)
 // m.deliveries : livraisons à faire à un simulé quand c'est TOI l'artisan { client, rid, back } (appliquées au pas suivant)
 // ============================================================
 import { hash01, orderInfo, simCanCraft, wageMin } from "./orderFee.js";
@@ -18,6 +18,7 @@ import { isActive } from "../sim/lives.js";
 import { orderTarget, asPlayer, acquireItem } from "../sim/lifeCraft.js";
 import { applyCraft } from "./crafting.js";
 import { taxFee } from "./cityTax.js";
+import { CITIES, cityTaxRate } from "../data/cities.js";
 import { tarifFor } from "./workshop.js";
 
 export const ORDER_CFG = { enabled: true };      // faux : plus aucune commande (pour comparer, ou en cas de souci)
@@ -25,9 +26,13 @@ export const ORDER_STEPS = 144;                 // une commande reste ouverte 24
 export const MAX_PLAYER_ORDERS = 3;
 export const MAX_ORDER_FEE = 1_000_000;
 export const FREE_GOLD = 1e9;                  // or fictif de la copie sur laquelle on fabrique (la taxe de fabrication habituelle n'est pas prélevée)
-// Taxe d'atelier : 1 % (le taux par défaut de la ville) du salaire de la commande, retenue sur ce que touche l'artisan (au moins 1 or)
-export const workshopTax = (fee) => taxFee(fee);
-export const netWage = (fee) => fee - workshopTax(fee);
+// Ville de l'atelier : une commande se fait entre deux personnes de la MÊME ville (la même grande région : voir data/cities.js). Tous les simulés
+// vivent aujourd'hui dans l'unique ville, Aldenmoor ; `simCity` est l'endroit où brancher d'autres villes. Une commande porte `city`.
+export const simCity = () => CITIES.aldenmoor.key;
+// Taxe d'atelier : le taux de la ville (1 % par défaut, réglable de 0 à 5 % plus tard) appliqué au salaire de la commande, retenue sur
+// ce que touche l'artisan (au moins 1 or si le taux n'est pas nul), puis inscrite au registre des taxes de la ville
+export const workshopTax = (fee, rate = cityTaxRate(null, simCity())) => taxFee(fee, rate);
+export const netWage = (fee, rate) => fee - workshopTax(fee, rate);
 // Livre la pièce au client (simulé ou toi) et lui rend les ingrédients qui n'ont pas servi
 function deliver(s, client, itemId, item, back = {}, uid = "") {
   if (client === "player") {
@@ -61,7 +66,7 @@ function craftBySim(s, o, crafterId, rng) {
   const pl = { ...asPlayer(life), resources: { ...o.mats }, gold: FREE_GOLD };       // on fabrique sur une copie « riche » : seule la taxe d'atelier (1 % du salaire) est retenue
   const after = applyCraft(pl, o.item, `ord-${o.id}`, rng);
   if (after === pl) return false;
-  life.gold += netWage(o.fee);
+  life.gold += netWage(o.fee, cityTaxRate(null, o.city || simCity()));
   life.pro = Object.fromEntries(Object.keys(after.professions).filter((k) => k !== life.prof.key).map((k) => [k, after.professions[k]]));
   life.crafted = (life.crafted || 0) + 1;
   life.orderWages = (life.orderWages || 0) + o.fee;
@@ -89,7 +94,7 @@ export function ordersStep(s, bucket, rng, population, tally) {
     const online = population.filter((b) => sims.lives[b.id] && isActive(b, bucket) && !(sims.busy?.[b.id] >= bucket));
     for (const o of s.orders.slice()) {
       if (o.crafter === "player" || rng() > 0.6) continue;                  // adressée à toi : elle attend ton « Fabriquer »
-      const cands = online.filter((b) => (o.crafter ? b.id === o.crafter && simCanCraft(sims.lives[b.id], o.item) : b.id !== o.client && simCanCraft(sims.lives[b.id], o.item) && o.fee >= wageMin(b.id, o.item)));
+      const city = o.city || simCity(), cands = online.filter((b) => simCity(b.id) === city && (o.crafter ? b.id === o.crafter && simCanCraft(sims.lives[b.id], o.item) : b.id !== o.client && simCanCraft(sims.lives[b.id], o.item) && o.fee >= wageMin(b.id, o.item)));
       if (!cands.length) continue;
       const b = cands[Math.floor(rng() * cands.length)];
       if (craftBySim(s, o, b.id, rng)) { s.orders = s.orders.filter((x) => x.id !== o.id); tally(s, bucket, "orders"); }
@@ -115,7 +120,7 @@ export function ordersStep(s, bucket, rng, population, tally) {
     if (life.gold < fee) continue;
     life.gold -= fee;
     for (const [r, q] of Object.entries(info.mats)) { life.bag.res[r] -= q; if (life.bag.res[r] <= 0) delete life.bag.res[r]; }
-    s.orders.push({ id: s.nextId++, client: b.id, item, mats: info.mats, fee, exp: bucket + ORDER_STEPS, ...(crafter ? { crafter } : {}) });
+    s.orders.push({ id: s.nextId++, client: b.id, item, mats: info.mats, fee, exp: bucket + ORDER_STEPS, city: simCity(b.id), ...(crafter ? { crafter } : {}) });
     tally(s, bucket, "ordersPosted");
   }
 }
