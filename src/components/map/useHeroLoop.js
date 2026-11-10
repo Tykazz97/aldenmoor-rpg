@@ -32,7 +32,7 @@ export function useHeroLoop({ map, W, H, fight, syncPos, openPopup, openBuilding
 
   // ---------- boucle d'animation : déplacement, caméra ----------
   useEffect(() => {
-    let raf, last = performance.now(), lastSync = 0, wasMoving = false;
+    let raf, last = performance.now(), lastSync = 0, wasMoving = false, lastAnimEl = null;
     const frame = (t) => {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(0.05, (t - last) / 1000);
@@ -112,6 +112,8 @@ export function useHeroLoop({ map, W, H, fight, syncPos, openPopup, openBuilding
       if (hel.style.zIndex !== z) hel.style.zIndex = z;
       const anim = heroAnimRef.current;
       if (anim) {
+        // l'élément est recréé quand la carte réapparaît (retour de combat, carte du monde, autre région) : il est vide, il faut réappliquer l'image
+        if (anim !== lastAnimEl) { lastAnimEl = anim; animKey.current = ""; }
         const of = outfitRef.current, meta = heroAnimMeta(of);
         let act = "walk", fi = 0;                         // à l'arrêt : première image de la marche
         const h = harvestAct.current;

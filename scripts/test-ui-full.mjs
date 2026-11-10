@@ -359,6 +359,9 @@ try {
       assert.equal((await save()).world.mapKey.length > 0, true);
       await noCrash(r);
     }
+    // après un changement de région, le héros immobile affiche bien son image (l'élément est recréé : il était invisible jusqu'au premier pas)
+    const heroImg = await page.evaluate(() => document.querySelector(".mp-ent .mp-hero-anim")?.style.backgroundImage || "");
+    assert.ok(/url\(/.test(heroImg), `image du héros après un changement de région : "${heroImg}"`);
     // les monstres existent dans une région de combat
     await page.locator("button", { hasText: "Carte du monde" }).click(); await page.waitForTimeout(400);
     await page.locator(".wm-spot", { hasText: "Prairies Sauvages" }).first().click(); await page.waitForTimeout(2000);
