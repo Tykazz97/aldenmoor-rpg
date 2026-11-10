@@ -8,7 +8,7 @@ const BUBBLE_MS = 5500;
 
 // Les joueurs simulés présents en ville. Même rendu que le héros : feuille d'animation de marche,
 // ombre, pseudo au-dessus de la tête, bulle quand ils parlent. La simulation avance ici, à chaque image.
-export default function CityCrowd({ life, paused, onEvents, step = stepCityLife }) {
+export default function CityCrowd({ life, paused, onEvents, hide = null, step = stepCityLife }) {
   const [ids, setIds] = useState(() => life.agents.map((a) => a.id));
   const [bubbles, setBubbles] = useState({});          // id -> { text, until }
   const els = useRef({});                               // id -> { ent, flip, anim }
@@ -16,6 +16,8 @@ export default function CityCrowd({ life, paused, onEvents, step = stepCityLife 
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
   const idsRef = useRef(ids.join());
+  const hideRef = useRef(hide);                          // les membres du groupe du joueur sont à ses côtés : on ne les montre pas aussi dans la foule
+  hideRef.current = hide;
 
   // précharge les feuilles de marche des looks présents
   useEffect(() => { for (const l of new Set(life.population.map((b) => b.look))) { const im = new Image(); im.src = heroSheetUrl(l, "walk"); } }, [life]);
@@ -39,7 +41,7 @@ export default function CityCrowd({ life, paused, onEvents, step = stepCityLife 
       for (const a of life.agents) {
         const e = els.current[a.id];
         if (!e) continue;
-        const hidden = a.state === "inside";
+        const hidden = a.state === "inside" || !!hideRef.current?.has(a.id);
         if (e.hidden !== hidden) { e.hidden = hidden; e.ent.style.display = hidden ? "none" : ""; }
         if (hidden) continue;
         e.ent.style.transform = `translate3d(calc(var(--tile) * ${a.x.toFixed(3)}), calc(var(--tile) * ${(a.y + 0.4).toFixed(3)}), 0)`;

@@ -10,6 +10,8 @@ import CityChat from "./CityChat.jsx";
 import EngagePopup from "./EngagePopup.jsx";
 import SentinelTag from "./SentinelTag.jsx";
 import GroupBadge from "./GroupBadge.jsx";
+import PartyFollowers from "./PartyFollowers.jsx";
+import { groupOf } from "../../utils/group.js";
 import { sentinelOwner } from "../../utils/sentinel.js";
 import { sentinelEncounter } from "../../utils/sentinelFight.js";
 import { defenderBots } from "../../utils/sentinelDefense.js";
@@ -52,6 +54,10 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const [building, setBuilding] = useState(null); // lieu ouvert dans la ville (atelier, coffre...)
   const [now, setNow] = useState(() => Date.now());
 
+  // le groupe permanent : ses membres présents suivent le héros sur la carte (et ne figurent plus parmi la foule)
+  const mates = useMemo(() => groupOf(player).members, [player.companions, player.market?.sims]); // eslint-disable-line react-hooks/exhaustive-deps
+  const mateIds = useMemo(() => new Set(mates.map((b) => b.id)), [mates]);
+
   const viewRef = useRef(null), worldElRef = useRef(null), heroRef = useRef(null), heroAnimRef = useRef(null), dotRef = useRef(null);
   const harvestAct = useRef(null);                // { action, t0 } pendant une récolte
   const animKey = useRef("");
@@ -88,7 +94,7 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
   const isCity = map.kind === "city";
   const { life, feed, heroBubble, sendChat, onCityEvents } = useCityChat({ map, isCity, playerRef, posRef });
   // Aventuriers simulés des régions : leurs victoires éliminent vraiment le groupe (réapparition habituelle)
-  const mapLife = useMemo(() => (!isCity && SIM_ON_MAPS ? createMapLife({ map, population: getLivePopulation(playerRef.current), seed: (Date.now() & 0xfffff) + 7 }) : null), [isCity, map]);
+  const mapLife = useMemo(() => (!isCity && SIM_ON_MAPS ? createMapLife({ map, population: getLivePopulation(playerRef.current).filter((b) => !(playerRef.current.companions || []).includes(b.id)), seed: (Date.now() & 0xfffff) + 7 }) : null), [isCity, map]);
   if (mapLife) {
     mapLife.blocked = blocked;
     mapLife.activeGroups = groups;
@@ -346,8 +352,11 @@ export default function MapScreen({ player, onPlayerChange, stats, world, setWor
             })}
 
             {/* joueurs simulés de la ville */}
-            {life && <CityCrowd life={life} onEvents={onCityEvents} />}
-            {mapLife && <CityCrowd life={mapLife} step={stepMapLife} onEvents={onMapLifeEvents} />}
+            {life && <CityCrowd life={life} hide={mateIds} onEvents={onCityEvents} />}
+            {mapLife && <CityCrowd life={mapLife} hide={mateIds} step={stepMapLife} onEvents={onMapLifeEvents} />}
+
+            {/* membres du groupe : ils suivent le héros */}
+            {mates.length > 0 && <PartyFollowers members={mates} posRef={posRef} map={map} />}
 
             {/* héros (position mise à jour à chaque image par la boucle d'animation) */}
             <div className="mp-ent" ref={heroRef}>

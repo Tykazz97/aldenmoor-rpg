@@ -430,12 +430,31 @@ try {
     assert.equal((await save()).player.companions.length, 1);
     await tab("Carte").click(); await page.waitForTimeout(900);
     await page.locator("[data-map-group]").waitFor({ timeout: 5000 });
+    // le membre est aussi sur la carte, à côté du héros, et le suit quand il marche
+    await page.waitForTimeout(600);
+    const geo = () => page.evaluate(() => {
+      const box = (e) => { const b = e.getBoundingClientRect(); return [Math.round((b.left + b.right) / 2), Math.round(b.bottom), Math.round(b.width), Math.round(b.height)]; };
+      const mate = document.querySelector("[data-map-mate]"), m = mate?.querySelector(".mp-hero-anim"), h = document.querySelector('[aria-label="Héros"]');
+      return m && h ? { m: box(m), h: box(h), bg: m.style.backgroundImage, mt: mate.style.transform, ht: h.closest(".mp-ent").style.transform, sims: [...document.querySelectorAll(".mp-sim [role=img]")].map((e) => e.getAttribute("aria-label")), mateName: mate.querySelector(".mp-nick")?.firstChild?.textContent } : null;
+    });
+    const g0 = await geo();
+    assert.ok(g0, "le membre du groupe est affiché sur la carte");
+    assert.ok(g0.m[2] > 20 && g0.m[3] > 20, `taille du compagnon : ${g0.m}`);
+    assert.ok(/url\(/.test(g0.bg), "le compagnon a son image dès l'arrivée");
+    assert.ok(Math.hypot(g0.m[0] - g0.h[0], g0.m[1] - g0.h[1]) < 320, `le compagnon est près du héros : ${g0.m} / ${g0.h}`);
+    assert.ok(!g0.sims.includes(g0.mateName), "il n'apparaît pas aussi dans la foule");
+    await page.keyboard.down("d"); await page.waitForTimeout(1500); await page.keyboard.up("d"); await page.waitForTimeout(1500);
+    const g1 = await geo();
+    assert.notEqual(g1.ht, g0.ht, "le héros a marché");
+    assert.notEqual(g1.mt, g0.mt, "le compagnon l'a suivi");
+    assert.ok(Math.hypot(g1.m[0] - g1.h[0], g1.m[1] - g1.h[1]) < 320, `le compagnon est resté près du héros : ${g1.m} / ${g1.h}`);
     await tab("Groupe").click(); await page.waitForTimeout(300);
     await page.locator("[data-group-kick]").first().click(); await page.waitForTimeout(400);
     assert.equal(await page.locator("[data-group-member]").count(), 0, "membre exclu");
     assert.equal((await save()).player.companions.length, 0);
     await tab("Carte").click(); await page.waitForTimeout(600);
     assert.equal(await page.locator("[data-map-group]").count(), 0, "plus de rappel sur la carte");
+    assert.equal(await page.locator("[data-map-mate]").count(), 0, "plus de compagnon sur la carte");
     await noCrash("groupe");
   });
 
