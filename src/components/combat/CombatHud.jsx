@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { spellCost, PA_MAX } from "../../combat/engine.js";
-import { isMuted, setMuted } from "./sfx.js";
+import { isMuted, setMuted, getVolume, setVolume } from "./sfx.js";
 
 // Interface du combat : PV, tour, PA, vitesse/son/quitter, sorts, fin de tour
 export default function CombatHud({ cs, hpView, timeline, ended, busy, myTurn, speed, onSpeed, hoverSpell, onHover, onCast, onFinish, onExit }) {
   const [mute, setMute] = useState(isMuted());
+  const [vol, setVol] = useState(getVolume());
   const p = cs.player;
   return (
     <div className="cb-hud">
@@ -29,6 +30,8 @@ export default function CombatHud({ cs, hpView, timeline, ended, busy, myTurn, s
         <div style={{ display: "flex", gap: 6 }}>
           <button className="cb-btn small" onClick={onSpeed} title="Vitesse du combat">×{speed}</button>
           <button className="cb-btn small" onClick={() => { setMuted(!mute); setMute(!mute); }} title="Son">{mute ? "🔇" : "🔊"}</button>
+          <input className="cb-vol" type="range" min="0" max="1" step="0.05" value={vol} aria-label="Volume" title="Volume"
+            onChange={(e) => { const v = Number(e.target.value); setVol(v); setVolume(v); if (mute && v > 0) { setMuted(false); setMute(false); } }} />
           <button className="cb-btn small" onClick={() => onExit(false)} title="Abandonner le combat (rien n'est perdu)">Quitter</button>
         </div>
       </div>

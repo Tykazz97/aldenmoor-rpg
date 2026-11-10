@@ -15,6 +15,15 @@ export const ALLY_POS = [{ x: 6, b: 108 }, { x: 28, b: 30 }, { x: 14, b: 12 }];
 export const ALLY_H = 225;       // un peu plus petits que le héros (ils sont plus loin ou à demi-cachés)
 export const isHeroId = (id) => id === "player" || String(id).startsWith("ally");
 
+// Cri de mort de chaque monstre : les bêtes gémissent, les humains râlent, les morts-vivants s'effondrent (par défaut)
+const BEASTS = new Set(["loup_des_plaines", "sanglier_sauvage", "corbeau_charognard", "molosse_du_manoir", "loup_garou"]);
+const HUMANS = new Set(["bandit_des_routes"]);
+export const deathKind = (id, enemies = []) => {
+  if (isHeroId(id)) return "hero";
+  const key = enemies.find((e) => e.id === id)?.key;
+  return BEASTS.has(key) ? "beast" : HUMANS.has(key) ? "hero" : "undead";
+};
+
 // Renforts que les ennemis du combat peuvent appeler (phases avec `summon`), dans l'ordre d'apparition
 export function plannedSummons(list) {
   return list.flatMap((e) => (enemyDef(e.key).phases || []).flatMap((ph) => ph.summon || []));
@@ -43,6 +52,9 @@ export const ANIMS = {
   stun: { frames: [{ transform: "rotate(0)" }, { transform: "rotate(-5deg)" }, { transform: "rotate(5deg)" }, { transform: "rotate(-4deg)" }, { transform: "rotate(0)" }], ms: 600, easing: "linear" },
   rage: { frames: [{ transform: "scale(1)" }, { transform: "scale(1.14)", offset: 0.3 }, { transform: "scale(1)" }], ms: 700, easing: "ease-out" },
 };
+
+// Pour le bruitage : quelle arme manie ce héros ? (le joueur : son arme ; un allié assassin : dagues, sinon arme blanche)
+export const weaponOf = (id, weaponType, allies = []) => (id === "player" ? weaponType : allies.find((a) => a.id === id)?.classKey === "assassin" ? "dague" : "epee");
 
 export const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
 

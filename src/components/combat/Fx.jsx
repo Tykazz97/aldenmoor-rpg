@@ -1,12 +1,30 @@
+import { useState } from "react";
 
-// ------------------------------------------------------------
-// Effets visuels ponctuels
-// ------------------------------------------------------------
+
+// Effets en images (dessinés avec Ludo, fond transparent) : chaque image « claque » (zoom + fondu) sur la cible.
+const FX_IMG = "/assets/combat/fx/";
+// largeur (px), durée (ms), halo
+const IMG = {
+  fire: { w: 240, ms: 650, glow: "#ff7a2a" },
+  frost: { w: 220, ms: 650, glow: "#8fd3f5" },
+  poison: { w: 230, ms: 800, glow: "#8fdc5a" },
+  arcane: { w: 230, ms: 700, glow: "#a58cff" },
+  crit: { w: 320, ms: 650, glow: "#ff3a2a" },
+  shield: { w: 220, ms: 900, glow: "#9fd0ff", cls: "cb-fxi-ward" },
+  heal: { w: 180, ms: 1200, glow: "#e8d9a0", cls: "cb-fxi-rise" },
+};
+
 export default function Fx({ fx }) {
+  const [rnd] = useState(() => Math.random());
   const pos = { left: `${fx.x}%`, bottom: fx.y };
+  const img = (name, { w, ms, glow, cls = "", rot = 0, flip = false }) => (
+    <div className="cb-fx cb-fxi" style={pos}>
+      <img className={cls} src={`${FX_IMG}${name}.webp`} alt="" draggable={false}
+        style={{ width: w, animationDuration: `${ms}ms`, "--r": `${rot}deg`, "--sx": flip ? -1 : 1, filter: `drop-shadow(0 0 12px ${glow})` }} />
+    </div>
+  );
   switch (fx.kind) {
-    case "slash":
-      return <div className="cb-fx cb-slash" style={{ ...pos, transform: `translate(-50%, 50%) rotate(${fx.flip ? 25 : -20}deg) scaleX(${fx.flip ? -1 : 1})` }} />;
+    case "slash": return img(rnd < 0.5 ? "slash_a" : "slash_b", { w: 210, ms: 450, glow: "#c8201a", rot: (rnd - 0.5) * 30, flip: fx.flip });
     case "spark": {
       const n = fx.crit ? 14 : 8;
       return (
@@ -18,25 +36,16 @@ export default function Fx({ fx }) {
         </div>
       );
     }
-    case "fire": return <><div className="cb-fx cb-orb" style={{ ...pos, background: "radial-gradient(circle, #fff1b0, #ff8a2a 40%, rgba(255,60,0,0) 70%)" }} /><div className="cb-fx cb-ring" style={{ ...pos, color: "#ff8a2a" }} /></>;
-    case "poison": return <div className="cb-fx cb-orb" style={{ ...pos, background: "radial-gradient(circle, #d7ff9a, #6fbf3a 40%, rgba(60,140,30,0) 70%)" }} />;
-    case "frost": return <><div className="cb-fx cb-orb" style={{ ...pos, background: "radial-gradient(circle, #ffffff, #8fd3f5 40%, rgba(80,160,230,0) 70%)" }} /><div className="cb-fx cb-ring" style={{ ...pos, color: "#8fd3f5" }} /></>;
-    case "arcane": return <><div className="cb-fx cb-orb" style={{ ...pos, background: "radial-gradient(circle, #ffffff, #a99bff 40%, rgba(124,111,217,0) 70%)" }} /><div className="cb-fx cb-ring" style={{ ...pos, color: "#a99bff" }} /></>;
-    case "shield": return <div className="cb-fx cb-shield" style={pos} />;
+    case "fire": case "frost": case "poison": case "arcane": case "crit": case "shield": case "heal":
+      return img(fx.kind, IMG[fx.kind]);
     case "smoke": return <div className="cb-fx cb-smoke" style={pos} />;
-    case "heal":
-      return (
-        <div className="cb-fx cb-heal-p" style={pos}>
-          {[-30, -12, 8, 26].map((dx, i) => <i key={i} style={{ "--dx": `${dx}px`, animationDelay: `${i * 0.12}s` }}>+</i>)}
-        </div>
-      );
     case "proj":
       return (
         <div
           className={`cb-proj ${fx.arrow ? "arrow" : ""}`}
           style={{
             "--x0": `${fx.x0}%`, "--y0": `${fx.y0}px`, "--x1": `${fx.x1}%`, "--y1": `${fx.y1}px`,
-            ...(fx.arrow ? {} : { background: `radial-gradient(circle, #fff, ${fx.col || "#a99bff"} 45%, transparent 72%)`, boxShadow: `0 0 18px ${fx.col || "#a99bff"}` }),
+            ...(fx.arrow ? {} : { background: `radial-gradient(circle, #fff, ${fx.col || "#a99bff"} 45%, transparent 72%)`, boxShadow: `0 0 18px ${fx.col || "#a99bff"}, -22px 0 22px -6px ${fx.col || "#a99bff"}` }),
           }}
         />
       );

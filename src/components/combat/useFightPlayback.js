@@ -1,18 +1,19 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { sfx } from "./sfx.js";
-import { HERO_X, HERO_B, HERO_H, ANIMS, ELEMENT_COLOR, RANGED, STATUS_LABEL, ALLY_POS, ALLY_H, isHeroId, enemySlots, groupEvents, sleepMs } from "./stage.js";
+import { HERO_X, HERO_B, HERO_H, ANIMS, ELEMENT_COLOR, RANGED, STATUS_LABEL, ALLY_POS, ALLY_H, isHeroId, enemySlots, groupEvents, sleepMs, deathKind, weaponOf } from "./stage.js";
 
 let fxCounter = 0;
 
 // Met en scène les évènements du moteur de combat : animations des sprites, dégâts flottants,
 // effets, bandeaux, barres de vie, frise d'initiative. Ne décide d'aucune règle.
 // `onIdle` est appelé quand tout est joué et que le combat continue (le joueur peut agir).
-export function useFightPlayback({ initial, csRef, speed, onIdle }) {
+export function useFightPlayback({ initial, csRef, speed, onIdle, weaponType = null }) {
   const busyRef = useRef(true);
   const aliveRef = useRef(true);
   const speedRef = useRef(1);
   const spriteRefs = useRef({});
   const shakeRef = useRef(null);
+  const flashRef = useRef(null);
   const onIdleRef = useRef(onIdle);
   onIdleRef.current = onIdle;
 
@@ -51,8 +52,14 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
   }, []);
   const shake = useCallback((strong) => {
     const el = shakeRef.current; if (!el || !el.animate) return;
-    const m = strong ? 9 : 5;
-    el.animate([{ transform: "translate(0,0)" }, { transform: `translate(${-m}px,${m / 2}px)` }, { transform: `translate(${m}px,${-m / 2}px)` }, { transform: `translate(${-m / 2}px,0)` }, { transform: "translate(0,0)" }], { duration: 320, easing: "ease-out" });
+    const m = strong ? 9 : 5, z = strong ? 1.035 : 1;   // un coup fort secoue l'écran et zoome un instant
+    el.animate([{ transform: "translate(0,0) scale(1)" }, { transform: `translate(${-m}px,${m / 2}px) scale(${z})` }, { transform: `translate(${m}px,${-m / 2}px) scale(${z})` }, { transform: `translate(${-m / 2}px,0) scale(${1 + (z - 1) / 2})` }, { transform: "translate(0,0) scale(1)" }], { duration: strong ? 380 : 320, easing: "ease-out" });
+  }, []);
+  // voile de couleur sur toute l'arène : rouge sombre quand le héros est touché, blanc pâle sur un coup critique
+  const flash = useCallback((kind) => {
+    const el = flashRef.current; if (!el || !el.animate) return;
+    el.style.background = kind === "hurt" ? "radial-gradient(ellipse at center, rgba(120,0,0,0) 35%, rgba(150,10,10,.8) 100%)" : "rgba(255,238,215,.3)";
+    el.animate([{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 0 }], { duration: kind === "hurt" ? 420 : 260, easing: "ease-out" });
   }, []);
   const addFloat = useCallback((id, text, cls, dy = 0) => {
     const a = anchor(id); const key = ++fxCounter;
@@ -77,9 +84,10 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
     if (cast) {
       if (isHero) {
         const ranged = RANGED.has(cast.spellId) || cast.spellType === "mag";
+        const dagger = weaponOf(cast.from, weaponType, csRef.current.allies) === "dague";
         if (cast.spellType === "buff") { pulse(cast.from, "cast"); sfx.buff(); }
-        else if (ranged) { pulse(cast.from, "cast"); cast.spellType === "mag" ? sfx.magic() : sfx.swing(); }
-        else { pulse(cast.from, "attackR"); setTimeout(sfx.swing, 120 / speedRef.current); }
+        else if (ranged) { pulse(cast.from, "cast"); cast.spellType === "mag" ? sfx.magic() : sfx.bow(); }
+        else { pulse(cast.from, "attackR"); setTimeout(dagger ? sfx.dagger : sfx.swing, 120 / speedRef.current); }
         addFloat(cast.from, cast.label, "label", 70);
         await sleep(cast.spellType === "buff" ? 400 : ranged ? 300 : 250);
         if (ranged && cast.spellType !== "buff") {
@@ -112,10 +120,17 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
           pulse(e.to, "hurt", { "--kb": isHeroId(e.to) ? "-14px" : "14px" });
           const kind = e.element === "feu" ? "fire" : e.element === "poison" ? "poison" : e.element === "givre" ? "frost" : e.dmgType === "mag" ? "arcane" : "slash";
           addFx(e.to, kind, { flip: isHeroId(e.to) });
+          if (e.crit) addFx(e.to, "crit");
           addFx(e.to, "spark", { crit: e.crit });
           addFloat(e.to, e.crit ? `${e.amount} !` : `${e.amount}`, e.crit ? "crit" : isHeroId(e.to) ? "dmgP" : "dmg");
           if (e.crit) shake(true); else if (e.to === "player") shake(false);
-          sfx.hit(e.crit);
+          if (e.to === "player") flash("hurt"); else if (e.crit) flash("crit");
+          // bruit du coup : élément, flèche, dague ou arme blanche
+          const by = weaponOf(e.from, weaponType, csRef.current.allies);
+          const hitKind = e.element === "feu" ? "fire" : e.element === "poison" ? "poison" : e.element === "givre" ? "frost" : e.dmgType === "mag" ? "arcane"
+            : isHeroId(e.from) && cast && RANGED.has(cast.spellId) ? "arrow" : isHeroId(e.from) && by === "dague" ? "dagger" : undefined;
+          sfx.hit(e.crit, hitKind);
+          if (e.crit) await sleep(90);                       // petit arrêt sur image : le coup « pèse »
           if (cast?.aoe) await sleep(120);
           break;
         }
@@ -126,7 +141,8 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
           break;
         case "death":
           setDead((d) => ({ ...d, [e.id]: true }));
-          sfx.death();
+          sfx.death(deathKind(e.id, csRef.current.enemies));
+          if (!isHeroId(e.id)) addFx(e.id, "smoke");
           await sleep(200);
           break;
         case "dot":
@@ -135,7 +151,7 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
           pulse(e.id, "hurt");
           addFx(e.id, e.element === "feu" ? "fire" : "poison");
           addFloat(e.id, `${e.amount}`, e.element || "dmg");
-          sfx.hit(false);
+          sfx.hit(false, e.element === "feu" ? "fire" : "poison");
           await sleep(450);
           break;
         case "heal":
@@ -148,7 +164,7 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
         case "effect": {
           const label = e.kind === "dot" ? STATUS_LABEL.dot[e.element] : STATUS_LABEL[e.kind];
           if (label) addFloat(e.id, label, `status ${e.element || ""}`, 36);
-          if (e.kind === "parade" || e.kind === "shield" || e.kind === "reduce" || e.kind === "armor") addFx(e.id, "shield");
+          if (e.kind === "parade" || e.kind === "shield" || e.kind === "reduce" || e.kind === "armor") { addFx(e.id, "shield"); sfx.parade(); }
           if (e.kind === "shadow") addFx(e.id, "smoke");
           if (e.kind === "weaken") addFx(e.id, "frost");
           break;
@@ -227,5 +243,5 @@ export function useFightPlayback({ initial, csRef, speed, onIdle }) {
     else if (ph === "playerTurn") onIdleRef.current?.();
   }, [playGroup, csRef]);
 
-  return { busy, busyRef, play, allyPos: ALLY_POS, allyH: ALLY_H, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef };
+  return { busy, busyRef, play, allyPos: ALLY_POS, allyH: ALLY_H, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, spriteRefs, shakeRef, flashRef, shake };
 }

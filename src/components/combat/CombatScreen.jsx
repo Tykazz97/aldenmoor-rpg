@@ -5,7 +5,7 @@ import { enemyDef } from "../../data/zones.js";
 import SentinelSprite from "../guild/SentinelSprite.jsx";
 import { buildSpellBar } from "../../utils/spellbook.js";
 import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
-import { sfx } from "./sfx.js";
+import { sfx, music, preload } from "./sfx.js";
 import { HERO_X, HERO_B, HERO_H } from "./stage.js";
 import { buildAllies } from "../../sim/partyBots.js";
 import { groupOf } from "../../utils/group.js";
@@ -84,8 +84,8 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
     setTarget((t) => (csRef.current.enemies.find((e) => e.id === t && e.alive) ? t : csRef.current.enemies.find((e) => e.alive)?.id));
   }, []);
 
-  const pb = useFightPlayback({ initial, csRef, speed, onIdle: keepTarget });
-  const { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, allyPos, allyH, spriteRefs, shakeRef } = pb;
+  const pb = useFightPlayback({ initial, csRef, speed, onIdle: keepTarget, weaponType });
+  const { busy, busyRef, play, showBanner, hpView, ghost, dead, enraged, appeared, floats, fxs, banner, ended, timeline, activeId, slots, allyPos, allyH, spriteRefs, shakeRef, flashRef, shake } = pb;
 
   // Fait jouer les ennemis (dans l'ordre d'initiative, fixé au début du combat) jusqu'au tour du joueur
   const step = useCallback(() => {
@@ -97,8 +97,13 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
   // Introduction puis démarrage
   useEffect(() => {
     showBanner(encounter.banner || (encounter.boss ? encounter.name : "Combat !"), "", 1300);
+    // ambiance sonore : cor de guerre, musique de combat (ou de boss), bruit du décor ; un boss rugit et fait trembler l'écran
+    preload();
+    sfx.start();
+    music.start(encounter.boss ? "boss" : "combat", encounter.bg ? "amb_dungeon" : "amb_field");
+    const roar = encounter.boss ? setTimeout(() => { sfx.roar(); shake(true); }, 750) : null;
     const t = setTimeout(() => step(), 1100);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); if (roar) clearTimeout(roar); music.stop(); };
   }, []); // eslint-disable-line
 
   // --- actions du joueur ---
@@ -227,6 +232,7 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
           ))}
           {banner && <div key={banner.key} className={`cb-banner ${banner.cls}`}>{banner.text}</div>}
           <div className="cb-vignette" />
+          <div className="cb-flash" ref={flashRef} />
         </div>
 
         <ResultOverlay ended={ended} cs={cs} encounter={encounter} player={player} backLabel={backLabel} dungeon={dungeon} onClaim={claim} onRestart={onRestart} onExit={onExit} />

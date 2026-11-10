@@ -40,8 +40,8 @@
 .cb-sprite.rage { filter: drop-shadow(0 0 14px rgba(255,60,40,.85)) drop-shadow(0 6px 6px rgba(0,0,0,.55)); }
 .cb-shadow { position: absolute; bottom: -8px; left: 50%; width: 80%; height: 18px; transform: translateX(-50%);
   background: radial-gradient(ellipse, rgba(0,0,0,.6), transparent 70%); pointer-events: none; }
-.cb-actor.dead .cb-body { opacity: 0; transform: translateY(24px) scale(.9); filter: grayscale(1) brightness(.5);
-  transition: opacity .7s ease .15s, transform .7s ease .15s, filter .5s; }
+.cb-actor.dead .cb-body { opacity: 0; transform: translateY(28px) scale(.88); filter: grayscale(1) brightness(.3) blur(3px);
+  transition: opacity .9s ease .15s, transform .9s ease .15s, filter .7s; }
 .cb-actor.dead .cb-bars { opacity: 0; transition: opacity .3s; }
 .cb-actor.hero-dead .cb-body { opacity: .85; transform: rotate(-82deg) translate(20px, 30px); filter: grayscale(1) brightness(.6);
   transition: transform .8s ease, filter .8s; transform-origin: 50% 100%; }
@@ -69,32 +69,24 @@
 .cb-float.dmgP { color: #ff6b5e; }
 .cb-float.crit { color: #ffd23f; font-size: 34px; animation-name: cb-float-crit; }
 .cb-float.miss { color: #c9d4e8; font-size: 16px; font-style: italic; }
-.cb-float.heal { color: #6fe08a; }
+.cb-float.heal { color: #dccb8e; }
 .cb-float.status { font-size: 14px; color: #f0e2b8; letter-spacing: .04em; text-transform: uppercase; }
 .cb-float.label { font-size: 13px; color: #fff; background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 10px; text-shadow: none; font-weight: 600; }
 .cb-float.feu { color: #ff9a4d; } .cb-float.poison { color: #9be26a; } .cb-float.givre { color: #8fd3f5; }
 
 /* ---------- Effets visuels ---------- */
 .cb-fx { position: absolute; transform: translate(-50%, 50%); pointer-events: none; z-index: 15; }
-.cb-slash { width: 130px; height: 130px; }
-.cb-slash::before { content: ""; position: absolute; inset: 0; border-radius: 50%;
-  border-top: 6px solid #fff; border-right: 3px solid transparent; border-left: 3px solid transparent; border-bottom: 0;
-  filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px rgba(255,220,150,.9));
-  animation: cb-slash .38s ease-out forwards; }
 .cb-spark { width: 4px; height: 4px; }
 .cb-spark i { position: absolute; left: 0; top: 0; width: 5px; height: 5px; border-radius: 50%; background: #ffe7a8;
   box-shadow: 0 0 6px #ffcf66; animation: cb-spark .5s ease-out forwards; }
-.cb-orb { width: 150px; height: 150px; border-radius: 50%; animation: cb-orb .6s ease-out forwards; }
-.cb-ring { width: 120px; height: 120px; border-radius: 50%; border: 3px solid currentColor; box-shadow: 0 0 20px currentColor, inset 0 0 20px currentColor;
-  animation: cb-ring .7s ease-out forwards; }
 .cb-proj { position: absolute; z-index: 16; width: 28px; height: 28px; border-radius: 50%; pointer-events: none;
   transform: translate(-50%, 50%); animation: cb-proj .26s linear forwards; }
 .cb-proj.arrow { width: 46px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, #e8d8a8 60%, #fff); box-shadow: 0 0 6px #fff; }
-.cb-heal-p { width: 8px; height: 8px; }
-.cb-heal-p i { position: absolute; font: 700 16px 'Inter', sans-serif; color: #7dffa0; text-shadow: 0 0 8px #3fdc72; animation: cb-heal 1s ease-out forwards; }
-.cb-shield { width: 190px; height: 190px; border-radius: 50%; border: 2px solid rgba(120,200,255,.9);
-  background: radial-gradient(circle, rgba(120,200,255,.08), rgba(120,200,255,.35)); box-shadow: 0 0 24px rgba(120,200,255,.7);
-  animation: cb-shield 1s ease-out forwards; }
+/* effets en images : l'image claque (zoom + fondu) sur la cible */
+.cb-fxi img { display: block; height: auto; transform-origin: 50% 50%; animation: cb-fxi 650ms ease-out forwards; }
+.cb-fxi img.cb-fxi-rise { animation-name: cb-fxi-rise; mix-blend-mode: screen; }
+.cb-fxi img.cb-fxi-ward { animation-name: cb-fxi-ward; }
+.cb-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 25; }
 .cb-smoke { width: 170px; height: 170px; border-radius: 50%; background: radial-gradient(circle, rgba(30,10,50,.9), transparent 70%); animation: cb-smoke .9s ease-out forwards; }
 
 /* ---------- Bannière ---------- */
@@ -177,13 +169,11 @@
 @keyframes cb-bounce { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -6px); } }
 @keyframes cb-float { 0% { transform: translate(-50%, 0) scale(.6); opacity: 0; } 15% { transform: translate(-50%, -14px) scale(1.15); opacity: 1; } 100% { transform: translate(-50%, -80px) scale(1); opacity: 0; } }
 @keyframes cb-float-crit { 0% { transform: translate(-50%, 0) scale(.4) rotate(-6deg); opacity: 0; } 12% { transform: translate(-50%, -16px) scale(1.5) rotate(3deg); opacity: 1; } 30% { transform: translate(-50%, -26px) scale(1.2); } 100% { transform: translate(-50%, -96px) scale(1.05); opacity: 0; } }
-@keyframes cb-slash { 0% { transform: rotate(-70deg) scale(.5); opacity: 0; } 25% { opacity: 1; } 100% { transform: rotate(40deg) scale(1.15); opacity: 0; } }
 @keyframes cb-spark { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
-@keyframes cb-orb { 0% { transform: scale(.2); opacity: .95; } 100% { transform: scale(1.35); opacity: 0; } }
-@keyframes cb-ring { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
 @keyframes cb-proj { from { left: var(--x0); bottom: var(--y0); } to { left: var(--x1); bottom: var(--y1); } }
-@keyframes cb-heal { 0% { transform: translate(var(--dx), 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--dx), -70px); opacity: 0; } }
-@keyframes cb-shield { 0% { transform: translate(-50%, 50%) scale(.4); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(-50%, 50%) scale(1.05); opacity: 0; } }
+@keyframes cb-fxi { 0% { transform: scaleX(var(--sx, 1)) rotate(var(--r, 0deg)) scale(.35); opacity: 0; } 15% { opacity: 1; } 100% { transform: scaleX(var(--sx, 1)) rotate(calc(var(--r, 0deg) + 8deg)) scale(1.12); opacity: 0; } }
+@keyframes cb-fxi-rise { 0% { transform: translateY(14px) scale(.6); opacity: 0; } 20% { opacity: 1; } 70% { opacity: .9; } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
+@keyframes cb-fxi-ward { 0% { transform: scale(.55); opacity: 0; } 20% { opacity: 1; } 65% { opacity: .9; } 100% { transform: scale(1.02); opacity: 0; } }
 @keyframes cb-smoke { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
 @keyframes cb-banner { 0% { transform: scale(1.6); opacity: 0; letter-spacing: .4em; } 20% { transform: scale(1); opacity: 1; letter-spacing: .12em; } 80% { opacity: 1; } 100% { opacity: 0; transform: scale(.96); } }
 @keyframes cb-glow { from { box-shadow: 0 0 0 rgba(184,146,63,0); } to { box-shadow: 0 0 18px rgba(184,146,63,.55); } }
@@ -214,3 +204,5 @@
 /* ---- Salles de donjon : décor peint à la place de la prairie ---- */
 .cb-room-bg { position: absolute; inset: 0; background-size: cover; background-position: center bottom; }
 .cb-room-shade { position: absolute; inset: 0; background: linear-gradient(180deg, #0006 0%, #0000 35%, #0008 100%); pointer-events: none; }
+
+.cb-vol { width: 70px; accent-color: #b8923f; align-self: center; cursor: pointer; }
