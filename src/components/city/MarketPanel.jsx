@@ -11,6 +11,9 @@ import {
   marketPrice, suggestedPrice, suggestedItemPrice, trend, stockLabel, quoteBuy, quotePost, maxAffordable, minutesLeft,
   sellerName, isMine, TAX_RATE, STEP_MS,
 } from "../../utils/market.js";
+import OrdersTab from "./OrdersTab.jsx";
+import { postOrder, cancelOrder, acceptOrder, myOrders } from "../../utils/orderActions.js";
+import { PROFESSIONS, getCraftInfo } from "../../data/professions.js";
 import { LOTS, GROUPS, categoriesOf, categoryLabel, buyCatalog, sellCatalog, offerCounts, slotBoard, refOf } from "../../utils/marketBook.js";
 
 const RARITY = { commune: "#9a95a8", rare: "#5fa3c4", epique: "#a855f7", legendaire: "#d9b568" };
@@ -372,8 +375,10 @@ export default function MarketPanel({ player, onPlayerChange }) {
     if (s.earned > 0 || s.returned.length) {
       onPlayerChange(s.player);
       const bits = [];
+      const crafted = s.returned.filter((r) => r.from === "order" && r.kind === "item"), other = s.returned.filter((r) => r.from !== "order");
       if (s.earned > 0) bits.push(`Tes ventes ont rapporté ${s.earned} or.`);
-      if (s.returned.length) bits.push(`${s.returned.length} annonce(s) expirée(s) : marchandise rendue.`);
+      if (crafted.length) bits.push(`Commande livrée : ${crafted.map((r) => ITEMS[r.rid]?.name || r.rid).join(", ")} est dans ton sac.`);
+      if (other.length) bits.push(`${other.length} annonce(s) expirée(s) : marchandise rendue.`);
       if (announce) say(bits.join(" "));
     }
   };
@@ -389,6 +394,11 @@ export default function MarketPanel({ player, onPlayerChange }) {
   const post = (spec) => apply(postListing(player, spec, Date.now()), (r) => `Annonce publiée : ${r.listing.kind === "item" ? ITEMS[r.listing.rid].name : `${r.qty} × ${RESOURCES[r.listing.rid].name}`} à ${num(r.listing.unit)} or. Taxe payée : ${num(r.tax)} or.`, (why) => ({ prix: "Prix invalide.", limite: `Tous tes emplacements de vente sont pris (${board.total}).`, taxe: "Tu n'as pas assez d'or pour payer la taxe.", aucun: "Tu n'as plus cela dans ton sac." }[why] || "Impossible de publier."));
   const cancel = (id) => apply(cancelListing(player, id, Date.now()), () => "Annonce retirée, marchandise rendue (la taxe n'est pas remboursée).", () => "Annonce introuvable.");
 
+  const orderWhy = { ressources: "Il te manque des ingrédients.", or: "Pas assez d'or.", limite: "Trop de commandes ouvertes.", prix: "Salaire invalide.", niveau: "Ton niveau de métier est trop bas.", introuvable: "Cette commande n'existe plus (un autre artisan l'a prise ?).", indisponible: "Les artisans ne sont pas là pour l'instant." };
+  const orderPost = (item, fee) => apply(postOrder(player, { item, fee }, Date.now()), (r) => `Commande passée : ${ITEMS[item].name} pour ${num(r.order.fee)} or. Un artisan a 24 h pour la prendre.`, (why) => orderWhy[why] || "Impossible.");
+  const orderCancel = (id) => apply(cancelOrder(player, id, Date.now()), () => "Commande retirée : ingrédients et salaire te reviennent.", (why) => orderWhy[why] || "Impossible.");
+  const orderAccept = (id) => apply(acceptOrder(player, id, Date.now()), (r) => `Fabriqué : ${ITEMS[r.order.item].name} pour ${sellerName(r.order.client)}. Salaire : +${num(r.fee)} or, et de l'xp de ${PROFESSIONS[getCraftInfo(r.order.item).profession]?.name || "métier"}.`, (why) => orderWhy[why] || "Impossible.");
+
   const tabBtn = (key, label) => <button className={`hv-tab${tab === key ? " on" : ""}`} data-tab={key} onClick={() => setTab(key)}>{label}</button>;
 
   return (
@@ -399,10 +409,11 @@ export default function MarketPanel({ player, onPlayerChange }) {
         <div key={msg?.id} className={`hv-msg ${msg?.ok === false ? "ko" : "ok"}`} data-msg>{msg?.text || ""}</div>
       </div>
       <div className="hv-tabs">
-        {tabBtn("buy", "Acheter")}{tabBtn("sell", "Vendre")}{tabBtn("mine", `Mes ventes (${board.used}/${board.total})`)}
+        {tabBtn("buy", "Acheter")}{tabBtn("sell", "Vendre")}{tabBtn("mine", `Mes ventes (${board.used}/${board.total})`)}{tabBtn("orders", `Commandes${myOrders(m).length ? ` (${myOrders(m).length})` : ""}`)}
       </div>
       {tab === "buy" && <BuyTab m={m} player={player} onBuy={buy} onBuyListing={buyListingFn} onBuyItem={buyItem} />}
       {tab === "sell" && <SellTab m={m} player={player} board={board} onPost={post} onGoMine={() => setTab("mine")} />}
+      {tab === "orders" && <OrdersTab m={m} player={player} onPost={orderPost} onCancel={orderCancel} onAccept={orderAccept} />}
       {tab === "mine" && <MineTab m={m} board={board} onCancel={cancel} onGoSell={() => setTab("sell")} />}
     </div>
   );

@@ -242,6 +242,35 @@ try {
     await noCrash("coffre");
   });
 
+  await step("Commandes d'artisanat : l'onglet liste les pièces hors de portée, on commande (séquestre) puis on retire (tout revient)", async () => {
+    const s = fresh(); s.player.gold = 5000;
+    s.player.resources = { ...(s.player.resources || {}), plaque_noircie: 4, lingot_de_fer: 3, maille_corrompue: 1 };       // de quoi commander le chapeau du Chevalier
+    await open({ s });
+    await tab("Marché").click(); await page.waitForTimeout(500);
+    await page.locator('[data-tab="orders"]').click(); await page.waitForTimeout(400);
+    assert.ok(await page.locator("[data-orders-pieces]").isVisible(), "liste des pièces");
+    assert.ok((await page.locator("[data-order-piece]").count()) > 3, "des pièces dont le niveau de métier manque");
+    await page.locator('[data-prof="forgeron"]').click(); await page.waitForTimeout(200);                  // le filtre par métier restreint la liste
+    await page.locator('[data-order-piece="chapeau_chevalier"]').click(); await page.waitForTimeout(200);
+    assert.ok(await page.locator("[data-order-form]").isVisible(), "formulaire de commande");
+    const gold = async () => Number((await page.locator("[data-gold]").innerText()).replace(/\D/g, ""));
+    const g0 = await gold();
+    await page.locator('[data-order-fee]').fill("100");
+    await page.locator('[data-act="order"]').click(); await page.waitForTimeout(300);
+    assert.match(await page.locator("[data-msg]").innerText(), /Commande passée/);
+    assert.equal(await gold(), g0 - 100, "le salaire part en séquestre");
+    assert.equal(await page.locator("[data-order-mine]").count(), 1);
+    const s1 = await save();
+    assert.equal(s1.player.resources.plaque_noircie ?? 0, 0, "les ingrédients partent aussi");
+    await page.locator('[data-act="cancel-order"]').click(); await page.waitForTimeout(300);
+    assert.match(await page.locator("[data-msg]").innerText(), /Commande retirée/);
+    assert.equal(await gold(), g0, "salaire rendu");
+    const s2 = await save();
+    assert.equal(s2.player.resources.plaque_noircie, 4, "ingrédients rendus");
+    assert.equal(await page.locator("[data-order-mine]").count(), 0);
+    await noCrash("commandes");
+  });
+
   // ---------- voyage ----------
   await step("Carte du monde et portail : on rejoint chaque région et on revient en ville", async () => {
     await open({ s: fresh() });

@@ -31,13 +31,14 @@ import { SIM_START } from "../sim/config.js";
 import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
 import { stepGuilds } from "../sim/guilds.js";
 import { sentinelFeeder } from "./sentinel.js";
-import { shoppingList, stashPlus, acquireItem, scoreWithPlus, targetPieces } from "../sim/lifeCraft.js";
+import { shoppingList, orderShopping, stashPlus, acquireItem, scoreWithPlus, targetPieces } from "../sim/lifeCraft.js";
 import { BUILDS } from "../sim/partyBots.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
 import { potionShopping, POTION_KEEP } from "../sim/lifePotions.js";
 import { upgradeShopping } from "../sim/lifeUpgrade.js";
 import { magnatsTrade, returnToMagnat } from "./magnats.js";
+import { ordersStep, ORDER_CFG } from "./orders.js";
 
 export const STEP_MS = 10 * 60 * 1000;        // le marché évolue toutes les 10 minutes
 
@@ -122,7 +123,7 @@ function tally(s, bucket, key, n = 1) {
   const day = Math.floor(bucket / 144);
   const v = (s.volume ||= []);
   let d = v[v.length - 1];
-  if (!d || d.day !== day) { d = { day, simBuy: 0, demandBuy: 0, playerBuy: 0, items: 0, posted: 0 }; v.push(d); if (v.length > 14) v.shift(); }
+  if (!d || d.day !== day) { d = { day, simBuy: 0, demandBuy: 0, playerBuy: 0, items: 0, posted: 0, orders: 0, ordersPosted: 0 }; v.push(d); if (v.length > 14) v.shift(); }
   d[key] += n;
 }
 
@@ -187,7 +188,7 @@ function simsShop(s, bucket, rng) {
     const life = s.sims.lives[b.id];
     if (!life || life.gold < 1 || !isActive(b, bucket) || rng() > 0.4) continue;
     simBuysGear(s, life, b, bucket);
-    const want = drawFromBank(life, mergeWant(mergeWant(mergeWant(shoppingList(life, b), keyShopping(life)), potionShopping(life)), upgradeShopping(life, b)));          // d'abord son coffre
+    const want = drawFromBank(life, mergeWant(mergeWant(mergeWant(mergeWant(shoppingList(life, b), (ORDER_CFG.enabled ? orderShopping(life, b) : {})), keyShopping(life)), potionShopping(life)), upgradeShopping(life, b)));          // d'abord son coffre
     for (const [rid, qty] of Object.entries(want)) {
       if (!RESOURCES[rid]) continue;
       const cap = refPrice(s, rid) * (life.gold >= RICH_CAP ? 2.2 : 1.6);
@@ -253,7 +254,7 @@ function stepListings(s, bucket) {
   });
 
   // 1b. les simulés vivent : ils achètent leurs ingrédients, puis jouent leur pas (combat, récolte, fabrication)
-  if (live) { simsShop(s, bucket, rng); stepLivesOne(sims, getPopulation(), bucket, { merchant: false, keep: 120, onFight: sentinelFeeder(sims) }); stepGuilds(sims, getPopulation(), bucket); magnatsTrade(s, bucket, makeRng(hashString(`mg:${bucket}`)), MAGNAT_TOOLS); }
+  if (live) { simsShop(s, bucket, rng); stepLivesOne(sims, getPopulation(), bucket, { merchant: false, keep: 120, onFight: sentinelFeeder(sims) }); stepGuilds(sims, getPopulation(), bucket); magnatsTrade(s, bucket, makeRng(hashString(`mg:${bucket}`)), MAGNAT_TOOLS); ordersStep(s, bucket, makeRng(hashString(`od:${bucket}`)), getPopulation(), tally); }
 
   // 2. cours caché
   for (const id of RESOURCE_ORDER) s.stock[id] = stepStock(id, s.stock[id], bucket);
@@ -375,6 +376,8 @@ export function tickMarket(m, now = Date.now(), { maxSteps = Infinity } = {}) {
     listings: m.listings.map((l) => ({ ...l })),
     proceeds: m.proceeds, returns: [...m.returns], sales: [...m.sales], nextId: m.nextId,
     credits: { ...(m.credits || {}) },
+    orders: (m.orders || []).map((o) => ({ ...o, mats: { ...o.mats } })),
+    deliveries: (m.deliveries || []).map((d) => ({ ...d, back: { ...d.back } })),
     volume: (m.volume || []).map((d) => ({ ...d })),
   };
   // un marché sauvegardé avant l'ajout d'une ressource n'a ni cours ni historique pour elle : on les crée
