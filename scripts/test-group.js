@@ -64,9 +64,9 @@ test("une invitation peut être refusée : selon le profil, stable dans le même
   const no = cands.filter((b) => !acceptsInvite(p, b, T0)), yes = cands.filter((b) => acceptsInvite(p, b, T0));
   assert.ok(yes.length > 0, "certains acceptent"); 
   // sur beaucoup de pas, le taux d'acceptation suit la probabilité du profil
-  const bot = cands[0]; let ok = 0; const N = 400;
-  for (let i = 0; i < N; i++) if (acceptsInvite(p, bot, (Math.floor(T0 / STEP_MS) + i) * STEP_MS)) ok++;
-  assert.ok(Math.abs(ok / N - acceptChance(p, bot)) < 0.1, `taux ${ok / N} proche de ${acceptChance(p, bot)}`);
+  const sample = cands.slice(0, 12); let ok = 0, want = 0; const N = 400;      // plusieurs simulés : un seul peut tomber sur une série de tirages peu mélangés
+  for (const bot of sample) { for (let i = 0; i < N; i++) if (acceptsInvite(p, bot, (Math.floor(T0 / STEP_MS) + i) * STEP_MS)) ok++; want += acceptChance(p, bot); }
+  assert.ok(Math.abs(ok / (N * sample.length) - want / sample.length) < 0.06, `taux ${ok / (N * sample.length)} proche de ${want / sample.length}`);
   if (no.length) {
     const r = inviteAction(p, no[0].id, T0);
     assert.equal(r.ok, false); assert.equal(r.reason, "refuse"); assert.equal(r.bot.id, no[0].id); assert.equal(r.player, p, "rien ne change");

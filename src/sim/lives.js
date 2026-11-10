@@ -67,6 +67,7 @@ export const overlevelMult = (level) => { const hi = regionFor(level).hi; return
 const START_HOURS = [[17, 3], [18, 4], [19, 4], [20, 4], [21, 3], [22, 2], [13, 2], [14, 1], [9, 2], [10, 2], [15, 1]];
 export const MAGNAT_SHARE = 1 / 3;                                   // part des acharnés qui jouent surtout l'hôtel des ventes (les magnats, voir utils/market.js)
 export const PROFILE_MIX = { occasionnel: 0.6, regulier: 0.3, acharne: 0.1 };      // part de chaque profil (le reste : acharnés)
+export const SESSION_HOURS = { occasionnel: [2, 5], regulier: [4, 8], acharne: [7, 12] };      // durée d'une séance de jeu, en heures
 const TRAITS_CACHE = new Map();
 export function traitsOf(bot) {
   const hit = TRAITS_CACHE.get(bot.id);
@@ -86,13 +87,13 @@ export function traitsOf(bot) {
   traits.focus = traits.profile === "acharne" ? (rf < MAGNAT_SHARE ? "magnat" : rf < MAGNAT_SHARE + (1 - MAGNAT_SHARE) / 2 ? "xp" : "metiers") : null;
   if (traits.profile === "occasionnel") {                         // une heure ou deux, pas tous les jours, sans se presser
     traits.diligence = Math.round(traits.diligence * 0.7 * 100) / 100;
-    traits.hours = Math.max(1, Math.round(traits.hours * 0.6));
     traits.playDay = Math.round(traits.playDay * 0.8 * 100) / 100;
   } else if (traits.profile === "acharne") {                      // de longues séances, presque tous les jours, à fond
     traits.diligence = Math.round((1.35 + (traits.diligence - 0.45) * 0.4) * 100) / 100;
-    traits.hours = traits.hours + 3;
     traits.playDay = 0.93;
   }
+  const [lo, hi] = SESSION_HOURS[traits.profile];                 // durée d'une séance selon le profil (tirée de l'identifiant, sans toucher aux autres traits)
+  traits.hours = lo + Math.floor(hash01(`${bot.id}:hours`) * (hi - lo + 1));
   TRAITS_CACHE.set(bot.id, traits);
   return traits;
 }
