@@ -8,17 +8,20 @@
 import { settleMarket } from "./market.js";
 import { ORDER_STEPS, MAX_PLAYER_ORDERS, MAX_ORDER_FEE, orderInfo } from "./orders.js";
 import { applyCraft, professionOf } from "./crafting.js";
+import { tarifFor, withWorkshop, workshopOf, CRAFT_PROFESSIONS } from "./workshop.js";
 
 const fail = (player, reason) => ({ ok: false, reason, player });
 export const myOrders = (m) => (m.orders || []).filter((o) => o.client === "player");
-export const openOrders = (m) => (m.orders || []).filter((o) => o.client !== "player");
+// Les commandes que tu peux prendre : celles ouvertes à tous, et celles qu'on t'adresse (les autres sont réservées à leur artisan)
+export const openOrders = (m) => (m.orders || []).filter((o) => o.client !== "player" && (!o.crafter || o.crafter === "player"));
 export const orderMinutesLeft = (m, o) => Math.max(0, (o.exp - m.bucket) * 10);
 
 // Pourquoi on ne peut pas (encore) commander cette pièce, ou null si c'est possible
-export function postOrderIssue(player, itemId, fee = 1) {
+export function postOrderIssue(player, itemId, fee = 1, crafter = null) {
   const info = orderInfo(itemId);
   if (!info) return "inconnu";
   if (!player.market?.sims) return "indisponible";
+  if (crafter) { const t = crafter === "player" ? null : tarifFor(player.market, crafter, itemId); if (t == null) return "artisan"; fee = t; }       // au tarif de l'annuaire
   const f = Math.floor(fee);
   if (!(f >= 1) || f > MAX_ORDER_FEE) return "prix";
   if (myOrders(player.market).length >= MAX_PLAYER_ORDERS) return "limite";
@@ -27,14 +30,14 @@ export function postOrderIssue(player, itemId, fee = 1) {
   return null;
 }
 
-export function postOrder(player, { item, fee }, now = Date.now()) {
+export function postOrder(player, { item, fee, crafter = null }, now = Date.now()) {
   const p = settleMarket(player, now).player, m = p.market;
-  const why = postOrderIssue(p, item, fee);
+  const why = postOrderIssue(p, item, fee, crafter);
   if (why) return fail(p, why);
-  const info = orderInfo(item), f = Math.floor(fee);
+  const info = orderInfo(item), f = crafter ? tarifFor(m, crafter, item) : Math.floor(fee);
   const resources = { ...p.resources };
   for (const [r, q] of Object.entries(info.mats)) { resources[r] -= q; if (resources[r] <= 0) delete resources[r]; }
-  const order = { id: m.nextId, client: "player", item, mats: info.mats, fee: f, exp: m.bucket + ORDER_STEPS };
+  const order = { id: m.nextId, client: "player", item, mats: info.mats, fee: f, exp: m.bucket + ORDER_STEPS, ...(crafter ? { crafter } : {}) };
   return { ok: true, order, player: { ...p, resources, gold: p.gold - f, market: { ...m, nextId: m.nextId + 1, orders: [...(m.orders || []), order] } } };
 }
 
@@ -72,3 +75,21 @@ export function acceptOrder(player, orderId, now = Date.now(), rng = Math.random
   };
   return { ok: true, order: o, made, fee: o.fee, xp: (after.professions[orderInfo(o.item).profession].xp || 0), player: next };
 }
+
+// --- Ton atelier (annuaire) : voir utils/workshop.js ---
+// Règle un métier : { open, listed, prices: { palier: or } } ; ton niveau de métier du moment est rangé avec
+export function setWorkshop(player, profession, patch, now = Date.now()) {
+  if (!CRAFT_PROFESSIONS.includes(profession)) return fail(player, "inconnu");
+  const p = settleMarket(player, now).player;
+  return { ok: true, player: { ...p, market: withWorkshop(p.market, profession, patch, professionOf(p, profession).level) } };
+}
+// Met à jour ton niveau de métier dans les réglages (les simulés ne t'adressent que des pièces à ta portée) ; le même joueur s'il n'y a rien à changer
+export function syncWorkshop(player) {
+  const m = player.market, w = m?.workshop;
+  if (!w) return player;
+  let changed = false;
+  const next = {};
+  for (const [k, v] of Object.entries(w)) { const level = professionOf(player, k).level; if (level !== v.level) changed = true; next[k] = { ...v, level }; }
+  return changed ? { ...player, market: { ...m, workshop: next } } : player;
+}
+export { workshopOf };

@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { newMarket, tickMarket, enableSimMarket, settleMarket, STEP_MS } from "../src/utils/market.js";
 import { orderInfo, orderFeeBase, wageMin, simCanCraft, ORDER_CFG, ORDER_STEPS, MAX_PLAYER_ORDERS } from "../src/utils/orders.js";
-import { postOrder, cancelOrder, acceptOrder, myOrders, openOrders, postOrderIssue, acceptIssue } from "../src/utils/orderActions.js";
+import { postOrder, cancelOrder, acceptOrder, myOrders, openOrders, postOrderIssue, acceptIssue, setWorkshop, syncWorkshop } from "../src/utils/orderActions.js";
+import { CRAFT_PROFESSIONS, tiersOf, baseRate, defaultPrices, directory, tarifFor, simListed, simTarif, tierOfItem, piecesOf } from "../src/utils/workshop.js";
 import { orderTarget, orderShopping, tierFor } from "../src/sim/lifeCraft.js";
 import { getPopulation } from "../src/sim/population.js";
 import { isActive } from "../src/sim/lives.js";
@@ -79,8 +80,9 @@ await test("un artisan simulé de niveau suffisant prend la commande : pièce li
   assert.equal(myOrders(m).length, 0, "prise");
   const done = m.returns.filter((x) => x.from === "order" && x.kind === "item");
   assert.equal(done.length, 1); assert.equal(done[0].rid, ITEM);
-  const winners = pop.filter((b) => (m.sims.lives[b.id].orderWages || 0) === 5000);
-  assert.equal(winners.length, 1, "un seul artisan");
+  const wages0 = (b) => r.player.market.sims.lives[b.id].orderWages || 0;
+  const winners = pop.filter((b) => (m.sims.lives[b.id].orderWages || 0) - wages0(b) >= 5000);
+  assert.equal(winners.length, 1, "un seul artisan touche le salaire");
   const w = m.sims.lives[winners[0].id];
   assert.ok(w.gold >= goldBefore[winners[0].id] + 5000 - 100, "il touche le salaire (moins la taxe d'atelier)");
   assert.equal(w.crafted > 0, true);
@@ -127,6 +129,77 @@ await test("le joueur est l'artisan : il fabrique pour un simulé avec ses ingr�
   assert.equal(life.orderDone || 0, 0);
 }));
 
+await test("annuaire : les métiers, leurs paliers, les prix conseillés ; les artisans simulés listés, par niveau décroissant", () => run(() => {
+  assert.ok(CRAFT_PROFESSIONS.includes("forgeron") && CRAFT_PROFESSIONS.includes("tailleur"));
+  assert.deepEqual(tiersOf("forgeron"), [1, 2, 3, 4]);
+  assert.equal(tierOfItem(ITEM), 3);
+  assert.ok(piecesOf("forgeron", 3).includes(ITEM));
+  const d = defaultPrices("forgeron");
+  assert.ok(d[1] < d[2] && d[2] < d[3] && d[3] < d[4], "plus cher à chaque palier");
+  assert.equal(d[3], baseRate("forgeron", 3));
+  const base = withCrafter(newMarket(T0));
+  const dir = directory(base, "forgeron", base.bucket + 1, (id) => id);
+  assert.ok(dir.length >= 5, `${dir.length} artisans`);
+  for (let i = 1; i < dir.length; i++) assert.ok(dir[i - 1].level >= dir[i].level, "classés par niveau");
+  for (const e of dir) { assert.ok(!e.isMe); assert.ok(simListed(pop.find((b) => b.id === e.id))); assert.deepEqual(Object.keys(e.prices).map(Number), [1, 2, 3, 4]); assert.equal(e.prices[3], simTarif(e.id, "forgeron", 3)); const b = baseRate("forgeron", 3); assert.ok(e.prices[3] >= b * 0.8 - 1 && e.prices[3] <= b * 1.2 + 1); }
+  assert.ok(dir.some((e) => e.online) && dir.some((e) => e.level >= 50), "des connectés, des hauts niveaux");
+  // les occasionnels y figurent peu, les acharnés « métiers » tous
+  const listed = pop.filter(simListed).length; assert.ok(listed > 100 && listed < pop.length, `${listed} listés sur ${pop.length}`);
+}));
+
+await test("ton atelier : disponible, visible, prix par palier, niveau du métier ; sans réglage tu n'es pas dans l'annuaire", () => run(() => {
+  const m = newMarket(T0), p = player(m, { professions: { forgeron: { level: 25, xp: 0 } } });
+  assert.equal(directory(m, "forgeron").some((e) => e.isMe), false);
+  assert.equal(tarifFor(m, "player", ITEM), null);
+  const a = setWorkshop(p, "forgeron", { open: true, listed: true, prices: { 3: 250, 4: "abc", 1: 40 } }, nowOf(m));
+  assert.ok(a.ok);
+  const w = a.player.market.workshop.forgeron;
+  assert.deepEqual(w, { open: true, listed: true, prices: { 3: 250, 1: 40 }, level: 25 });
+  assert.equal(setWorkshop(p, "alchimie_inconnue", {}, nowOf(m)).reason, "inconnu");
+  const me = directory(a.player.market, "forgeron").find((e) => e.isMe);
+  assert.ok(me && me.level === 25 && me.prices[3] === 250 && me.online);
+  const M = a.player.market;
+  assert.equal(tarifFor(M, "player", ITEM), 250, "ton prix du palier 3");
+  assert.equal(tarifFor(M, "player", piecesOf("forgeron", 2)[0]), null, "pas de prix fixé pour le palier 2");
+  assert.equal(tarifFor(M, "player", piecesOf("forgeron", 4)[0]), null, "palier 4 : niveau trop bas");
+  assert.equal(tarifFor(setWorkshop(a.player, "forgeron", { open: false }, nowOf(m)).player.market, "player", ITEM), null, "indisponible");
+  assert.equal(tarifFor(setWorkshop(a.player, "forgeron", { listed: false }, nowOf(m)).player.market, "player", ITEM), null, "hors annuaire");
+  // ton niveau de métier est tenu à jour dans les réglages
+  const grown = syncWorkshop({ ...a.player, professions: { forgeron: { level: 40, xp: 0 } } });
+  assert.equal(grown.market.workshop.forgeron.level, 40);
+  assert.equal(syncWorkshop(a.player), a.player, "rien à changer : même objet");
+}));
+
+await test("commande adressée à un artisan de l'annuaire : au tarif affiché, lui seul la prend", () => run(() => {
+  const base = withCrafter(newMarket(T0));
+  const dir = directory(base, "forgeron", base.bucket + 1, (id) => id).filter((e) => e.level >= 30);
+  const x = dir[0], y = dir[1];
+  const p = player(base);
+  assert.equal(postOrder(p, { item: ITEM, fee: 1, crafter: "inconnu_99" }, nowOf(base)).reason, "artisan");
+  assert.equal(postOrder(p, { item: ITEM, fee: 1, crafter: "player" }, nowOf(base)).reason, "artisan", "pas à soi-même");
+  const r = postOrder(p, { item: ITEM, fee: 1, crafter: x.id }, nowOf(base));
+  assert.ok(r.ok, r.reason);
+  assert.equal(r.order.fee, x.prices[3], "le salaire est le tarif affiché, pas celui passé en paramètre");
+  assert.equal(r.order.crafter, x.id);
+  assert.equal(r.player.gold, 5000 - x.prices[3]);
+  let m = r.player.market, steps = 0;
+  const before = (id) => r.player.market.sims.lives[id].orderWages || 0;
+  while (myOrders(m).length && steps < 144) { steps++; m = tickMarket(m, (m.bucket + 1) * STEP_MS); }
+  assert.equal(myOrders(m).length, 0, "prise par l'artisan choisi");
+  assert.equal((m.sims.lives[x.id].orderWages || 0) - before(x.id), x.prices[3], "c'est lui qui touche le salaire");
+  assert.equal((m.sims.lives[y.id].orderWages || 0) - before(y.id) < x.prices[3], true, "pas l'autre (qui a pu toucher d'autres commandes)");
+  // une commande adressée à un autre n'est ni visible ni prenable ; une commande adressée à toi l'est, et aucun simulé ne la prend
+  const c = structuredClone(base); const clientId = pop[9].id;
+  c.orders = [{ id: c.nextId++, client: clientId, item: ITEM, mats: { ...info.mats }, fee: 100, exp: c.bucket + 500, crafter: x.id }, { id: c.nextId++, client: clientId, item: ITEM, mats: { ...info.mats }, fee: 120, exp: c.bucket + 500, crafter: "player" }];
+  assert.deepEqual(openOrders(c).map((o) => o.fee), [120]);
+  const pro = player(c, { professions: { forgeron: { level: 30, xp: 0 } } });
+  assert.equal(acceptOrder(pro, c.orders[0].id, nowOf(c)).reason, "introuvable");
+  let q = c; for (let i = 0; i < 80; i++) q = tickMarket(q, (q.bucket + 1) * STEP_MS);
+  assert.ok(q.orders.some((o) => o.crafter === "player"), "elle attend ton « Fabriquer »");
+  const ok = acceptOrder({ ...pro, market: q }, c.orders[1].id, nowOf(q));
+  assert.ok(ok.ok, ok.reason);
+}));
+
 await test("les simulés commandent la pièce de leur palier qu'ils ne savent pas faire (et seulement avec tous les ingrédients)", () => run(() => {
   const m = newMarket(T0);
   const found = pop.map((b) => ({ b, l: m.sims.lives[b.id], id: orderTarget(m.sims.lives[b.id], b) })).filter((x) => x.id);
@@ -140,7 +213,9 @@ await test("les simulés commandent la pièce de leur palier qu'ils ne savent pa
 }));
 
 await test("6 jours : les commandes circulent, plusieurs artisans, rien de négatif ; même histoire en une fois ou par tranches", () => run(() => {
-  const m = tickMarket(newMarket(T0), T0 + 6 * DAY);
+  let seenDirected = false, m = newMarket(T0);
+  for (let d = 1; d <= 6; d++) { m = tickMarket(m, T0 + d * DAY); if (m.orders.some((o) => o.crafter)) seenDirected = true; }
+  assert.ok(seenDirected, "des simulés commandent chez un artisan de l'annuaire");
   const L = pop.map((b) => m.sims.lives[b.id]);
   const delivered = L.reduce((s, l) => s + (l.orderDone || 0), 0), crafters = L.filter((l) => l.orderWages).length;
   assert.ok(delivered > 10, `${delivered} pièces livrées`); assert.ok(crafters >= 5, `${crafters} artisans`);

@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 import { eveningDelta, skewClock } from "./_evening.mjs";
+import { RESOURCE_ORDER } from "../src/data/resources.js";
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -244,13 +245,13 @@ try {
 
   await step("Commandes d'artisanat : l'onglet liste les pièces hors de portée, on commande (séquestre) puis on retire (tout revient)", async () => {
     const s = fresh(); s.player.gold = 5000;
-    s.player.resources = { ...(s.player.resources || {}), plaque_noircie: 4, lingot_de_fer: 3, maille_corrompue: 1 };       // de quoi commander le chapeau du Chevalier
+    s.player.resources = Object.fromEntries(RESOURCE_ORDER.map((id) => [id, 30]));       // de quoi commander n'importe quelle pièce (le chapeau du Chevalier, ou ce que propose l'artisan choisi)
     await open({ s });
     await tab("Marché").click(); await page.waitForTimeout(500);
     await page.locator('[data-tab="orders"]').click(); await page.waitForTimeout(400);
     assert.ok(await page.locator("[data-orders-pieces]").isVisible(), "liste des pièces");
     assert.ok((await page.locator("[data-order-piece]").count()) > 3, "des pièces dont le niveau de métier manque");
-    await page.locator('[data-prof="forgeron"]').click(); await page.waitForTimeout(200);                  // le filtre par métier restreint la liste
+    await page.locator('[data-prof="forgeron"]').last().click(); await page.waitForTimeout(200);            // le filtre par métier (celui de l'annonce ouverte) restreint la liste
     await page.locator('[data-order-piece="chapeau_chevalier"]').click(); await page.waitForTimeout(200);
     assert.ok(await page.locator("[data-order-form]").isVisible(), "formulaire de commande");
     const gold = async () => Number((await page.locator("[data-gold]").innerText()).replace(/\D/g, ""));
@@ -261,13 +262,34 @@ try {
     assert.equal(await gold(), g0 - 100, "le salaire part en séquestre");
     assert.equal(await page.locator("[data-order-mine]").count(), 1);
     const s1 = await save();
-    assert.equal(s1.player.resources.plaque_noircie ?? 0, 0, "les ingrédients partent aussi");
+    assert.equal(s1.player.resources.plaque_noircie, 26, "les ingrédients partent aussi (30 − 4)");
     await page.locator('[data-act="cancel-order"]').click(); await page.waitForTimeout(300);
     assert.match(await page.locator("[data-msg]").innerText(), /Commande retirée/);
     assert.equal(await gold(), g0, "salaire rendu");
     const s2 = await save();
-    assert.equal(s2.player.resources.plaque_noircie, 4, "ingrédients rendus");
+    assert.equal(s2.player.resources.plaque_noircie, 30, "ingrédients rendus");
     assert.equal(await page.locator("[data-order-mine]").count(), 0);
+    // annuaire : le métier choisi liste ses artisans, on en choisit un, la commande se fait à son tarif affiché
+    await page.locator('[data-prof="forgeron"]').first().click(); await page.waitForTimeout(200);
+    assert.ok((await page.locator("[data-dir-row]").count()) >= 3, "des artisans forgerons dans l'annuaire");
+    await page.locator('[data-act="pick-crafter"]').first().click(); await page.waitForTimeout(250);
+    assert.ok(await page.locator("[data-order-target]").isVisible(), "artisan choisi");
+    await page.locator("[data-order-piece]").first().click(); await page.waitForTimeout(200);
+    const tarif = Number((await page.locator("[data-order-tarif]").innerText()).replace(/\D/g, ""));
+    assert.ok(tarif > 0);
+    await page.locator('[data-act="order"]').click(); await page.waitForTimeout(300);
+    assert.match(await page.locator("[data-msg]").innerText(), /Commande passée.* chez /);
+    assert.equal(await gold(), g0 - tarif, "le tarif de l'artisan part en séquestre");
+    await page.locator('[data-act="cancel-order"]').click(); await page.waitForTimeout(300);
+    assert.equal(await gold(), g0);
+    // ton atelier : disponible, visible, un prix par palier ; c'est rangé dans le marché
+    const ws = page.locator('[data-workshop-prof="forgeron"]');
+    await ws.locator("[data-ws-open]").check(); await page.waitForTimeout(250);
+    await ws.locator("[data-ws-listed]").check(); await page.waitForTimeout(250);
+    await ws.locator('[data-ws-price="3"]').fill("200"); await ws.locator('[data-ws-price="3"]').blur(); await page.waitForTimeout(300);
+    const s3 = await save(), w = s3.player.market.workshop.forgeron;
+    assert.equal(w.open, true); assert.equal(w.listed, true); assert.equal(w.prices[3], 200);
+    assert.ok(await page.locator('[data-dir-row="player"]').isVisible(), "tu es dans l'annuaire");
     await noCrash("commandes");
   });
 

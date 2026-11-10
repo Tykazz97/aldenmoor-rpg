@@ -12,7 +12,7 @@ import {
   sellerName, isMine, TAX_RATE, STEP_MS,
 } from "../../utils/market.js";
 import OrdersTab from "./OrdersTab.jsx";
-import { postOrder, cancelOrder, acceptOrder, myOrders } from "../../utils/orderActions.js";
+import { postOrder, cancelOrder, acceptOrder, myOrders, setWorkshop, syncWorkshop } from "../../utils/orderActions.js";
 import { PROFESSIONS, getCraftInfo } from "../../data/professions.js";
 import { LOTS, GROUPS, categoriesOf, categoryLabel, buyCatalog, sellCatalog, offerCounts, slotBoard, refOf } from "../../utils/marketBook.js";
 
@@ -371,6 +371,8 @@ export default function MarketPanel({ player, onPlayerChange }) {
   // Encaisse les ventes et récupère les annonces expirées : à l'ouverture, puis toutes les 30 s
   const settle = (announce = true) => {
     const s = settleMarket(ref.current, Date.now());
+    const synced = syncWorkshop(s.player);
+    if (synced !== s.player) { s.player = synced; if (!(s.earned > 0 || s.returned.length)) onPlayerChange(synced); }
     setNow(Date.now());
     if (s.earned > 0 || s.returned.length) {
       onPlayerChange(s.player);
@@ -394,8 +396,9 @@ export default function MarketPanel({ player, onPlayerChange }) {
   const post = (spec) => apply(postListing(player, spec, Date.now()), (r) => `Annonce publiée : ${r.listing.kind === "item" ? ITEMS[r.listing.rid].name : `${r.qty} × ${RESOURCES[r.listing.rid].name}`} à ${num(r.listing.unit)} or. Taxe payée : ${num(r.tax)} or.`, (why) => ({ prix: "Prix invalide.", limite: `Tous tes emplacements de vente sont pris (${board.total}).`, taxe: "Tu n'as pas assez d'or pour payer la taxe.", aucun: "Tu n'as plus cela dans ton sac." }[why] || "Impossible de publier."));
   const cancel = (id) => apply(cancelListing(player, id, Date.now()), () => "Annonce retirée, marchandise rendue (la taxe n'est pas remboursée).", () => "Annonce introuvable.");
 
-  const orderWhy = { ressources: "Il te manque des ingrédients.", or: "Pas assez d'or.", limite: "Trop de commandes ouvertes.", prix: "Salaire invalide.", niveau: "Ton niveau de métier est trop bas.", introuvable: "Cette commande n'existe plus (un autre artisan l'a prise ?).", indisponible: "Les artisans ne sont pas là pour l'instant." };
-  const orderPost = (item, fee) => apply(postOrder(player, { item, fee }, Date.now()), (r) => `Commande passée : ${ITEMS[item].name} pour ${num(r.order.fee)} or. Un artisan a 24 h pour la prendre.`, (why) => orderWhy[why] || "Impossible.");
+  const orderWhy = { ressources: "Il te manque des ingrédients.", or: "Pas assez d'or.", limite: "Trop de commandes ouvertes.", prix: "Salaire invalide.", niveau: "Ton niveau de métier est trop bas.", artisan: "Cet artisan ne propose plus cette pièce.", introuvable: "Cette commande n'existe plus (un autre artisan l'a prise ?).", indisponible: "Les artisans ne sont pas là pour l'instant." };
+  const orderPost = (item, fee, crafter = null) => apply(postOrder(player, { item, fee, crafter }, Date.now()), (r) => `Commande passée : ${ITEMS[item].name} pour ${num(r.order.fee)} or${crafter ? ` chez ${sellerName(crafter)}` : ""}. ${crafter ? "Il" : "Un artisan"} a 24 h pour la prendre.`, (why) => orderWhy[why] || "Impossible.");
+  const workshop = (profession, patch) => apply(setWorkshop(player, profession, patch, Date.now()), () => "Atelier mis à jour.", () => "Impossible.");
   const orderCancel = (id) => apply(cancelOrder(player, id, Date.now()), () => "Commande retirée : ingrédients et salaire te reviennent.", (why) => orderWhy[why] || "Impossible.");
   const orderAccept = (id) => apply(acceptOrder(player, id, Date.now()), (r) => `Fabriqué : ${ITEMS[r.order.item].name} pour ${sellerName(r.order.client)}. Salaire : +${num(r.fee)} or, et de l'xp de ${PROFESSIONS[getCraftInfo(r.order.item).profession]?.name || "métier"}.`, (why) => orderWhy[why] || "Impossible.");
 
@@ -413,7 +416,7 @@ export default function MarketPanel({ player, onPlayerChange }) {
       </div>
       {tab === "buy" && <BuyTab m={m} player={player} onBuy={buy} onBuyListing={buyListingFn} onBuyItem={buyItem} />}
       {tab === "sell" && <SellTab m={m} player={player} board={board} onPost={post} onGoMine={() => setTab("mine")} />}
-      {tab === "orders" && <OrdersTab m={m} player={player} onPost={orderPost} onCancel={orderCancel} onAccept={orderAccept} />}
+      {tab === "orders" && <OrdersTab m={m} player={player} onPost={orderPost} onCancel={orderCancel} onAccept={orderAccept} onWorkshop={workshop} />}
       {tab === "mine" && <MineTab m={m} board={board} onCancel={cancel} onGoSell={() => setTab("sell")} />}
     </div>
   );

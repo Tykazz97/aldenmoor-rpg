@@ -9,43 +9,20 @@
 //   - Elle est ouverte à tous les artisans : un simulé (de niveau suffisant, connecté, qui trouve le salaire correct) ou toi.
 //   - Les simulés commandent la pièce de leur palier qu'ils ne peuvent pas fabriquer (`orderTarget`, sim/lifeCraft.js), après
 //     avoir acheté les ingrédients à l'hôtel des ventes ; le salaire proposé suit leur caractère et monte après un refus.
-// m.orders = [{ id, client:"player"|"sim_001", item, mats:{ressource:qty}, fee, exp }]   (m = player.market, voir market.js)
+// m.orders = [{ id, client:"player"|"sim_001", item, mats:{ressource:qty}, fee, exp, crafter? }]   crafter : commande adressée à un artisan de l'annuaire (utils/workshop.js)   (m = player.market, voir market.js)
 // m.deliveries : livraisons à faire à un simulé quand c'est TOI l'artisan { client, rid, back } (appliquées au pas suivant)
 // ============================================================
-import { RECIPES } from "../data/recipes.js";
-import { RESOURCES } from "../data/resources.js";
-import { getCraftInfo } from "../data/professions.js";
-import { hashString } from "../sim/rng.js";
+import { hash01, orderInfo, simCanCraft, wageMin } from "./orderFee.js";
+export { orderFeeBase, orderInfo, simCanCraft, wageMin } from "./orderFee.js";
 import { isActive } from "../sim/lives.js";
 import { orderTarget, asPlayer, acquireItem } from "../sim/lifeCraft.js";
 import { applyCraft } from "./crafting.js";
+import { tarifFor } from "./workshop.js";
 
 export const ORDER_CFG = { enabled: true };      // faux : plus aucune commande (pour comparer, ou en cas de souci)
 export const ORDER_STEPS = 144;                 // une commande reste ouverte 24 h
 export const MAX_PLAYER_ORDERS = 3;
 export const MAX_ORDER_FEE = 1_000_000;
-const FEE_MATS = 0.10, FEE_LABOR = 0.35, MIN_FEE = 8;
-const hash01 = (s) => hashString(s) / 4294967296;
-
-// Salaire de référence d'une pièce : une part de ses ingrédients et de sa main-d'œuvre (la recette)
-export function orderFeeBase(itemId) {
-  const rec = RECIPES[itemId];
-  if (!rec) return 0;
-  const mats = Object.entries(rec.ingredients).reduce((n, [r, q]) => n + RESOURCES[r].value * q, 0);
-  return Math.max(MIN_FEE, Math.round(FEE_MATS * mats + FEE_LABOR * rec.gold));
-}
-// Ce qu'il faut pour commander cette pièce : { profession, minLevel, mats, fee }, ou null si on ne la fabrique pas
-export function orderInfo(itemId) {
-  const info = getCraftInfo(itemId), rec = RECIPES[itemId];
-  if (!info || !rec) return null;
-  return { profession: info.profession, minLevel: info.minLevel, mats: { ...rec.ingredients }, fee: orderFeeBase(itemId) };
-}
-// Un artisan simulé (niveau du métier) peut-il fabriquer cette pièce ?
-const levelOf = (life, profession) => (life.prof.key === profession ? life.prof.level : life.pro?.[profession]?.level ?? 1);
-export const simCanCraft = (life, itemId) => { const i = getCraftInfo(itemId); return !!i && levelOf(life, i.profession) >= i.minLevel; };
-// Le salaire minimum qu'un artisan simulé accepte (de 80 à 120 % du salaire de référence, selon son caractère)
-export const wageMin = (crafterId, itemId) => orderFeeBase(itemId) * (0.8 + 0.4 * hash01(`${crafterId}:wage`));
-
 // Livre la pièce au client (simulé ou toi) et lui rend les ingrédients qui n'ont pas servi
 function deliver(s, client, itemId, item, back = {}, uid = "") {
   if (client === "player") {
@@ -106,8 +83,8 @@ export function ordersStep(s, bucket, rng, population, tally) {
   if (s.orders.length) {
     const online = population.filter((b) => sims.lives[b.id] && isActive(b, bucket) && !(sims.busy?.[b.id] >= bucket));
     for (const o of s.orders.slice()) {
-      if (rng() > 0.6) continue;
-      const cands = online.filter((b) => b.id !== o.client && simCanCraft(sims.lives[b.id], o.item) && o.fee >= wageMin(b.id, o.item));
+      if (o.crafter === "player" || rng() > 0.6) continue;                  // adressée à toi : elle attend ton « Fabriquer »
+      const cands = online.filter((b) => (o.crafter ? b.id === o.crafter && simCanCraft(sims.lives[b.id], o.item) : b.id !== o.client && simCanCraft(sims.lives[b.id], o.item) && o.fee >= wageMin(b.id, o.item)));
       if (!cands.length) continue;
       const b = cands[Math.floor(rng() * cands.length)];
       if (craftBySim(s, o, b.id, rng)) { s.orders = s.orders.filter((x) => x.id !== o.id); tally(s, bucket, "orders"); }
@@ -124,11 +101,16 @@ export function ordersStep(s, bucket, rng, population, tally) {
     if (!item) continue;
     const info = orderInfo(item);
     if (!Object.entries(info.mats).every(([r, q]) => (life.bag.res[r] || 0) >= q)) continue;           // il n'a pas encore tous les ingrédients
-    const fee = Math.round(info.fee * (0.9 + 0.5 * hash01(`${b.id}:offer`)) * (1 + 0.25 * Math.min(4, life.orderFail || 0)));
+    // un artisan choisi dans l'annuaire (au tarif qu'il affiche, les moins chers de préférence) ; après deux refus, annonce ouverte à tous
+    let crafter = null, fee = Math.round(info.fee * (0.9 + 0.5 * hash01(`${b.id}:offer`)) * (1 + 0.25 * Math.min(4, life.orderFail || 0)));
+    if ((life.orderFail || 0) < 2 && rng() < 0.6) {
+      const cands = ["player", ...population.map((x) => x.id)].filter((id) => id !== b.id).map((id) => [id, tarifFor(s, id, item)]).filter(([, t]) => t != null && t <= life.gold);
+      if (cands.length) { [crafter, fee] = rng.weighted(cands.map(([id, t]) => [[id, t], 1 / (t * t)])); }
+    }
     if (life.gold < fee) continue;
     life.gold -= fee;
     for (const [r, q] of Object.entries(info.mats)) { life.bag.res[r] -= q; if (life.bag.res[r] <= 0) delete life.bag.res[r]; }
-    s.orders.push({ id: s.nextId++, client: b.id, item, mats: info.mats, fee, exp: bucket + ORDER_STEPS });
+    s.orders.push({ id: s.nextId++, client: b.id, item, mats: info.mats, fee, exp: bucket + ORDER_STEPS, ...(crafter ? { crafter } : {}) });
     tally(s, bucket, "ordersPosted");
   }
 }
