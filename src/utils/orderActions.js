@@ -6,7 +6,7 @@
 // Les pièces fabriquées pour toi arrivent comme les ventes de l'hôtel des ventes : au prochain settleMarket (marchandise à récupérer).
 // ============================================================
 import { settleMarket } from "./market.js";
-import { ORDER_STEPS, MAX_PLAYER_ORDERS, MAX_ORDER_FEE, orderInfo } from "./orders.js";
+import { ORDER_STEPS, MAX_PLAYER_ORDERS, MAX_ORDER_FEE, FREE_GOLD, netWage, orderInfo } from "./orders.js";
 import { applyCraft, professionOf } from "./crafting.js";
 import { tarifFor, withWorkshop, workshopOf, CRAFT_PROFESSIONS } from "./workshop.js";
 
@@ -50,7 +50,7 @@ export function cancelOrder(player, orderId, now = Date.now()) {
   return { ok: true, order: o, player: { ...p, resources, gold: p.gold + o.fee, market: { ...m, orders: m.orders.filter((x) => x.id !== o.id) } } };
 }
 
-// Peux-tu fabriquer cette commande ? null si oui, sinon la raison : "niveau" | "or" (la taxe de fabrication) | "introuvable"
+// Peux-tu fabriquer cette commande ? null si oui, sinon la raison : "niveau" | "introuvable" (la taxe d'atelier, 1 % du salaire, est retenue sur le salaire)
 export function acceptIssue(player, order) {
   const info = order && orderInfo(order.item);
   if (!info) return "introuvable";
@@ -65,15 +65,15 @@ export function acceptOrder(player, orderId, now = Date.now(), rng = Math.random
   const why = acceptIssue(p, o);
   if (why) return fail(p, why);
   // on fabrique sur une copie qui ne contient que les ingrédients du client : ni ton stock ni ton sac ne sont touchés
-  const temp = { ...p, resources: { ...o.mats }, inventory: [] };
+  const temp = { ...p, resources: { ...o.mats }, inventory: [], gold: FREE_GOLD };            // seuls le niveau et les ingrédients du client comptent ; la taxe d'atelier (1 %) est retenue sur le salaire
   const after = applyCraft(temp, o.item, `ord-${o.id}`, rng);
   if (after === temp) return fail(p, "or");
   const made = after.inventory[0];
   const next = {
-    ...after, resources: p.resources, inventory: p.inventory, gold: after.gold + o.fee,
+    ...after, resources: p.resources, inventory: p.inventory, gold: p.gold + netWage(o.fee),
     market: { ...m, orders: m.orders.filter((x) => x.id !== o.id), deliveries: [...(m.deliveries || []), { client: o.client, rid: o.item, back: after.resources }] },
   };
-  return { ok: true, order: o, made, fee: o.fee, xp: (after.professions[orderInfo(o.item).profession].xp || 0), player: next };
+  return { ok: true, order: o, made, fee: o.fee, net: netWage(o.fee), xp: (after.professions[orderInfo(o.item).profession].xp || 0), player: next };
 }
 
 // --- Ton atelier (annuaire) : voir utils/workshop.js ---

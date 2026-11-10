@@ -400,7 +400,7 @@ export default function MarketPanel({ player, onPlayerChange }) {
   const orderPost = (item, fee, crafter = null) => apply(postOrder(player, { item, fee, crafter }, Date.now()), (r) => `Commande passée : ${ITEMS[item].name} pour ${num(r.order.fee)} or${crafter ? ` chez ${sellerName(crafter)}` : ""}. ${crafter ? "Il" : "Un artisan"} a 24 h pour la prendre.`, (why) => orderWhy[why] || "Impossible.");
   const workshop = (profession, patch) => apply(setWorkshop(player, profession, patch, Date.now()), () => "Atelier mis à jour.", () => "Impossible.");
   const orderCancel = (id) => apply(cancelOrder(player, id, Date.now()), () => "Commande retirée : ingrédients et salaire te reviennent.", (why) => orderWhy[why] || "Impossible.");
-  const orderAccept = (id) => apply(acceptOrder(player, id, Date.now()), (r) => `Fabriqué : ${ITEMS[r.order.item].name} pour ${sellerName(r.order.client)}. Salaire : +${num(r.fee)} or, et de l'xp de ${PROFESSIONS[getCraftInfo(r.order.item).profession]?.name || "métier"}.`, (why) => orderWhy[why] || "Impossible.");
+  const orderAccept = (id) => apply(acceptOrder(player, id, Date.now()), (r) => `Fabriqué : ${ITEMS[r.order.item].name} pour ${sellerName(r.order.client)}. Salaire : +${num(r.net)} or (taxe d'atelier de 1 % : ${num(r.fee - r.net)} or), et de l'xp de ${PROFESSIONS[getCraftInfo(r.order.item).profession]?.name || "métier"}.`, (why) => orderWhy[why] || "Impossible.");
 
   const tabBtn = (key, label) => <button className={`hv-tab${tab === key ? " on" : ""}`} data-tab={key} onClick={() => setTab(key)}>{label}</button>;
 

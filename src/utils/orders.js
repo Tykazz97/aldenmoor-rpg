@@ -17,12 +17,17 @@ export { orderFeeBase, orderInfo, simCanCraft, wageMin } from "./orderFee.js";
 import { isActive } from "../sim/lives.js";
 import { orderTarget, asPlayer, acquireItem } from "../sim/lifeCraft.js";
 import { applyCraft } from "./crafting.js";
+import { taxFee } from "./cityTax.js";
 import { tarifFor } from "./workshop.js";
 
 export const ORDER_CFG = { enabled: true };      // faux : plus aucune commande (pour comparer, ou en cas de souci)
 export const ORDER_STEPS = 144;                 // une commande reste ouverte 24 h
 export const MAX_PLAYER_ORDERS = 3;
 export const MAX_ORDER_FEE = 1_000_000;
+export const FREE_GOLD = 1e9;                  // or fictif de la copie sur laquelle on fabrique (la taxe de fabrication habituelle n'est pas prélevée)
+// Taxe d'atelier : 1 % (le taux par défaut de la ville) du salaire de la commande, retenue sur ce que touche l'artisan (au moins 1 or)
+export const workshopTax = (fee) => taxFee(fee);
+export const netWage = (fee) => fee - workshopTax(fee);
 // Livre la pièce au client (simulé ou toi) et lui rend les ingrédients qui n'ont pas servi
 function deliver(s, client, itemId, item, back = {}, uid = "") {
   if (client === "player") {
@@ -53,10 +58,10 @@ function refund(s, o, bucket) {
 // Un artisan simulé fabrique la commande. Renvoie vrai si c'est fait.
 function craftBySim(s, o, crafterId, rng) {
   const life = s.sims.lives[crafterId];
-  const pl = { ...asPlayer(life), resources: { ...o.mats } };
+  const pl = { ...asPlayer(life), resources: { ...o.mats }, gold: FREE_GOLD };       // on fabrique sur une copie « riche » : seule la taxe d'atelier (1 % du salaire) est retenue
   const after = applyCraft(pl, o.item, `ord-${o.id}`, rng);
   if (after === pl) return false;
-  life.gold = after.gold + o.fee;
+  life.gold += netWage(o.fee);
   life.pro = Object.fromEntries(Object.keys(after.professions).filter((k) => k !== life.prof.key).map((k) => [k, after.professions[k]]));
   life.crafted = (life.crafted || 0) + 1;
   life.orderWages = (life.orderWages || 0) + o.fee;

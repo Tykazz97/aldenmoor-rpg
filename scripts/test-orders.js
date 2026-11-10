@@ -1,7 +1,7 @@
 // Tests des commandes d'artisanat :  node scripts/test-orders.js
 import assert from "node:assert/strict";
 import { newMarket, tickMarket, enableSimMarket, settleMarket, STEP_MS } from "../src/utils/market.js";
-import { orderInfo, orderFeeBase, wageMin, simCanCraft, ORDER_CFG, ORDER_STEPS, MAX_PLAYER_ORDERS } from "../src/utils/orders.js";
+import { orderInfo, orderFeeBase, wageMin, simCanCraft, ORDER_CFG, ORDER_STEPS, MAX_PLAYER_ORDERS, workshopTax } from "../src/utils/orders.js";
 import { postOrder, cancelOrder, acceptOrder, myOrders, openOrders, postOrderIssue, acceptIssue, setWorkshop, syncWorkshop } from "../src/utils/orderActions.js";
 import { CRAFT_PROFESSIONS, tiersOf, baseRate, defaultPrices, directory, tarifFor, simListed, simTarif, tierOfItem, piecesOf } from "../src/utils/workshop.js";
 import { orderTarget, orderShopping, tierFor } from "../src/sim/lifeCraft.js";
@@ -84,7 +84,7 @@ await test("un artisan simulé de niveau suffisant prend la commande : pièce li
   const winners = pop.filter((b) => (m.sims.lives[b.id].orderWages || 0) - wages0(b) >= 5000);
   assert.equal(winners.length, 1, "un seul artisan touche le salaire");
   const w = m.sims.lives[winners[0].id];
-  assert.ok(w.gold >= goldBefore[winners[0].id] + 5000 - 100, "il touche le salaire (moins la taxe d'atelier)");
+  assert.ok(w.gold >= goldBefore[winners[0].id] + 5000 - workshopTax(5000), "il touche le salaire moins 1 % de taxe d'atelier");
   assert.equal(w.crafted > 0, true);
   // récupération par le joueur comme une marchandise
   const s = settleMarket({ ...p2, market: m }, nowOf(m));
@@ -116,7 +116,10 @@ await test("le joueur est l'artisan : il fabrique pour un simulé avec ses ingr�
   const pro = player(cl, { resources: { plaque_noircie: 1 }, professions: { forgeron: { level: 30, xp: 0 } } });
   const a = acceptOrder(pro, id, nowOf(cl), () => 0.99);               // pas de chef-d'œuvre ni d'économie de matières
   assert.ok(a.ok, a.reason);
-  assert.ok(a.player.gold >= 5000 + 300 - 20 && a.player.gold <= 5300, "salaire touché, moins la petite taxe d'atelier");
+  assert.equal(workshopTax(300), 3);
+  assert.equal(a.player.gold, 5000 + 300 - 3, "salaire touché moins 1 % de taxe d'atelier");
+  const broke = acceptOrder({ ...pro, gold: 0 }, id, nowOf(cl), () => 0.99);
+  assert.ok(broke.ok && broke.player.gold === 297, "même sans un sou, il peut fabriquer (la taxe est retenue sur le salaire)");
   assert.deepEqual(a.player.resources, { plaque_noircie: 1 }, "ses propres ressources ne bougent pas");
   assert.equal(a.player.inventory.length, 0, "la pièce part chez le client");
   assert.ok(a.player.professions.forgeron.xp > 0 || a.player.professions.forgeron.level > 30, "xp de métier gagnée");
