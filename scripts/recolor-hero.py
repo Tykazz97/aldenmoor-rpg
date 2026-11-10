@@ -1,7 +1,7 @@
 """
 Recolore GRATUITEMENT les feuilles d'animation du héros pour fabriquer la tenue d'un set sans payer de génération Ludo.
 
-  python3 -I scripts/recolor-hero.py <tenue>          ex. fossoyeur
+  python3 -I scripts/recolor-hero.py <tenue>          ex. un nom de tenue défini dans OUTFITS
 Source  : public/assets/hero/<corps>/<tenue de base>/<action>.webp   (veteran pour les guerriers, traqueur pour les assassins, apprenti pour les mages)
 Sortie  : public/assets/hero/<corps>/<tenue>/<action>.webp  + métadonnées copiées dans src/data/heroAnims.json
 Chaque tenue décrit des règles de teinte : (zone de teinte, saturation) -> nouvelle teinte, saturation et luminosité.
@@ -22,15 +22,11 @@ def smooth(x, a, b):
 # Règles : chaque règle a un masque doux (poids 0..1) et une transformation.
 #   steel  = métal gris (peu saturé, ni noir ni blanc) ;  cloth = tissu coloré (teinte dans [h0,h1], saturation minimale)
 OUTFITS = {
-    "fossoyeur": {
-        "base": "veteran",
-        "rules": [
-            {"kind": "bone", "val": 0.86, "sat": 0.13, "hue": 42},                                  # armure : plaques d'os pâle (comme l'image de combat)
-            {"kind": "dark", "from": 0.0, "to": 0.17, "val": 0.15},                                  # heaume noir (le haut du personnage, dans chaque image)
-            {"kind": "dark", "from": 0.86, "to": 1.0, "val": 0.17},                                  # bottes noires (le bas)
-            {"kind": "cloth", "hue": (130, 210), "sat_min": 0.10, "to_hue": 28, "to_sat": 0.18, "val_add": -0.30, "val_mul": 0.60},   # tunique verdâtre -> cuir sombre
-        ],
-    },
+    # (aucune tenue pour l'instant : le Fossoyeur a de vraies animations Ludo, voir build-hero-outfit.py.) Exemple de règles :
+    # "nom_du_set": {"base": "veteran", "rules": [
+    #     {"kind": "bone", "val": 0.86, "sat": 0.13, "hue": 42},                 # métal gris -> os pâle
+    #     {"kind": "dark", "from": 0.0, "to": 0.17, "val": 0.15},                # haut du personnage (heaume) très sombre
+    #     {"kind": "cloth", "hue": (130, 210), "sat_min": 0.10, "to_hue": 28, "to_sat": 0.18, "val_add": -0.30, "val_mul": 0.60}]},
 }
 
 def rgb_to_hsv(rgb):
