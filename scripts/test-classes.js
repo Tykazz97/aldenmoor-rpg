@@ -63,12 +63,22 @@ test("tenues proposées : celle de la classe, base, et les sets possédés", () 
   assert.deepEqual(availableOutfits(q).sort(), ["apprenti", "base", "veteran"]);
 });
 
+test("carte : chaque tenue a de quoi calculer sa taille d'affichage (un NaN rend le héros et les simulés invisibles)", () => {
+  const src = readFileSync("src/data/heroAnims.js", "utf8");
+  const used = [...src.matchAll(/\bm\.(\w+)/g)].map((x) => x[1]);          // les champs lus par heroFrameLayout
+  assert.ok(used.includes("pngH"), "heroFrameLayout lit la hauteur de feuille");
+  for (const look of Object.keys(ANIMS)) {
+    for (const k of used) assert.ok(typeof ANIMS[look][k] === "number" || Array.isArray(ANIMS[look][k]), `${look} : champ « ${k} » absent de heroAnims.json`);
+    assert.ok(ANIMS[look].pngH > 0 && ANIMS[look].scale > 0, look);
+  }
+});
+
 test("corps féminin : images de combat et animations présentes pour chaque tenue", () => {
   for (const o of ["base", "veteran", "apprenti", "traqueur"]) {
     assert.equal(heroSpriteUrl(`f/${o}`), `/assets/combat/hero/f/${o}.webp`);
     assert.ok(existsSync(`public/assets/combat/hero/f/${o}.webp`));
     for (const a of ["walk", "mine", "chop", "herb"]) assert.ok(existsSync(`public/assets/hero/f/${o}/${a}.webp`), `f/${o}/${a}`);
-    assert.ok(ANIMS[`f/${o}`].actions.walk && ANIMS[`f/${o}`].webpH === ANIMS[`m/${o}`].webpH);
+    assert.ok(ANIMS[`f/${o}`].actions.walk && ANIMS[`f/${o}`].pngH === ANIMS[`m/${o}`].pngH);
   }
 });
 

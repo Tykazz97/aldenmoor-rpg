@@ -344,6 +344,9 @@ try {
   await step("Carte du monde et portail : on rejoint chaque région et on revient en ville", async () => {
     await open({ s: fresh() });
     await tab("Carte").click(); await page.waitForTimeout(1200);
+    // le héros a une taille à l'écran (une taille NaN le rendait invisible, lui et les simulés des régions)
+    const heroBox = await page.evaluate(() => { const r = document.querySelector(".mp-ent .mp-hero-anim")?.getBoundingClientRect(); return r ? [Math.round(r.width), Math.round(r.height)] : null; });
+    assert.ok(heroBox && heroBox[0] > 20 && heroBox[1] > 20, `taille du héros à l'écran : ${JSON.stringify(heroBox)}`);
     await clickMap(".mp-building", "Portail"); await page.waitForTimeout(1500);
     // le portail ouvre la carte du monde
     if (!(await page.locator(".wm").count())) { await page.locator("button", { hasText: "Carte du monde" }).click(); await page.waitForTimeout(500); }
@@ -360,6 +363,10 @@ try {
     await page.locator("button", { hasText: "Carte du monde" }).click(); await page.waitForTimeout(400);
     await page.locator(".wm-spot", { hasText: "Prairies Sauvages" }).first().click(); await page.waitForTimeout(2000);
     assert.ok((await page.locator(".mp-group").count()) > 0, "des groupes de monstres sur la carte");
+    // dans une région : le héros ET les aventuriers simulés ont une taille valide (leurs sprites sont masqués jusqu'à leur arrivée, d'où le contrôle du style)
+    const bad = await page.evaluate(() => [...document.querySelectorAll(".mp-hero-anim")].filter((e) => /NaN|Infinity/.test(e.getAttribute("style") || "")).length);
+    assert.equal(bad, 0, "aucun sprite de personnage avec une taille invalide");
+    assert.ok((await page.locator(".mp-sim .mp-hero-anim").count()) > 0, "des aventuriers simulés sont présents dans la région");
     assert.ok(await page.locator(".mp-minimap, .mp-mini").count() >= 0);
   });
 

@@ -19,7 +19,7 @@ export const heroSheetUrl = (look, action) => `/assets/hero/${resolveLook(look)}
 // Taille d'affichage d'une frame et position du point d'appui (en unités de sprite)
 export function heroFrameLayout(look) {
   const m = heroAnimMeta(look);
-  const k = HERO_HEIGHT_CQ / m.webpH / m.scale;       // unités de sprite par pixel de feuille
+  const k = HERO_HEIGHT_CQ / m.pngH / m.scale;       // unités de sprite par pixel de feuille
   return { w: m.w * k, h: m.h * k, ax: m.anchor[0] * k, ay: m.anchor[1] * k };
 }
 
