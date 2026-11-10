@@ -18,6 +18,7 @@ import { applyCraft, applyRefine, professionOf } from "../utils/crafting.js";
 import { itemSellPrice } from "../utils/itemValue.js";
 import { BUILDS, tierOf } from "./partyBots.js";
 import { TIERS } from "../data/tiers.js";
+import { orderFeeBase } from "../utils/orderFee.js";
 import { UPGRADE_BONUS } from "../data/upgrade.js";
 import { plusValueFactor } from "../utils/upgrade.js";
 
@@ -168,8 +169,10 @@ export function orderShopping(life, bot) {
   const id = orderTarget(life, bot);
   if (!id) return {};
   const want = {};
-  for (const [r, q] of Object.entries(RECIPES[id].ingredients)) { const need = q - (life.bag.res[r] || 0); if (need > 0) want[r] = need; }
-  return want;
+  let price = 0;
+  for (const [r, q] of Object.entries(RECIPES[id].ingredients)) { const need = q - (life.bag.res[r] || 0); if (need > 0) { want[r] = need; price += need * RESOURCES[r].value; } }
+  // un simulé fauché n'achète pas d'ingrédients pour une commande qu'il ne pourrait pas payer : il continue de farmer et de fabriquer lui-même
+  return life.gold >= price + Math.ceil(orderFeeBase(id)) ? want : {};
 }
 
 // Un essai de fabrication : le plus utile qu'il sache faire. Renvoie l'id fabriqué ou null.
