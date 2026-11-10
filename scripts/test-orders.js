@@ -24,7 +24,7 @@ const nowOf = (m) => m.bucket * STEP_MS;
 await test("une commande : métier, niveau, ingrédients de la recette et salaire de référence", () => {
   assert.equal(info.profession, "forgeron"); assert.equal(info.minLevel, 18);
   assert.deepEqual(info.mats, RECIPES[ITEM].ingredients);
-  assert.ok(info.fee >= 8 && info.fee === orderFeeBase(ITEM));
+  assert.ok(info.fee >= 3 && info.fee === orderFeeBase(ITEM));
   assert.equal(orderInfo("epee_inconnue"), null);
   const w = wageMin("sim_001", ITEM); assert.ok(w >= info.fee * 0.8 - 1e-9 && w <= info.fee * 1.2 + 1e-9);
 });

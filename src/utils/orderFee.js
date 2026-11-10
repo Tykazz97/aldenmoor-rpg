@@ -8,7 +8,7 @@ import { getCraftInfo } from "../data/professions.js";
 import { hashString } from "../sim/rng.js";
 
 export const hash01 = (s) => hashString(s) / 4294967296;
-const FEE_MATS = 0.10, FEE_LABOR = 0.35, MIN_FEE = 8;
+const FEE_MATS = 0.04, FEE_LABOR = 0.15, MIN_FEE = 3;       // environ 8 % de la valeur de la pièce
 
 // Salaire de référence d'une pièce : une part de ses ingrédients et de sa main-d'œuvre (la recette)
 export function orderFeeBase(itemId) {
