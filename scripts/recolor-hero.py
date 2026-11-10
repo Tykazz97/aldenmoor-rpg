@@ -25,8 +25,10 @@ OUTFITS = {
     "fossoyeur": {
         "base": "veteran",
         "rules": [
-            {"kind": "steel", "val_mul": 0.74},                                                    # armure : métal plus sombre
-            {"kind": "cloth", "hue": (130, 210), "sat_min": 0.10, "to_hue": 44, "to_sat": 0.20, "val_add": 0.10, "val_mul": 1.10},   # tunique verdâtre -> os
+            {"kind": "bone", "val": 0.86, "sat": 0.13, "hue": 42},                                  # armure : plaques d'os pâle (comme l'image de combat)
+            {"kind": "dark", "from": 0.0, "to": 0.17, "val": 0.15},                                  # heaume noir (le haut du personnage, dans chaque image)
+            {"kind": "dark", "from": 0.86, "to": 1.0, "val": 0.17},                                  # bottes noires (le bas)
+            {"kind": "cloth", "hue": (130, 210), "sat_min": 0.10, "to_hue": 28, "to_sat": 0.18, "val_add": -0.30, "val_mul": 0.60},   # tunique verdâtre -> cuir sombre
         ],
     },
 }
@@ -49,13 +51,33 @@ def hsv_to_rgb(h, s, v):
     r = np.choose(i, [v, q, p, p, t, v]); g = np.choose(i, [t, v, v, q, p, p]); b = np.choose(i, [p, p, t, v, v, q])
     return np.stack([r, g, b], -1)
 
-def recolor(img, rules):
+def recolor(img, rules, cols=1, rows=1):
     a = np.asarray(img.convert("RGBA")).astype(np.float64) / 255.0
     rgb, alpha = a[..., :3], a[..., 3]
     h, s, v = rgb_to_hsv(rgb)
     H, S, V = h.copy(), s.copy(), v.copy()
+    steel = (1 - smooth(s, 0.10, 0.22)) * smooth(v, 0.18, 0.34) * (1 - smooth(v, 0.92, 0.99))     # masque doux du métal gris
+    # position verticale relative de chaque pixel dans le personnage de SON image (0 = sommet, 1 = pieds)
+    ht, wd = alpha.shape; fh, fw = ht // rows, wd // cols
+    rel = np.zeros_like(alpha)
+    for r in range(rows):
+        for c in range(cols):
+            cell = alpha[r * fh:(r + 1) * fh, c * fw:(c + 1) * fw]; ys = np.where(cell.max(1) > 0.3)[0]
+            if len(ys) < 2: continue
+            top, bot = ys[0], ys[-1]
+            rel[r * fh:(r + 1) * fh, c * fw:(c + 1) * fw] = np.clip((np.arange(fh)[:, None] - top) / max(bot - top, 1), 0, 1) * np.ones((1, fw))
     for ru in rules:
-        if ru["kind"] == "steel":
+        if ru["kind"] == "bone":
+            w = steel * (1 - smooth(v, 0.66, 0.78))                          # les lames (acier clair) restent de l'acier
+            H = H * (1 - w) + ru["hue"] * w
+            S = S * (1 - w) + ru["sat"] * w
+            V = V * (1 - w) + np.clip(0.55 + V * 0.5, 0, 1) * ru["val"] / 0.86 * w          # garde le relief des plaques
+        elif ru["kind"] == "dark":
+            band = smooth(rel, ru["from"] - 0.008, ru["from"] + 0.008) * (1 - smooth(rel, ru["to"] - 0.008, ru["to"] + 0.008)) if ru["from"] > 0 else (1 - smooth(rel, ru["to"] - 0.008, ru["to"] + 0.008))
+            w = np.clip(band * (alpha > 0.3), 0, 1) * np.clip(steel + (1 - smooth(s, 0.0, 0.4)) * 0.8, 0, 1)
+            V = V * (1 - w) + V * 0.30 * w + ru["val"] * 0.5 * w
+            S = S * (1 - 0.5 * w)
+        elif ru["kind"] == "steel":
             w = (1 - smooth(s, 0.10, 0.22)) * smooth(v, 0.18, 0.34) * (1 - smooth(v, 0.92, 0.99))
             V = V * (1 - w) + (V * ru["val_mul"]) * w
             S = S * (1 - 0.6 * w)                                   # le métal perd son reflet verdâtre
@@ -78,7 +100,8 @@ if __name__ == "__main__":
         dst = os.path.join(HERO, body, name); os.makedirs(dst, exist_ok=True)
         for act in ACTIONS:
             im = Image.open(os.path.join(src, act + ".webp"))
-            recolor(im, cfg["rules"]).save(os.path.join(dst, act + ".webp"), "WEBP", quality=88, method=6)
+            m0 = meta.get(f"{body}/{cfg['base']}", {}).get("actions", {}).get(act, {})
+            recolor(im, cfg["rules"], m0.get("cols", 1), m0.get("rows", 1)).save(os.path.join(dst, act + ".webp"), "WEBP", quality=88, method=6)
         if f"{body}/{cfg['base']}" in meta: meta[f"{body}/{name}"] = meta[f"{body}/{cfg['base']}"]
     json.dump(meta, open(META, "w"), indent=1, ensure_ascii=False)
     print("ok", name)
