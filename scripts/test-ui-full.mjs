@@ -135,6 +135,34 @@ try {
     await noCrash("nouveau perso");
   });
 
+  await step("Équipement : une pièce d'un palier trop haut ne s'équipe pas avant son niveau (sac et fiche), puis s'équipe", async () => {
+    const { ITEMS } = await import("../src/data/items.js");
+    const piece = (id) => ({ ...structuredClone(ITEMS[id]), uid: `t-${id}` });
+    const mk = (level) => { const s = fresh(); s.player.level = level; s.player.equipped = { ...s.player.equipped, chapeau: null }; s.player.inventory = [piece("chapeau_fossoyeur")]; return s; };   // palier 2 : niveau 8
+    await open({ s: mk(5) });
+    await tab("Personnage").click(); await page.waitForTimeout(500);
+    const card = page.locator("[data-equip-locked]").first();
+    assert.ok(await card.count(), "la pièce est marquée « niveau requis » dans l'inventaire de la fiche");
+    assert.match(await card.innerText(), /Niveau 8 requis/);
+    await card.click({ force: true }).catch(() => {}); await page.waitForTimeout(500);
+    let s1 = await save();
+    assert.equal(s1.player.equipped.chapeau, null, "rien n'est équipé au niveau 5");
+    assert.equal(s1.player.inventory.length, 1, "la pièce reste dans le sac");
+    await tab("Sac").click(); await page.waitForTimeout(400);
+    const lockedBtn = page.locator("button[data-equip-locked]").first();
+    assert.ok(await lockedBtn.isDisabled(), "bouton du sac désactivé");
+    assert.match(await lockedBtn.innerText(), /Niv\. 8/);
+    await noCrash("équipement verrouillé");
+    // au niveau 8 : la même pièce s'équipe
+    await open({ s: mk(8) });
+    await tab("Personnage").click(); await page.waitForTimeout(500);
+    assert.equal(await page.locator("[data-equip-locked]").count(), 0, "plus de verrou au niveau 8");
+    await page.locator("[data-bag-item], button", { hasText: "Heaume du Fossoyeur" }).first().click(); await page.waitForTimeout(500);
+    s1 = await save();
+    assert.equal(s1.player.equipped.chapeau?.id, "chapeau_fossoyeur", "équipée au niveau 8");
+    await noCrash("équipement au niveau requis");
+  });
+
   // ---------- la ville ----------
   await step("Ville : chaque bâtiment s'ouvre dans sa fenêtre et se referme", async () => {
     await open({ s: fresh() });

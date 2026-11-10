@@ -1,4 +1,5 @@
 import { creditPlayerFight } from "../utils/sentinel.js";
+import { equipOn } from "../utils/equip.js";
 import { creditGroup } from "../utils/group.js";
 import { applyUpgrade } from "../utils/upgrade.js";
 import { useState, useMemo, useCallback } from "react";
@@ -20,35 +21,7 @@ export function usePlayer(initial) {
   // recalcul à chaque render qui ralentissait l'ancienne version)
   const stats = useMemo(() => calcStats(player), [player]);
 
-  const equipItem = useCallback((item) => {
-    setPlayer((prev) => {
-      const slot = item.type; // ex: "chapeau", "arme", "bouclier"
-      if (!(slot in prev.equipped)) return prev;   // clés et autres objets sans emplacement : ne s'équipent pas
-      const previousItem = prev.equipped[slot];
-      const newEquipped = { ...prev.equipped, [slot]: item };
-      let newInventory = prev.inventory.filter((i) => i.uid !== item.uid);
-
-      // L'item déjà présent dans ce slot (s'il y en avait un) retourne
-      // dans l'inventaire au lieu de disparaître.
-      if (previousItem) {
-        newInventory = [...newInventory, previousItem];
-      }
-
-      // Règle armes à deux mains : équiper une arme twoHanded déséquipe
-      // automatiquement le bouclier (retourné dans l'inventaire).
-      if (slot === "arme" && item.twoHanded && prev.equipped.bouclier) {
-        newInventory = [...newInventory, prev.equipped.bouclier];
-        newEquipped.bouclier = null;
-      }
-      // Inversement : équiper un bouclier alors qu'une arme à deux mains
-      // est en place n'est pas autorisé — on ignore l'action.
-      if (slot === "bouclier" && prev.equipped.arme?.twoHanded) {
-        return prev;
-      }
-
-      return bagGuard(prev, { ...prev, equipped: newEquipped, inventory: newInventory });   // l'ancienne pièce (et le bouclier) reviennent au sac : il faut de la place
-    });
-  }, []);
+  const equipItem = useCallback((item) => setPlayer((prev) => equipOn(prev, item)), []);
 
   // Apparence cosmétique : null = suit l'équipement
   const setAppearance = useCallback((outfit) => setPlayer((prev) => ({ ...prev, appearance: outfit || null })), []);

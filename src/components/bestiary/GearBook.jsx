@@ -9,6 +9,7 @@ import {
   SLOT_LABEL, itemStats, setClass, classLabel, setTier, setTotals, recipeOf, resourceSources, itemDrops, gearSections, gearMatches, weaponLabel,
 } from "../../utils/gearbook.js";
 import { ITEM_COLOR, Portrait, Pill, StatCell, Section, num } from "./parts.jsx";
+import { equipLevelOf } from "../../utils/equipReq.js";
 
 // Équipements : tous les sets, armes, boucliers, accessoires et reliques, avec leurs stats, leur recette de fabrication
 // (ressources, métier, niveau) et d'où viennent ces ressources. Les pourcentages de butin suivent ton bonus et ton groupe.
@@ -138,6 +139,7 @@ function Detail({ item, player, dropBonus, group, onPick }) {
             <Pill c={color.mist}>{item.type === "arme" ? `${weaponLabel(item)}${item.twoHanded ? " · deux mains" : ""}` : SLOT_LABEL[item.type]}</Pill>
             {cls && <Pill c={color.success}>{CLASSES[cls]?.label || cls}</Pill>}
             {item.tier && <Pill c={color.gold}>Palier {item.tier}</Pill>}
+            {equipLevelOf(item) > 1 && <Pill c={color.parchmentDim}>Équipable dès le niveau {equipLevelOf(item)}</Pill>}
           </div>
           <div style={{ fontFamily: font.display, fontSize: 24, color: color.goldBright, margin: "8px 0 4px" }}>{item.name}</div>
           {set && <div style={{ fontSize: 12, color: set.color }}>Pièce du set « {set.name} »</div>}

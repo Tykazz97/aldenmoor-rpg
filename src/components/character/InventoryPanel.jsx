@@ -2,6 +2,7 @@ import { itemLabel } from "../../utils/upgrade.js";
 import BannerHeader from "../shared/BannerHeader.jsx";
 import { color, border, radius } from "../../styles/theme.js";
 import { itemStatLines } from "../../utils/itemText.js";
+import { canEquipAtLevel, equipLockText } from "../../utils/equipReq.js";
 
 const RARITY_COLORS = {
   commune: "#9a95a8",
@@ -10,15 +11,18 @@ const RARITY_COLORS = {
   legendaire: "#d9b568",
 };
 
-function ItemCard({ item, onEquip }) {
+function ItemCard({ item, onEquip, level }) {
+  const locked = !canEquipAtLevel(item, level);
   const rarityColor = RARITY_COLORS[item.rarity] || color.parchmentDim;
 
   const statLines = itemStatLines(item);
 
   return (
     <button
-      onClick={() => onEquip(item)}
+      onClick={() => !locked && onEquip(item)}
+      {...(locked ? { "data-equip-locked": true, title: equipLockText(item), "aria-disabled": true } : {})}
       style={{
+        opacity: locked ? 0.55 : 1, cursor: locked ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", gap: 10,
         padding: 10, width: "100%",
         background: color.panel, border: `1px solid ${rarityColor}44`,
@@ -43,12 +47,13 @@ function ItemCard({ item, onEquip }) {
           {itemLabel(item)}
         </div>
         <div style={{ fontSize: 10, color: color.mist }}>{statLines.join(" · ")}</div>
+        {locked && <div style={{ fontSize: 10, color: "#e0796a" }}>{equipLockText(item)}</div>}
       </div>
     </button>
   );
 }
 
-export default function InventoryPanel({ inventory, onEquip, used = null, capacity = null }) {
+export default function InventoryPanel({ inventory, onEquip, level = 1, used = null, capacity = null }) {
   const full = capacity !== null && used >= capacity;
   return (
     <div style={{ background: color.panel, borderRadius: radius.lg, border, overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -60,7 +65,7 @@ export default function InventoryPanel({ inventory, onEquip, used = null, capaci
             Ton sac est vide.
           </div>
         ) : (
-          inventory.map((item) => <ItemCard key={item.uid} item={item} onEquip={onEquip} />)
+          inventory.map((item) => <ItemCard key={item.uid} item={item} onEquip={onEquip} level={level} />)
         )}
       </div>
     </div>

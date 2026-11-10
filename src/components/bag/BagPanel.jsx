@@ -4,6 +4,7 @@ import { RESOURCES, RESOURCE_ORDER, RESOURCE_RARITIES } from "../../data/resourc
 import { itemStatLines } from "../../utils/itemText.js";
 import { itemLabel } from "../../utils/upgrade.js";
 import { bagCapacity, bagUsed, bagFree, nextBagCost, BAG_STEP } from "../../utils/bag.js";
+import { canEquipAtLevel, equipLockText, equipLevelOf } from "../../utils/equipReq.js";
 import { bankFree, bankOf } from "../../utils/bank.js";
 
 const RARITY = { commune: "#9a95a8", rare: "#5fa3c4", epique: "#a855f7", legendaire: "#d9b568" };
@@ -71,7 +72,7 @@ export default function BagPanel({ player, onEquip, bank, bag }) {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 14, flex: 1, minHeight: 0 }}>
         <Column title="Objets" count={player.inventory.length} empty="Aucun objet dans ton sac.">
           {player.inventory.map((item) => {
-            const c = RARITY[item.rarity] || color.parchmentDim, canEquip = item.type in player.equipped;
+            const c = RARITY[item.rarity] || color.parchmentDim, canEquip = item.type in player.equipped, locked = !canEquipAtLevel(item, player.level);
             return (
               <div key={item.uid} data-bag-item={item.uid} style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, background: color.panel, border: `1px solid ${c}44`, borderRadius: radius.md }}>
                 <Icon src={item.img} name={item.name} />
@@ -79,7 +80,9 @@ export default function BagPanel({ player, onEquip, bank, bag }) {
                   <div style={{ fontSize: 12, fontWeight: 600, color: c, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{itemLabel(item)}</div>
                   <div style={{ fontSize: 10, color: color.mist }}>{itemStatLines(item).join(" · ")}</div>
                 </div>
-                {canEquip && <button style={mini} onClick={() => onEquip(item)}>Équiper</button>}
+                {canEquip && (locked
+                  ? <button data-equip-locked style={{ ...mini, ...off }} disabled title={equipLockText(item)}>Niv. {equipLevelOf(item)}</button>
+                  : <button style={mini} onClick={() => onEquip(item)}>Équiper</button>)}
                 <button data-bag-deposit-item style={{ ...mini, ...(bankRoom < 1 ? off : null) }} disabled={bankRoom < 1} title={bankRoom < 1 ? "Le coffre est plein" : "Ranger au coffre d'Aldenmoor"} onClick={() => bank.depositItem(item.uid)}>Coffre</button>
               </div>
             );

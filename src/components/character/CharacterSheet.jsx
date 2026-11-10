@@ -70,7 +70,7 @@ export default function CharacterSheet({ player, stats, onEquipSlotClick, onUneq
           <StatsPanel player={player} stats={stats} onAddCaracPoint={onAddCaracPoint} />
           <SpellsPanel player={player} spellbook={spellbook} />
         </div>
-        <InventoryPanel inventory={player.inventory} onEquip={onEquipItem} used={bagUsed(player)} capacity={bagCapacity(player)} />
+        <InventoryPanel inventory={player.inventory} onEquip={onEquipItem} level={player.level} used={bagUsed(player)} capacity={bagCapacity(player)} />
       </div>
     </div>
   );
