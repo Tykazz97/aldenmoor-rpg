@@ -110,6 +110,8 @@ Chaque région a son équipement, fabriqué avec ses drops (`src/data/gearTiers.
 
 Les trophées des boss donnent des objets communs à toutes les classes, fabriqués par le **Bijoutier** (nouveau métier : anneau du Cavalier Déchu, amulette de l'Armure Maudite, amulette du Cœur de Braise) et le Tailleur (cape de l'Épouvantail Ancestral). Un set de palier supérieur demande un niveau de métier plus élevé (+3 au palier 2, +6 au palier 3, voir `professions.js`). Les emplacements de reliques restent vides pour l'instant, réservés aux futurs boss. `test-gear.js` vérifie les paliers (stats croissantes, métiers, effets de combat).
 
+Lisière des Ombres : la carte a été dégagée (forêt amincie, passages élargis, petits rochers et arbres morts isolés retirés, de 40 % à 31 % de tuiles bloquées hors cadre) pour qu'on s'y déplace sans se coincer ; les gros bois sombres, l'étang et le cadre de forêt restent. Aucun groupe, nœud ni bâtiment n'a bougé.
+
 ## Le Veilleur Corrompu (boss de la Lisière)
 
 Tout au bout de la carte de la Lisière des Ombres, dans le coin est. Il réapparaît au même rythme que les autres groupes (un groupe peut avoir son propre `respawnMs` dans `maps.js`, mais le Veilleur n'en a pas). Trois temps de combat :
