@@ -145,10 +145,10 @@ accessory("cape_epouvantail", "Cape de l'Épouvantail Ancestral", "cape", "epiqu
 accessory("amulette_coeur_de_braise", "Amulette du Cœur de Braise", "amulette", "epique", { atk_phys: 8, atk_magie: 8, critique: 3, hp: 20 }, 9);
 // Bijoux d'apprentissage du bijoutier : des lingots communs (pas de trophée de boss), pour que le métier puisse monter jusqu'aux bijoux des boss
 // (niveaux 9 et 18). Petites statistiques. Les icônes sont celles des bijoux de boss en attendant des dessins à eux.
-accessory("anneau_cuivre", "Anneau de Cuivre", "anneau", "commune", { hp: 8, esquive: 1 }, 1, "anneau_cavalier");
-accessory("amulette_fer", "Amulette de Fer", "amulette", "commune", { def_phys: 3, def_magie: 2, hp: 10 }, 4, "amulette_armure_maudite");
-accessory("anneau_fer", "Anneau de Fer", "anneau", "commune", { atk_phys: 3, atk_magie: 3, hp: 8 }, 8, "anneau_cavalier");
-accessory("amulette_cuivre", "Amulette de Cuivre", "amulette", "commune", { def_phys: 4, def_magie: 4, critique: 1, hp: 14 }, 12, "amulette_armure_maudite");
+accessory("anneau_cuivre", "Anneau de Cuivre", "anneau", "commune", { hp: 8, esquive: 1 }, 1);
+accessory("amulette_fer", "Amulette de Fer", "amulette", "commune", { def_phys: 3, def_magie: 2, hp: 10 }, 4);
+accessory("anneau_fer", "Anneau de Fer", "anneau", "commune", { atk_phys: 3, atk_magie: 3, hp: 8 }, 8);
+accessory("amulette_cuivre", "Amulette de Cuivre", "amulette", "commune", { def_phys: 4, def_magie: 4, critique: 1, hp: 14 }, 12);
 
 // ============================================================
 // RECETTES — comme au palier 1, la ressource rare n'est demandée que pour le plastron.
