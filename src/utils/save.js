@@ -7,7 +7,11 @@
 //   - de FILET quand la page se ferme (l'écriture IndexedDB n'est alors pas garantie) : la copie est reprise au chargement suivant ;
 //   - de REPLI si l'IndexedDB est indisponible (navigation privée de certains navigateurs…) : on retombe sur l'ancien comportement.
 // La plus récente des deux copies gagne. Versionnée : si le format change on migre (ou on ignore) au lieu de planter.
+// FRESH START : chaque sauvegarde porte l'`epoch` du monde (SIM_START, sim/config.js) ; une sauvegarde d'un autre epoch est ignorée (les
+// sauvegardes d'avant ce champ valent l'epoch 1). Changer l'epoch fait donc repartir de zéro le joueur ET les simulés : il faut refaire un personnage.
 // ============================================================
+import { SIM_START } from "../sim/config.js";
+
 export const SAVE_KEY = "aldenmoor:save";
 export const SAVE_VERSION = 1;
 export const DB_NAME = "aldenmoor";
@@ -16,7 +20,7 @@ const STORE = "kv", IDB_KEY = "save";
 const parse = (raw) => {
   try {
     const data = typeof raw === "string" ? JSON.parse(raw) : null;
-    return data && data.version === SAVE_VERSION && data.player && data.player.classKey ? data : null;
+    return data && data.version === SAVE_VERSION && data.player && data.player.classKey && (data.epoch ?? 1) === SIM_START.epoch ? data : null;
   } catch { return null; }
 };
 
@@ -83,7 +87,7 @@ async function flushPending() {
   if (db && (await idbPut(db, raw))) return true;
   return writeLocal(raw);                                                  // IndexedDB indisponible ou en échec : repli
 }
-const serialize = (player, world) => JSON.stringify({ version: SAVE_VERSION, savedAt: Date.now(), player, world });
+const serialize = (player, world) => JSON.stringify({ version: SAVE_VERSION, epoch: SIM_START.epoch, savedAt: Date.now(), player, world });
 
 export function writeSave(player, world) {
   try { pendingRaw = serialize(player, world); } catch { return Promise.resolve(false); }
@@ -112,7 +116,7 @@ export function clearSave() {
 export const settleSave = () => chain;
 
 // Export / import d'un fichier de sauvegarde (texte JSON)
-export const exportSave = (player, world) => JSON.stringify({ version: SAVE_VERSION, savedAt: Date.now(), player, world }, null, 1);
+export const exportSave = (player, world) => JSON.stringify({ version: SAVE_VERSION, epoch: SIM_START.epoch, savedAt: Date.now(), player, world }, null, 1);
 
 export function parseSave(text) {
   return parse(text);

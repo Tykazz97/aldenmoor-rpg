@@ -116,6 +116,27 @@ await test("données abîmées ou d'une autre version : ignorées, sans planter"
   assert.equal(d.player.gold, 12);
 });
 
+await test("fresh start : une sauvegarde d'un autre epoch est ignorée (le joueur repart de zéro avec les simulés) ; celles d'avant le champ valent l'epoch 1", async () => {
+  await reset();
+  const { SIM_START } = await import("../src/sim/config.js");
+  const e0 = SIM_START.epoch;
+  try {
+    const old = JSON.stringify({ version: 1, savedAt: 1, player: player({ gold: 7 }), world });          // sans champ epoch : epoch 1
+    assert.equal(!!parseSave(old), e0 === 1, "une ancienne sauvegarde vaut l'epoch 1");
+    const mine = exportSave(player({ gold: 8 }), world);
+    assert.equal(JSON.parse(mine).epoch, e0, "une sauvegarde porte l'epoch du monde");
+    assert.equal(parseSave(mine).player.gold, 8);
+    SIM_START.epoch = 1_800_000_000_000;                                                                   // le jour J : un nouvel epoch
+    assert.equal(parseSave(old), null, "l'ancienne sauvegarde est ignorée");
+    assert.equal(parseSave(mine), null, "celle de l'ancien epoch aussi");
+    store.set(SAVE_KEY, mine);
+    assert.equal(await loadSave(), null, "au chargement : pas de partie, on refait un personnage");
+    await writeSave(player({ gold: 9 }), world); await settleSave();
+    assert.equal(JSON.parse(await idbRaw()).epoch, 1_800_000_000_000, "la nouvelle partie porte le nouvel epoch");
+    assert.equal((await loadSave()).player.gold, 9, "et elle se recharge");
+  } finally { SIM_START.epoch = e0; }
+}, );
+
 await test("sans IndexedDB (navigation privée, vieux navigateur) : repli sur le localStorage comme avant", async () => {
   await reset();
   const saved = globalThis.indexedDB; delete globalThis.indexedDB;

@@ -10,7 +10,8 @@ export const SIM_ON_MAPS = true;
 // Départ de la vie des joueurs simulés (src/sim/lives.js). Chaque simulé a son personnage, qui progresse avec le temps réel.
 //   mode "generated" : ils démarrent au niveau tiré par la génération de la population (pratique pour les tests)
 //   mode "fresh"     : tout le monde repart du niveau 1 à `epoch` (le « fresh start » du lancement officiel)
-// Changer `epoch` (ou le mode) efface les sauvegardes des simulés dans le navigateur et recommence à zéro.
+// Changer `epoch` (ou le mode) remet TOUT à zéro : les simulés repartent du niveau 1 et la sauvegarde du joueur est ignorée (utils/save.js :
+// chaque sauvegarde porte son epoch), donc il faut refaire un personnage ; les sauvegardes d'avant ce champ valent l'epoch 1.
 // Pour le lancement : mode "fresh" et epoch = Date.now() du jour J (un nombre fixe, en millisecondes).
 export const SIM_START = { mode: "generated", epoch: 1 };
 
