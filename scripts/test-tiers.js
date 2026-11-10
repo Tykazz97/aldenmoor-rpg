@@ -4,6 +4,8 @@ import { TIERS, TIER_KEYS, craftBaseOf, equipLevelOfTier } from "../src/data/tie
 import { ITEMS } from "../src/data/items.js";
 import { RECIPES } from "../src/data/recipes.js";
 import { getCraftInfo } from "../src/data/professions.js";
+import { CRAFT_PROFESSIONS, piecesOf, tiersOf } from "../src/utils/workshop.js";
+import { gainProfessionXp } from "../src/utils/crafting.js";
 import { equipLevelOf } from "../src/utils/equipReq.js";
 import { tierOf } from "../src/sim/partyBots.js";
 import { tierFor } from "../src/sim/lifeCraft.js";
@@ -62,6 +64,21 @@ test("les seuils des simulés (tierOf / tierFor) suivent le tableau", () => {
 test("équipement : le niveau d'une pièce vient du tableau (sauf objets de boss sans palier)", () => {
   for (const it of Object.values(ITEMS)) if (it.tier) assert.equal(equipLevelOf(it), equipLevelOfTier(it.tier), it.id);
   assert.equal(craftBaseOf(undefined), 0); assert.equal(craftBaseOf(4), 27);
+});
+
+test("chaque métier de fabrication peut monter de zéro : une pièce au niveau 1, et jamais de palier sans de quoi y arriver", () => {
+  for (const prof of CRAFT_PROFESSIONS) {
+    const pieces = tiersOf(prof).flatMap((t) => piecesOf(prof, t)).map((id) => getCraftInfo(id));
+    const top = Math.max(...pieces.map((p) => p.minLevel));
+    let state = { level: 1, xp: 0 }, crafts = 0;
+    // on fabrique toujours ce qui rapporte le plus d'xp parmi ce qu'on sait faire (les ingrédients ne sont pas comptés ici)
+    while (state.level < top && crafts < 20000) {
+      const can = pieces.filter((p) => p.minLevel <= state.level);
+      assert.ok(can.length, `${prof} : bloqué au niveau ${state.level} (aucune pièce à ce niveau, il en faut jusqu'au niveau ${top})`);
+      state = gainProfessionXp(state, Math.max(...can.map((p) => p.xp))); crafts++;
+    }
+    assert.ok(state.level >= top, `${prof} n'atteint jamais le niveau ${top}`);
+  }
 });
 
 console.log(`${n} tests ok`);

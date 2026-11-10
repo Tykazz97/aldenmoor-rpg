@@ -208,6 +208,7 @@ export const ITEMS = {
     weaponType: "baton",
     rarity: "commune",
     twoHanded: true,
+    craftLevel: 1,                        // menuisier : sans pièce au niveau 1, le métier ne pourrait jamais monter
     img: `${ICON_BASE}/weapons/baton_noueux.webp`,
     atk_magie: 12,
     def_magie: 3,
@@ -219,6 +220,7 @@ export const ITEMS = {
     weaponType: "arc",
     rarity: "commune",
     twoHanded: true,
+    craftLevel: 1,
     img: `${ICON_BASE}/weapons/arc_chasse.webp`,
     atk_phys: 17,
     esquive: 3,

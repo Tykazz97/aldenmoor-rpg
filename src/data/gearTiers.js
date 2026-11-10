@@ -136,13 +136,19 @@ TIER_ITEMS.bouclier_fossoyeur = { id: "bouclier_fossoyeur", name: "Bouclier du F
 TIER_ITEMS.bouclier_chevalier = { id: "bouclier_chevalier", name: "Bouclier du Chevalier Déchu", type: "bouclier", rarity: "epique", tier: 3, img: `${ICON}/weapons/bouclier_chevalier.webp`, def_phys: 19, def_magie: 10 };
 
 // --- Objets des boss (cape, amulettes, anneau), communs à toutes les classes ---
-const accessory = (id, name, type, rarity, stats, craftLevel) => {
-  TIER_ITEMS[id] = { id, name, type, rarity, img: `${ICON}/accessories/${id}.webp`, craftLevel, ...stats };
+const accessory = (id, name, type, rarity, stats, craftLevel, icon = id) => {
+  TIER_ITEMS[id] = { id, name, type, rarity, img: `${ICON}/accessories/${icon}.webp`, craftLevel, ...stats };
 };
 accessory("anneau_cavalier", "Anneau du Cavalier Déchu", "anneau", "rare", { critique: 4, esquive: 3, hp: 15 }, 18);
 accessory("amulette_armure_maudite", "Amulette de l'Armure Maudite", "amulette", "rare", { def_phys: 8, def_magie: 8, hp: 25 }, 18);
 accessory("cape_epouvantail", "Cape de l'Épouvantail Ancestral", "cape", "epique", { def_phys: 6, def_magie: 10, hp: 30 }, 4);
 accessory("amulette_coeur_de_braise", "Amulette du Cœur de Braise", "amulette", "epique", { atk_phys: 8, atk_magie: 8, critique: 3, hp: 20 }, 9);
+// Bijoux d'apprentissage du bijoutier : des lingots communs (pas de trophée de boss), pour que le métier puisse monter jusqu'aux bijoux des boss
+// (niveaux 9 et 18). Petites statistiques. Les icônes sont celles des bijoux de boss en attendant des dessins à eux.
+accessory("anneau_cuivre", "Anneau de Cuivre", "anneau", "commune", { hp: 8, esquive: 1 }, 1, "anneau_cavalier");
+accessory("amulette_fer", "Amulette de Fer", "amulette", "commune", { def_phys: 3, def_magie: 2, hp: 10 }, 4, "amulette_armure_maudite");
+accessory("anneau_fer", "Anneau de Fer", "anneau", "commune", { atk_phys: 3, atk_magie: 3, hp: 8 }, 8, "anneau_cavalier");
+accessory("amulette_cuivre", "Amulette de Cuivre", "amulette", "commune", { def_phys: 4, def_magie: 4, critique: 1, hp: 14 }, 12, "amulette_armure_maudite");
 
 // ============================================================
 // RECETTES — comme au palier 1, la ressource rare n'est demandée que pour le plastron.
@@ -226,4 +232,9 @@ export const TIER_RECIPES = {
   amulette_armure_maudite: { ingredients: { fragment_armure_maudite: 3, lingot_de_cuivre: 2, lingot_de_fer: 2 }, gold: 100 },
   cape_epouvantail: { ingredients: { branche_ancestrale: 2, etoffe: 3, jute_hantee: 3, fil_d_ortie: 2 }, gold: 170 },
   amulette_coeur_de_braise: { ingredients: { coeur_de_braise: 1, branche_ancestrale: 1, lingot_de_cuivre: 3, paille_calcinee: 4 }, gold: 240 },
+  // --- Bijoux d'apprentissage (bijoutier) : de plus en plus d'xp, que des lingots ---
+  anneau_cuivre: { ingredients: { lingot_de_cuivre: 2, lingot_de_fer: 1 }, gold: 60 },
+  amulette_fer: { ingredients: { lingot_de_fer: 4, lingot_de_cuivre: 1 }, gold: 100 },
+  anneau_fer: { ingredients: { lingot_de_fer: 5, lingot_de_cuivre: 2 }, gold: 160 },
+  amulette_cuivre: { ingredients: { lingot_de_cuivre: 5, lingot_de_fer: 4 }, gold: 260 },
 };
