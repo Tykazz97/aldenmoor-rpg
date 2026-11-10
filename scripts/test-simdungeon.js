@@ -94,7 +94,7 @@ test("après le donjon, il vise le palier 4 et achète les ressources du donjon 
   assert.equal(tierFor(l), 2, "avant : palier 3");
   djOf(l).clears = 1;
   assert.equal(tierFor(l), 3, "après un donjon fini : palier 4");
-  l.pro = { maroquinier: { key: "maroquinier", level: 14, xp: 0 } };
+  l.pro = { maroquinier: { key: "maroquinier", level: 30, xp: 0 } };
   const want = shoppingList(l, bot);
   const dj = Object.keys(want).filter((id) => ["cuir_de_molosse", "larme_de_deuil", "essence_de_deuil"].includes(id));
   assert.ok(dj.length >= 1, JSON.stringify(want));

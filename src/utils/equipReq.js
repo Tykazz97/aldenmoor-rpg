@@ -8,7 +8,8 @@
 // Les simulés s'équipent plus tard que ces niveaux (partyBots.tierOf : 10 / 16 ; donjon : 20), ils n'ont donc rien à vérifier.
 // Une pièce déjà portée (vieille sauvegarde) reste portée ; seul le fait de l'équiper demande le niveau.
 // ============================================================
-export const TIER_EQUIP_LEVEL = { 1: 1, 2: 8, 3: 14, 4: 20 };
+import { TIERS, equipLevelOfTier } from "../data/tiers.js";
+export const TIER_EQUIP_LEVEL = Object.fromEntries(Object.entries(TIERS).map(([t, v]) => [t, v.equipLevel]));   // tableau : data/tiers.js
 
 // objets sans palier : niveau de la région où se trouve leur boss
 export const EQUIP_LEVEL_OVERRIDES = {
@@ -19,6 +20,6 @@ export const EQUIP_LEVEL_OVERRIDES = {
   lame_du_veilleur: 20, croc_du_veilleur: 20, sceptre_du_veilleur: 20,   // Veilleur Corrompu (donjon)
 };
 
-export const equipLevelOf = (item) => (item ? EQUIP_LEVEL_OVERRIDES[item.id] ?? TIER_EQUIP_LEVEL[item.tier || 1] ?? 1 : 1);
+export const equipLevelOf = (item) => (item ? EQUIP_LEVEL_OVERRIDES[item.id] ?? equipLevelOfTier(item.tier) : 1);
 export const canEquipAtLevel = (item, level) => (level || 1) >= equipLevelOf(item);
 export const equipLockText = (item) => `Niveau ${equipLevelOf(item)} requis`;

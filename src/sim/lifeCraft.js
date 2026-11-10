@@ -17,6 +17,7 @@ import { getCraftInfo, recipesOfProfession } from "../data/professions.js";
 import { applyCraft, applyRefine, professionOf } from "../utils/crafting.js";
 import { itemSellPrice } from "../utils/itemValue.js";
 import { BUILDS, tierOf } from "./partyBots.js";
+import { TIERS } from "../data/tiers.js";
 import { UPGRADE_BONUS } from "../data/upgrade.js";
 import { plusValueFactor } from "../utils/upgrade.js";
 
@@ -124,7 +125,7 @@ function gather(p, itemId, rng, merchant = true) {
 }
 
 // Le palier qu'il vise : celui de son niveau ; une fois le Manoir Englouti fini, il a de quoi viser le palier 4
-export const tierFor = (life) => (life.dj?.clears > 0 && life.level >= 20 ? 3 : tierOf(life.level));
+export const tierFor = (life) => (life.dj?.clears > 0 && life.level >= TIERS[4].simFrom ? 3 : tierOf(life.level));
 
 // Les pièces qu'il peut viser maintenant, dans l'ordre : manquantes de son palier (les moins chères d'abord), sinon de quoi
 // entraîner le métier qui le bloque

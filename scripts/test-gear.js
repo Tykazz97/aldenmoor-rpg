@@ -47,7 +47,7 @@ test("armes, bouclier et objets de boss : fabricables, avec leur métier et un n
   for (const id of ids) {
     const info = getCraftInfo(id);
     assert.ok(RECIPES[id] && info, id);
-    assert.ok(info.minLevel >= 1 && info.minLevel <= 10, `${id} : niveau ${info.minLevel}`);
+    assert.ok(info.minLevel >= 1 && info.minLevel <= 21, `${id} : niveau ${info.minLevel}`);
   }
   assert.equal(getCraftInfo("anneau_cavalier").profession, "bijoutier");
   assert.equal(getCraftInfo("cape_epouvantail").profession, "tailleur");

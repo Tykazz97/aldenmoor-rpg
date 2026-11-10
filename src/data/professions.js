@@ -10,6 +10,7 @@
 // ============================================================
 
 import { ITEMS } from "./items.js";
+import { craftBaseOf } from "./tiers.js";
 import { RECIPES } from "./recipes.js";
 
 export const MAX_PROFESSION_LEVEL = 100;      // niveau maximum de tous les métiers
@@ -101,8 +102,7 @@ const SLOT_MIN_LEVEL = {
   chapeau: 2, jambieres: 2, arme: 2, bouclier: 2,
   plastron: 3,
 };
-// Les paliers 2, 3 et 4 demandent un métier plus avancé (+3, +6 et +9 niveaux) ; `craftLevel` sur l'objet remplace ce calcul
-const TIER_LEVEL_OFFSET = { 1: 0, 2: 3, 3: 6, 4: 9 };
+// Chaque palier demande un métier plus avancé (data/tiers.js : craftBase) ; `craftLevel` sur l'objet remplace ce calcul
 
 // Renvoie { profession, minLevel, xp } pour un objet craftable
 // (l'xp gagnée = coût en or de la recette).
@@ -122,7 +122,7 @@ export function getCraftInfo(itemId) {
 
   return {
     profession,
-    minLevel: item.craftLevel ?? (SLOT_MIN_LEVEL[item.type] || 1) + TIER_LEVEL_OFFSET[item.tier || 1],
+    minLevel: item.craftLevel ?? (SLOT_MIN_LEVEL[item.type] || 1) + craftBaseOf(item.tier),
     xp: recipe.gold,
   };
 }

@@ -4,6 +4,7 @@
 // dans ses meilleurs sorts. Même logique que le joueur automatique de scripts/simulate-zones.js (qui l'utilise).
 // Pur (sans React) : sert à l'écran de combat, aux tests et aux simulations.
 // ============================================================
+import { TIERS } from "../data/tiers.js";
 import { isUpgradable } from "../utils/upgrade.js";
 import { ITEMS, SETS } from "../data/items.js";
 import { CLASSES } from "../data/classes.js";
@@ -33,7 +34,8 @@ export const BUILDS = {
     { weapon: "baton_veuve", set: "veuve" },
   ] },
 };
-export const tierOf = (level) => (level < 10 ? 0 : level < 16 ? 1 : 2);
+// palier visé selon le niveau (0 à 2 ; le palier 4 est réservé à ceux qui ont fini le donjon, lifeCraft.tierFor) : seuils de data/tiers.js
+export const tierOf = (level) => (level < TIERS[2].simFrom ? 0 : level < TIERS[3].simFrom ? 1 : 2);
 
 function gear(build, level) {
   const t = build.tiers[tierOf(level)];
