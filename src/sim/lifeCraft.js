@@ -50,6 +50,11 @@ export function targetPieces(classKey, tierIdx) {
   const t = BUILDS[classKey].tiers[tierIdx];
   return [t.weapon, ...SETS[t.set].pieces, ...(t.shield ? [t.shield] : [])];
 }
+// Les bijoux qu'un simulé vise en plus de son set (bijoutier : anneaux et amulettes d'apprentissage, les mêmes pour toutes les classes),
+// du moins bon au meilleur : il les porte, les fabrique ou les commande comme le reste. Ils ne font pas partie de son équipement de
+// départ (tierGear) : il doit les gagner.
+export const JEWELS_BY_TIER = [["anneau_cuivre", "amulette_fer"], ["anneau_fer"], ["amulette_cuivre"], []];
+export const wishPieces = (classKey, tierIdx) => [...targetPieces(classKey, tierIdx), ...(JEWELS_BY_TIER[tierIdx] || [])];
 export function tierGear(classKey, level) {
   const g = {};
   for (const id of targetPieces(classKey, tierOf(level))) g[ITEMS[id].type] = id;
@@ -138,13 +143,13 @@ function chooseTargets(life, bot) {
   // 1) les pièces qui lui manquent, du palier visé vers les paliers plus bas, les moins chères d'abord
   let picks = [];
   for (let t = tier; t >= 0 && !picks.length; t--) {
-    picks = targetPieces(bot.classKey, t).filter((id) => RECIPES[id] && can(id) && gearScore(id) > gearScore(life.gear[ITEMS[id].type] || "") && !life.bag.items.includes(id));
+    picks = wishPieces(bot.classKey, t).filter((id) => RECIPES[id] && can(id) && gearScore(id) > gearScore(life.gear[ITEMS[id].type] || "") && !life.bag.items.includes(id));
   }
   if (picks.length) return { base, picks: picks.sort((a, b) => cost(a) - cost(b)).slice(0, 3) };
   // 2) sinon il s'entraîne : les métiers qui le bloquent (niveau trop bas pour les pièces de son palier) montent en fabriquant
   //    ce qu'il sait faire, le plus d'xp pour le moins cher ; les objets en trop sont revendus avec le sac
   const blockers = new Set();
-  for (const id of targetPieces(bot.classKey, tier)) {
+  for (const id of wishPieces(bot.classKey, tier)) {
     const info = getCraftInfo(id);
     if (info && RECIPES[id] && gearScore(id) > gearScore(life.gear[ITEMS[id].type] || "") && !can(id)) blockers.add(info.profession);
   }
@@ -158,7 +163,7 @@ function chooseTargets(life, bot) {
 export function orderTarget(life, bot, can = () => true) {
   const base = asPlayer(life);
   const cost = (id) => Object.entries(RECIPES[id].ingredients).reduce((s, [r, q]) => s + RESOURCES[r].value * q, RECIPES[id].gold);
-  const picks = targetPieces(bot.classKey, tierFor(life)).filter((id) => {
+  const picks = wishPieces(bot.classKey, tierFor(life)).filter((id) => {
     const info = getCraftInfo(id);
     return RECIPES[id] && info && professionOf(base, info.profession).level < info.minLevel
       && gearScore(id) > gearScore(life.gear[ITEMS[id].type] || "") && !life.bag.items.includes(id) && can(id);

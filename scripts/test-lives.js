@@ -9,7 +9,7 @@ import { MAX_LEVEL, xpToNext } from "../src/utils/progression.js";
 import { RESOURCES } from "../src/data/resources.js";
 import { ITEMS } from "../src/data/items.js";
 import { makeRng } from "../src/sim/rng.js";
-import { craftStep, starterGear, tierGear, gearScore, acquireItem, sellSurplus, STOCK_KEEP } from "../src/sim/lifeCraft.js";
+import { craftStep, starterGear, tierGear, gearScore, acquireItem, sellSurplus, STOCK_KEEP, wishPieces, orderTarget } from "../src/sim/lifeCraft.js";
 import { botSpec, buildOf, makeBotPlayer, DEFAULT_BUILD } from "../src/sim/partyBots.js";
 import { emptyQuests, questStep, bump, huntTarget } from "../src/sim/lifeQuests.js";
 import { boardFor, progressOf, dayKey } from "../src/utils/quests.js";

@@ -31,7 +31,7 @@ import { SIM_START } from "../sim/config.js";
 import { createLives, validWorld, stepLivesOne, isActive, stepOf } from "../sim/lives.js";
 import { stepGuilds } from "../sim/guilds.js";
 import { sentinelFeeder } from "./sentinel.js";
-import { shoppingList, orderShopping, stashPlus, acquireItem, scoreWithPlus, targetPieces } from "../sim/lifeCraft.js";
+import { shoppingList, orderShopping, stashPlus, acquireItem, scoreWithPlus, wishPieces } from "../sim/lifeCraft.js";
 import { BUILDS } from "../sim/partyBots.js";
 import { drawFromBank, sellableOf, takeForSale } from "../sim/lifeBank.js";
 import { keyShopping } from "../sim/lifeDungeon.js";
@@ -158,7 +158,7 @@ export const RICH_CAP = 10000;              // au-delà, il accepte aussi de pay
 const PIECES = new Map();
 const piecesOf = (classKey) => {
   let set = PIECES.get(classKey);
-  if (!set) { set = new Set(BUILDS[classKey].tiers.flatMap((_, i) => targetPieces(classKey, i))); PIECES.set(classKey, set); }
+  if (!set) { set = new Set(BUILDS[classKey].tiers.flatMap((_, i) => wishPieces(classKey, i))); PIECES.set(classKey, set); }
   return set;
 };
 export function simBuysGear(s, life, b, bucket) {
