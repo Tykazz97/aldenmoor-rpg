@@ -506,6 +506,22 @@ try {
     await noCrash("combat sorts");
   });
 
+  await step("Combat : la vitesse ×2 choisie est retenue pour le combat suivant", async () => {
+    const s = fresh(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 };
+    await open({ s });
+    await startFightNear();
+    const speedBtn = page.locator('button[title="Vitesse du combat"]');
+    assert.equal((await speedBtn.innerText()).trim(), "×1", "départ à ×1");
+    await speedBtn.click();
+    assert.equal((await speedBtn.innerText()).trim(), "×2");
+    await page.locator("button", { hasText: "Quitter" }).first().click(); await page.waitForTimeout(800);
+    await startFightNear();
+    assert.equal((await page.locator('button[title="Vitesse du combat"]').innerText()).trim(), "×2", "le combat suivant reste à ×2");
+    await page.locator('button[title="Vitesse du combat"]').click();
+    assert.equal((await page.locator('button[title="Vitesse du combat"]').innerText()).trim(), "×1", "on peut revenir à ×1");
+    await noCrash("vitesse du combat");
+  });
+
   await step("Défaite : un héros trop faible perd, l'écran de défaite propose de recommencer ou de partir, rien ne plante", async () => {
     const s = fresh(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 };
     s.player.baseHp = 1; s.player.hp = 1;

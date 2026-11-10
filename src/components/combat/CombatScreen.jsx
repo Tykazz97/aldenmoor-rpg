@@ -72,7 +72,9 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
   const initial = useMemo(() => createCombat({ stats, weaponType, classKey: player.classKey, level: player.level, enemyKeys: encounter.enemies, spells: buildSpellBar(player), allies: allySpecs, carry, maxRounds: (encounter.sentinel || encounter.defense)?.maxRounds ?? null, objective: encounter.defense ? "defense" : encounter.sentinel ? "sentinel" : null }), []); // eslint-disable-line
   const [cs, setCs] = useState(initial);
   const csRef = useRef(initial);
-  const [speed, setSpeed] = useState(1);
+  // la vitesse choisie (×1 / ×2) est retenue d'un combat à l'autre, et d'une visite à l'autre
+  const [speed, setSpeedState] = useState(() => { try { return localStorage.getItem("aldenmoor.fightSpeed") === "2" ? 2 : 1; } catch { return 1; } });
+  const setSpeed = useCallback((fn) => setSpeedState((s) => { const v = typeof fn === "function" ? fn(s) : fn; try { localStorage.setItem("aldenmoor.fightSpeed", String(v)); } catch { /* ignoré */ } return v; }), []);
   const [target, setTarget] = useState("e0");
   const [hover, setHover] = useState(null);
   const [claimed, setClaimed] = useState(false);
