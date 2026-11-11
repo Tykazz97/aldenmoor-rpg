@@ -147,14 +147,15 @@ function addProfXp(prof, amount) {
 const bestNode = (profKey, level) => Object.values(NODES).filter((n) => n.profession === profKey && n.minLevel <= level).sort((a, b) => b.minLevel - a.minLevel)[0];
 
 // Les drops d'un monstre vaincu vont dans le sac (équipement : seulement celui de sa classe)
-export function rollDrops(life, bot, enemy, rng, dropMult = 1) {
+// `loot` (facultatif) : { res: {}, items: [] } où l'on note ce qui est tombé, pour l'afficher
+export function rollDrops(life, bot, enemy, rng, dropMult = 1, loot = null) {
   const dm = (1 + (life.gb?.drop || 0) / 100) * dropMult;        // butin de guilde, et bonus de butin d'un groupe
   for (const d of enemy.drops || []) {
     if (d.forClass && d.forClass !== bot.classKey) continue;
     if (rng() >= (dm > 1 && !d.fixed ? Math.min(1, d.chance * dm) : d.chance)) continue;
     const qty = rng.int(d.min, d.max);
-    if (d.type === "resource") life.bag.res[d.id] = (life.bag.res[d.id] || 0) + qty;
-    else for (let i = 0; i < qty; i++) acquireItem(life, d.id);
+    if (d.type === "resource") { life.bag.res[d.id] = (life.bag.res[d.id] || 0) + qty; if (loot) loot.res[d.id] = (loot.res[d.id] || 0) + qty; }
+    else for (let i = 0; i < qty; i++) { acquireItem(life, d.id); if (loot) loot.items.push(d.id); }
   }
 }
 
@@ -211,21 +212,24 @@ export function stepLife(life, bot, step, traits = traitsOf(bot), opts = {}) {
 // (`kills` = { clé de monstre: nombre } du combat ; `groupMult` = bonus de butin d'un groupe, voir PARTY_DROP_MULT). Modifie `life`.
 export function groupFightStep(life, bot, kills, rng, { groupMult = 1, keep } = {}) {
   let xp = 0, gold = 0, n = 0;
+  const loot = { res: {}, items: [] }, level0 = life.level;
   for (const [k, count] of Object.entries(kills || {})) {
     const def = ENEMIES[k];
     if (!def) continue;
     for (let i = 0; i < count; i++) {
       xp += def.xp || 0; n++;
       if (def.gold) gold += rng.int(def.gold[0], def.gold[1]);
-      rollDrops(life, bot, def, rng, groupMult);
+      rollDrops(life, bot, def, rng, groupMult, loot);
       bump(life, "kills", k);
     }
   }
   const gx = 1 + (life.gb?.xp || 0) / 100;
   life.kills += n; life.gold += Math.round(gold);
-  addXp(life, Math.round(xp * overlevelMult(life.level) * gx));
+  const gained = Math.round(xp * overlevelMult(life.level) * gx);
+  addXp(life, gained);
   bankStep(life); sellSurplus(life, keep);
-  return { xp, gold, kills: n };
+  // `gained` : l'xp réellement reçue ; `loot` : ce qui est tombé ; niveau et xp après le combat (pour la fenêtre de fin de combat)
+  return { xp, gold: Math.round(gold), kills: n, gained, loot, level0, level: life.level, xpNow: life.xp };
 }
 
 // --- Le monde des simulés ------------------------------------------------------------------------------------------------

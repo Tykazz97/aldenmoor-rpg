@@ -149,6 +149,26 @@
 .cb-reward-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .cb-chip { display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: #0a0a0f; border: 1px solid #2a2a3d; border-radius: 20px; font: 500 12px 'JetBrains Mono', monospace; color: #d9d0bd; }
 .cb-chip img { width: 22px; height: 22px; object-fit: contain; }
+/* Fenêtre de fin de combat (une ligne par joueur, façon Dofus) */
+.cb-card.cb-result { width: min(620px, 94%); max-height: 94%; overflow-y: auto; padding: 20px 22px; text-align: left; }
+.cb-card.cb-result h2, .cb-card.cb-result > .sub { text-align: center; }
+.cb-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.cb-row { display: flex; gap: 12px; padding: 10px 12px; background: rgba(10,10,15,.55); border: 1px solid #2a2a3d; border-radius: 12px; }
+.cb-row.you { border-color: #7a5f24; background: rgba(184,146,63,.08); }
+.cb-row-face { flex: 0 0 56px; height: 56px; border-radius: 10px; overflow: hidden; background: #0a0a0f; border: 1px solid #3a3350; display: flex; align-items: center; justify-content: center; }
+.cb-row-face img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; transform: scale(1.7); transform-origin: 50% 12%; }
+.cb-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.cb-row-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.cb-row-name { font: 700 15px 'Cinzel', serif; color: #f3dca0; letter-spacing: .04em; }
+.cb-row-lvl { font: 500 12px 'JetBrains Mono', monospace; color: #a89f8c; }
+.cb-row-up { font: 700 11px 'Cinzel', serif; text-transform: uppercase; letter-spacing: .08em; color: #ffe08a; background: rgba(184,146,63,.18); border: 1px solid #b8923f; border-radius: 10px; padding: 1px 8px; animation: cb-glow 1s ease-in-out infinite alternate; }
+.cb-xpbar { position: relative; height: 14px; border-radius: 7px; background: #0a0a0f; border: 1px solid #2a2a3d; overflow: hidden; }
+.cb-xpbar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #6b4fa8, #a98be0); }
+.cb-xpbar em { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 500 10px 'JetBrains Mono', monospace; font-style: normal; color: #efe6ff; text-shadow: 0 1px 2px #000; }
+.cb-row-gain, .cb-row-loot { display: flex; flex-wrap: wrap; gap: 6px; }
+.cb-chip.xp { border-color: #6b4fa8; color: #d9c8ff; }
+.cb-none { font-size: 12px; color: #7d7667; font-style: italic; }
+@media (max-width: 520px) { .cb-card.cb-result { padding: 14px 12px; } .cb-row { padding: 8px; gap: 8px; } .cb-row-face { flex-basis: 44px; height: 44px; } }
 .cb-levelup { margin: 6px 0 14px; padding: 8px; border-radius: 10px; background: rgba(184,146,63,.12); border: 1px solid #b8923f; color: #f3dca0; font-weight: 600; animation: cb-glow 1s ease-in-out infinite alternate; }
 
 /* ---------- Sélection de rencontre ---------- */

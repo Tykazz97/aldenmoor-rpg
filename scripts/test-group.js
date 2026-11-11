@@ -7,7 +7,7 @@ import { getPopulation } from "../src/sim/population.js";
 import { getLivePopulation } from "../src/sim/simWorld.js";
 import { buildAllies } from "../src/sim/partyBots.js";
 import { newGuilds, createGuild, addMember } from "../src/utils/guildCore.js";
-import { groupOf, groupCandidates, acceptsInvite, acceptChance, inviteAction, kickAction, cleanGroupAction, creditGroup, isOnline, GROUP_MAX, GROUP_LEVEL_WINDOW } from "../src/utils/group.js";
+import { groupOf, groupCandidates, acceptsInvite, acceptChance, inviteAction, kickAction, cleanGroupAction, creditGroup, previewGroup, isOnline, GROUP_MAX, GROUP_LEVEL_WINDOW } from "../src/utils/group.js";
 import { applyRewards } from "../src/utils/progression.js";
 
 let n = 0;
@@ -128,6 +128,28 @@ test("les drops existent : sur beaucoup de victoires, des ressources ou de l'or 
   const q = creditGroup(p, [id], { loup_des_plaines: 60, sanglier_sauvage: 60 }, "big");
   assert.notEqual(JSON.stringify(q.market.sims.lives[id].bag), JSON.stringify(p.market.sims.lives[id].bag), "le sac change");
   assert.ok(q.market.sims.lives[id].gold > p.market.sims.lives[id].gold);
+});
+
+test("fenêtre de fin de combat : l'aperçu de chaque membre (xp, or, butin, niveau) est exactement ce qu'il reçoit ensuite", () => {
+  const p = mk(10), c = near(p), ids = [c[0].id, c[1].id];
+  const kills = { loup_des_plaines: 30, sanglier_sauvage: 30 };
+  const rep = previewGroup(p, ids, kills, "fenetre");
+  assert.equal(rep.length, 2);
+  assert.deepEqual(rep.map((r) => r.id), ids);
+  const q = creditGroup(p, ids, kills, "fenetre");
+  for (const r of rep) {
+    const a = p.market.sims.lives[r.id], b = q.market.sims.lives[r.id];
+    assert.ok(r.name && r.xp > 0 && r.gold >= 0, "nom, xp, or");
+    assert.equal(r.level, a.level, "niveau avant");
+    assert.equal(r.levelAfter, b.level, "niveau après");
+    assert.equal(r.xpAfter, b.xp, "xp après");
+    assert.equal(b.gold, a.gold + r.gold, "l'or annoncé est l'or reçu");
+    assert.ok(Array.isArray(r.items) && typeof r.resources === "object");
+  }
+  assert.ok(rep.some((r) => Object.keys(r.resources).length || r.items.length), "sur 60 victoires, du butin tombe chez au moins un membre");
+  assert.equal(JSON.stringify(p.market.sims.lives[ids[0]]), JSON.stringify(structuredClone(p.market.sims.lives[ids[0]])), "l'aperçu ne modifie rien");
+  assert.deepEqual(previewGroup(p, ids, kills, "fenetre"), rep, "même graine : même aperçu");
+  assert.deepEqual(previewGroup(p, [], kills, "x"), []);
 });
 
 test("même graine = même butin ; les gains du joueur ne changent pas avec ou sans groupe", () => {

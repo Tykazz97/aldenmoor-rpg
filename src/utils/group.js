@@ -103,11 +103,12 @@ export function cleanGroupAction(player, now = Date.now()) {
   return withBusy(gone.length ? { ...player, companions: members.map((b) => b.id) } : player, now);
 }
 
-// Après un combat gagné à plusieurs : chaque membre (`ids`) reçoit son xp, son or et son butin. Renvoie un joueur dont les fiches ont été copiées
-// (les autres ne bougent pas) ; `kills` = { monstre: nombre }.
-export function creditGroup(player, ids, kills, seed = "g") {
-  const sims = player?.market?.sims;
-  if (!sims?.lives || !ids?.length || !kills || !Object.keys(kills).length) return player;
+// Après un combat gagné à plusieurs : chaque membre (`ids`) reçoit son xp, son or et son butin. Renvoie le joueur dont les fiches ont été copiées
+// (les autres ne bougent pas) et le compte rendu de chaque membre (pour la fenêtre de fin de combat) ; `kills` = { monstre: nombre }.
+// Le tirage dépend uniquement de `seed` : la fenêtre (aperçu) et l'application finale donnent donc exactement le même résultat.
+function runGroup(player, ids, kills, seed) {
+  const sims = player?.market?.sims, report = [];
+  if (!sims?.lives || !ids?.length || !kills || !Object.keys(kills).length) return { player, report };
   const pop = getLivePopulation(player), byId = new Map(pop.map((b) => [b.id, b]));
   const lives = { ...sims.lives };
   const groupMult = PARTY_DROP_MULT[1 + ids.length] ?? PARTY_DROP_MULT[3];
@@ -116,8 +117,11 @@ export function creditGroup(player, ids, kills, seed = "g") {
     const bot = byId.get(id), life = lives[id];
     if (!bot || !life) continue;
     const l = structuredClone(life);
-    groupFightStep(l, bot, kills, makeRng(hashString(`grp:${seed}:${id}`)), { groupMult });
+    const r = groupFightStep(l, bot, kills, makeRng(hashString(`grp:${seed}:${id}`)), { groupMult });
     lives[id] = l; changed = true;
+    report.push({ id, name: bot.name, classKey: bot.classKey, level: r.level0, levelAfter: r.level, xp: r.gained, xpAfter: r.xpNow, gold: r.gold, resources: r.loot.res, items: r.loot.items });
   }
-  return changed ? { ...player, market: { ...player.market, sims: { ...sims, lives } } } : player;
+  return { player: changed ? { ...player, market: { ...player.market, sims: { ...sims, lives } } } : player, report };
 }
+export const creditGroup = (player, ids, kills, seed = "g") => runGroup(player, ids, kills, seed).player;
+export const previewGroup = (player, ids, kills, seed = "g") => runGroup(player, ids, kills, seed).report;

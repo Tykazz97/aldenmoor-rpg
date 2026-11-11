@@ -7,7 +7,7 @@ import { hasLost } from "../../utils/bag.js";
 
 // Écran de fin de combat : butin en cas de victoire, relance en cas de défaite
 // `dungeon` : { index, total } quand c'est une salle de donjon (on enchaîne la suite, et une défaite met fin à l'expédition)
-export default function ResultOverlay({ ended, cs, encounter, player, backLabel, dungeon = null, onClaim, onRestart, onExit }) {
+export default function ResultOverlay({ ended, cs, encounter, player, heroSrc = null, members = [], backLabel, dungeon = null, onClaim, onRestart, onExit }) {
   if (encounter.defense && (ended === "victory" || ended === "defeat")) {
     const won = ended === "victory";
     return (
@@ -39,25 +39,49 @@ export default function ResultOverlay({ ended, cs, encounter, player, backLabel,
     const preview = applyRewards(player, cs.rewards);
     const newSpells = classSpellsAt(player.classKey, preview.player.level).filter((sp) => sp.level > player.level);
     const { rewards } = cs;
+    const foes = Object.values(rewards.kills || {}).reduce((a, b) => a + b, 0);
+    // une ligne par joueur, comme dans Dofus : toi d'abord, puis les membres du groupe (chacun a son propre xp, son or et son butin)
+    const rows = [
+      { id: "hero", you: true, name: player.name || "Héros", img: heroSrc, level: player.level, levelAfter: preview.player.level, xp: rewards.xp, xpAfter: preview.player.xp, gold: rewards.gold, resources: rewards.resources || {}, items: rewards.items || [] },
+      ...members,
+    ];
     return (
       <div className="cb-overlay">
-        <div className="cb-card">
+        <div className="cb-card cb-result" data-victory>
           <h2>Victoire</h2>
-          <div className="sub">{encounter.name}</div>
-          <div className="cb-reward-row">
-            <span className="cb-chip">✨ +{rewards.xp} XP</span>
-            <span className="cb-chip">🪙 +{rewards.gold} or</span>
+          <div className="sub">{encounter.name}{foes > 0 ? ` · ${foes} ennemi${foes > 1 ? "s" : ""} vaincu${foes > 1 ? "s" : ""}` : ""}</div>
+          <div className="cb-rows">
+            {rows.map((r) => {
+              const up = r.levelAfter > r.level, max = xpToNext(r.levelAfter), pct = max ? Math.min(100, Math.round((r.xpAfter / max) * 100)) : 100;
+              const empty = !Object.keys(r.resources).length && !r.items.length;
+              return (
+                <div key={r.id} className={`cb-row${r.you ? " you" : ""}`} data-result-row={r.you ? "hero" : r.id}>
+                  <div className="cb-row-face">{r.img ? <img src={r.img} alt="" draggable={false} /> : <span>⚔</span>}</div>
+                  <div className="cb-row-main">
+                    <div className="cb-row-top">
+                      <b className="cb-row-name">{r.name}{r.you ? " (toi)" : ""}</b>
+                      <span className="cb-row-lvl">{up ? `Niv ${r.level} → ${r.levelAfter}` : `Niv ${r.levelAfter}`}</span>
+                      {up && <span className="cb-row-up">Niveau supérieur !</span>}
+                    </div>
+                    <div className="cb-xpbar" title={`${r.xpAfter} / ${max}`}><i style={{ width: `${pct}%` }} /><em>{r.xpAfter} / {max}</em></div>
+                    <div className="cb-row-gain">
+                      <span className="cb-chip xp">✨ +{r.xp} XP</span>
+                      <span className="cb-chip">🪙 +{r.gold} or</span>
+                    </div>
+                    <div className="cb-row-loot">
+                      {Object.entries(r.resources).map(([id, q]) => (
+                        <span key={id} className="cb-chip"><img src={RESOURCES[id].img} alt="" />{RESOURCES[id].name} ×{q}</span>
+                      ))}
+                      {r.items.map((id, i) => (
+                        <span key={`${id}${i}`} className="cb-chip" style={{ borderColor: color.gold }}><img src={ITEMS[id].img} alt="" />{ITEMS[id].name}</span>
+                      ))}
+                      {empty && <span className="cb-none">Aucun butin</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          {(Object.keys(rewards.resources).length > 0 || rewards.items.length > 0) ? (
-            <div className="cb-reward-row">
-              {Object.entries(rewards.resources).map(([id, q]) => (
-                <span key={id} className="cb-chip"><img src={RESOURCES[id].img} alt="" />{RESOURCES[id].name} ×{q}</span>
-              ))}
-              {rewards.items.map((id, i) => (
-                <span key={i} className="cb-chip" style={{ borderColor: color.gold }}><img src={ITEMS[id].img} alt="" />{ITEMS[id].name}</span>
-              ))}
-            </div>
-          ) : <div className="sub">Aucun butin cette fois.</div>}
           {hasLost(preview.lost) && (
             <div data-bag-lost style={{ margin: "6px 0 10px", padding: "8px 10px", border: "1px solid #5a2a2a", background: "#2a1616", borderRadius: 8, fontSize: 12, color: "#e0796a" }}>
               🎒 Sac plein : perdu {[...Object.entries(preview.lost.resources).map(([id, q]) => `${RESOURCES[id].name} ×${q}`), ...preview.lost.items.map((id) => ITEMS[id].name)].join(", ")}
@@ -69,11 +93,8 @@ export default function ResultOverlay({ ended, cs, encounter, player, backLabel,
               {newSpells.length > 0 && <div>Nouveau sort : {newSpells.map((sp) => sp.name).join(", ")}</div>}
             </div>
           )}
-          <div style={{ fontSize: 11, color: color.mist, marginBottom: 14 }}>
-            Expérience : {preview.player.xp} / {xpToNext(preview.player.level)}
-          </div>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            <button className="cb-btn primary" onClick={onClaim}>{dungeon ? (dungeon.index + 1 < dungeon.total ? "Récupérer le butin et avancer" : "Récupérer le butin et sortir") : "Récupérer le butin"}</button>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 12 }}>
+            <button className="cb-btn primary" data-claim onClick={onClaim}>{dungeon ? (dungeon.index + 1 < dungeon.total ? "Récupérer le butin et avancer" : "Récupérer le butin et sortir") : "Récupérer le butin"}</button>
           </div>
         </div>
       </div>

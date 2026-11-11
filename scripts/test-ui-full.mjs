@@ -558,6 +558,55 @@ try {
     await noCrash("vitesse du combat");
   });
 
+  await step("Fin de combat en groupe : une fenêtre à la Dofus (toi et chaque membre : xp, or, butin) et les gains sont bien appliqués", async () => {
+    const s = fresh(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 };
+    await open({ s });
+    await tab("Groupe").click(); await page.waitForTimeout(500);
+    await page.locator("[data-group-cand]").first().waitFor({ timeout: 20000 });
+    for (let i = 0, d = 0; i < 12 && (await page.locator("[data-group-member]").count()) < 1; i++) {
+      await page.locator("[data-group-invite]:not([disabled])").nth(d).click(); await page.waitForTimeout(300);
+      if (await page.locator("[data-group-msg]").count()) d++;
+    }
+    assert.equal(await page.locator("[data-group-member]").count(), 1, "un membre dans le groupe");
+    const memberId = (await save()).player.companions[0];
+    await tab("Carte").click(); await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      const v = document.querySelector(".mp-map").getBoundingClientRect(), cx = (v.left + v.right) / 2, cy = (v.top + v.bottom) / 2;
+      const d = (e) => { const r = e.getBoundingClientRect(); return Math.hypot((r.left + r.right) / 2 - cx, (r.top + r.bottom) / 2 - cy); };
+      [...document.querySelectorAll(".mp-group:not(.boss):not(.busy)")].sort((a, b) => d(a) - d(b))[0].click();
+    });
+    await page.locator("[data-fight-group]").click({ timeout: 15000 });
+    await page.locator(".cb-spell:not([disabled])").first().waitFor({ timeout: 20000 });
+    for (let i = 0; i < 300 && !(await page.locator(".cb-overlay").count()); i++) {
+      const sp = page.locator(".cb-spell:not([disabled])");
+      if (await sp.count()) await sp.first().click();
+      else if (await page.locator(".cb-btn:not([disabled])", { hasText: "Fin du tour" }).count()) await page.keyboard.press("Space");
+      await page.waitForTimeout(400);
+    }
+    if (/victoire/i.test(await page.locator(".cb-card h2").innerText())) {
+      assert.equal(await page.locator("[data-result-row]").count(), 2, "une ligne pour toi, une pour le membre");
+      assert.equal(await page.locator('[data-result-row="hero"]').count(), 1);
+      assert.equal(await page.locator(`[data-result-row="${memberId}"]`).count(), 1, "la ligne du membre du groupe");
+      for (const sel of ['[data-result-row="hero"]', `[data-result-row="${memberId}"]`]) {
+        const t = await page.locator(sel).innerText();
+        assert.match(t, /\+\d+ XP/, "xp gagnée"); assert.match(t, /\+\d+ or/, "or gagné"); assert.match(t, /Niv \d+/, "niveau");
+      }
+      const heroRow = await page.locator('[data-result-row="hero"]').innerText();
+      const heroXp = Number(/\+(\d+) XP/.exec(heroRow)[1]);
+      const mate = await page.locator(`[data-result-row="${memberId}"]`).innerText();
+      const mateXp = Number(/\+(\d+) XP/.exec(mate)[1]), mateGold = Number(/\+(\d+) or/.exec(mate)[1]);
+      const before = (await save()).player.market.sims.lives[memberId];
+      await page.screenshot({ path: process.env.SHOT_RESULT || "/tmp/fin-combat.png" });
+      await page.locator("[data-claim]").click(); await page.waitForTimeout(1200);
+      const after = (await save()).player.market.sims.lives[memberId];
+      assert.equal(after.gold - before.gold >= mateGold, true, "l'or annoncé arrive chez le membre");
+      const gainedXp = (after.level - before.level) > 0 ? true : after.xp - before.xp > 0 || mateXp === 0;
+      assert.ok(gainedXp, "l'xp annoncée arrive chez le membre");
+      assert.ok(heroXp > 0, "xp du héros");
+    }
+    await noCrash("fin de combat en groupe");
+  });
+
   await step("Défaite : un héros trop faible perd, l'écran de défaite propose de recommencer ou de partir, rien ne plante", async () => {
     const s = fresh(); s.world.mapKey = "prairies_sauvages"; s.world.pos = { x: 6.5, y: 6.5 };
     s.player.baseHp = 1; s.player.hp = 1;

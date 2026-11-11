@@ -8,7 +8,7 @@ import { heroLook, heroSpriteUrl } from "../../data/heroSprites.js";
 import { sfx, music, preload } from "./sfx.js";
 import { HERO_X, HERO_B, HERO_H } from "./stage.js";
 import { buildAllies } from "../../sim/partyBots.js";
-import { groupOf } from "../../utils/group.js";
+import { groupOf, previewGroup } from "../../utils/group.js";
 import { getLivePopulation } from "../../sim/simWorld.js";
 import { useFightPlayback } from "./useFightPlayback.js";
 import EncounterSelect from "./EncounterSelect.jsx";
@@ -141,12 +141,21 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // Les membres du groupe gagnent aussi : xp, or et butin à eux, rien de retiré au joueur (sauf combats de sentinelle/défense).
+  // Leur tirage est fait dès la victoire (même graine) pour que la fenêtre de fin de combat montre exactement ce qu'ils recevront.
+  const groupIds = useMemo(() => (encounter.defense || encounter.sentinel ? [] : allySpecs.map((a) => a.botId).filter(Boolean)), []); // eslint-disable-line
+  const groupSeed = useMemo(() => `${player.name || "p"}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`, []); // eslint-disable-line
+  const members = useMemo(() => {
+    if (ended !== "victory" || !cs.rewards || !groupIds.length) return [];
+    return previewGroup(player, groupIds, cs.rewards.kills, groupSeed).map((m) => {
+      const i = allySpecs.findIndex((a) => a.botId === m.id);
+      return { ...m, img: allySrc[`ally${i}`] };
+    });
+  }, [ended]); // eslint-disable-line
   const claim = () => {
     if (claimed) return;
     setClaimed(true);
-    // le groupe (simulés présents) gagne aussi : xp et butin à eux, rien de retiré au joueur (sauf combats de sentinelle/défense)
-    const group = encounter.defense || encounter.sentinel ? [] : allySpecs.map((a) => a.botId).filter(Boolean);
-    onRewards(group.length ? { ...cs.rewards, group } : cs.rewards);
+    onRewards(groupIds.length ? { ...cs.rewards, group: groupIds, groupSeed } : cs.rewards);
     onExit(true, { player: cs.player.hp, allies: cs.allies.map((a) => a.hp), rewards: cs.rewards, group: allySpecs.map((a) => a.botId).filter(Boolean) });
   };
 
@@ -237,7 +246,7 @@ export function Fight({ encounter, player, stats, weaponType, heroSrc, party = f
           <div className="cb-flash" ref={flashRef} />
         </div>
 
-        <ResultOverlay ended={ended} cs={cs} encounter={encounter} player={player} backLabel={backLabel} dungeon={dungeon} onClaim={claim} onRestart={onRestart} onExit={onExit} />
+        <ResultOverlay ended={ended} cs={cs} encounter={encounter} player={player} heroSrc={heroSrc} members={members} backLabel={backLabel} dungeon={dungeon} onClaim={claim} onRestart={onRestart} onExit={onExit} />
       </div>
 
       {/* ---------- INTERFACE ---------- */}
